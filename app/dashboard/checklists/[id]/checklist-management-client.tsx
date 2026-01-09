@@ -19,13 +19,52 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
     // Local state for responses to allow optimistic updates
     const [responses, setResponses] = useState<any[]>(checklist.responses?.map((r: any) => ({
         ...r,
-        // Hydrate AI Suggestion from DB fields
         aiSuggestion: r.aiFlag ? {
             status: r.aiFlag,
             reason: r.aiMessage,
             confidence: r.aiConfidence
         } : null
     })) || []);
+
+    // Extract unique field IDs from responses to rebuild computed sections
+    const selectedFieldIds = Array.from(new Set(
+        responses
+            .filter(r => r.fieldId && r.fieldId !== '__global__')
+            .map(r => r.fieldId)
+    )) as string[];
+
+    // Replicate computedSections logic for Auditor view
+    const computedSections = (() => {
+        const sections = checklist.template.sections;
+        if (selectedFieldIds.length === 0) return sections;
+
+        const newSections: any[] = [];
+        sections.forEach((section: any) => {
+            if (section.iterateOverFields) {
+                selectedFieldIds.forEach((fieldId: string) => {
+                    // Try to find field name in producer maps
+                    const allFields = checklist.producer?.maps?.flatMap((m: any) => m.fields || []) || [];
+                    const field = allFields.find((f: any) => f.id === fieldId);
+                    const fieldName = field?.name || `Talhão ${fieldId}`;
+
+                    newSections.push({
+                        ...section,
+                        id: `${section.id}::${fieldId}`,
+                        name: `${section.name} - ${fieldName}`,
+                        fieldId,
+                        items: section.items.map((item: any) => ({
+                            ...item,
+                            id: `${item.id}::${fieldId}`,
+                            originalId: item.id
+                        }))
+                    });
+                });
+            } else {
+                newSections.push(section);
+            }
+        });
+        return newSections;
+    })();
     const [selectedItem, setSelectedItem] = useState<{ item: any, response: any } | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -135,13 +174,13 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
         setIsAnalyzing(false);
     };
 
-    const updateResponseStatus = async (itemId: string, status: string, reason: string | null = null, aiSuggestion: any = null) => {
+    const updateResponseStatus = async (itemId: string, status: string, reason: string | null = null, fieldId: string | null = null) => {
         // Optimistic Update Snapshot
         const snapshotResponses = [...responses];
 
         // Apply Optimistic Update
         setResponses(prev => {
-            const existingIdx = prev.findIndex(r => r.itemId === itemId);
+            const existingIdx = prev.findIndex(r => r.itemId === itemId && r.fieldId === (fieldId || "__global__"));
             if (existingIdx >= 0) {
                 const updated = [...prev];
                 updated[existingIdx] = {
@@ -151,12 +190,12 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                 };
                 return updated;
             } else {
-                return [...prev, { itemId, checklistId: checklist.id, status, rejectionReason: reason }];
+                return [...prev, { itemId, checklistId: checklist.id, status, rejectionReason: reason, fieldId: fieldId || "__global__" }];
             }
         });
 
         // Update selected item view
-        if (selectedItem?.item.id === itemId) {
+        if (selectedItem?.item.id === (fieldId ? `${itemId}::${fieldId}` : itemId)) {
             setSelectedItem(prev => prev ? ({
                 ...prev,
                 response: { ...prev.response, status, rejectionReason: reason }
@@ -168,7 +207,7 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
             const res = await fetch(`/api/checklists/${checklist.id}/responses/${itemId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status, rejectionReason: reason })
+                body: JSON.stringify({ status, rejectionReason: reason, fieldId })
             });
 
             if (!res.ok) throw new Error('Failed to save');
@@ -177,9 +216,6 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
             console.error(error);
             alert("Erro ao salvar alteração. Revertendo...");
             setResponses(snapshotResponses); // Revert
-            if (selectedItem?.item.id === itemId) {
-                // Revert selected item view roughly (or just let router refresh fix it)
-            }
         }
     };
 
@@ -284,14 +320,17 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
-                        {sections.map((section: any) => (
+                        {computedSections.map((section: any) => (
                             <div key={section.id}>
                                 <h3 className="px-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
                                     {section.name}
                                 </h3>
                                 <div className="space-y-1">
                                     {section.items.map((item: any) => {
-                                        const response = responses.find((r: any) => r.itemId === item.id);
+                                        const response = responses.find((r: any) =>
+                                            r.itemId === (item.originalId || item.id) &&
+                                            r.fieldId === (section.fieldId || "__global__")
+                                        );
                                         const isSelected = selectedItem?.item.id === item.id;
 
                                         return (
@@ -364,10 +403,14 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                                 itemType={selectedItem.item.type}
                                 onApprove={() => {
                                     const nextStatus = selectedItem.response?.status === 'APPROVED' ? 'PENDING_VERIFICATION' : 'APPROVED';
-                                    updateResponseStatus(selectedItem.item.id, nextStatus);
+                                    const itemId = selectedItem.item.originalId || selectedItem.item.id;
+                                    const fieldId = selectedItem.item.id.includes('::') ? selectedItem.item.id.split('::')[1] : null;
+                                    updateResponseStatus(itemId, nextStatus, null, fieldId);
                                 }}
                                 onReject={(reason) => {
-                                    updateResponseStatus(selectedItem.item.id, 'REJECTED', reason);
+                                    const itemId = selectedItem.item.originalId || selectedItem.item.id;
+                                    const fieldId = selectedItem.item.id.includes('::') ? selectedItem.item.id.split('::')[1] : null;
+                                    updateResponseStatus(itemId, 'REJECTED', reason, fieldId);
                                 }}
                                 onAcceptAi={() => {
                                     // Mock acceptance logic

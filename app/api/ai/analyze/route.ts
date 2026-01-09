@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const { checklistId, itemId, userAnswer, userObservation, itemName, itemDescription } = await req.json();
+        const { checklistId, itemId, userAnswer, userObservation, itemName, itemDescription, fieldId } = await req.json();
 
         // Fetch prompt config
         // In a real app we might cache this or use a singleton
@@ -40,11 +40,12 @@ export async function POST(req: Request) {
             };
 
             // Persist mock result to DB
-            await db.response.update({
+            await (db.response as any).update({
                 where: {
-                    checklistId_itemId: {
+                    checklistId_itemId_fieldId: {
                         checklistId,
-                        itemId: itemId
+                        itemId: itemId,
+                        fieldId: fieldId || "__global__"
                     }
                 },
                 data: {
@@ -134,11 +135,12 @@ export async function POST(req: Request) {
                 analysis.reason = analysis.reasoning || analysis.reason;
 
                 // PERSIST TO DATABASE
-                await db.response.update({
+                await (db.response as any).update({
                     where: {
-                        checklistId_itemId: {
+                        checklistId_itemId_fieldId: {
                             checklistId,
-                            itemId: itemId
+                            itemId: itemId,
+                            fieldId: fieldId || "__global__"
                         }
                     },
                     data: {
@@ -175,8 +177,14 @@ export async function POST(req: Request) {
                         analysis.reason = analysis.reasoning || analysis.reason;
 
                         // PERSIST FALLBACK RESULT
-                        await db.response.update({
-                            where: { checklistId_itemId: { checklistId, itemId: itemId } },
+                        await (db.response as any).update({
+                            where: {
+                                checklistId_itemId_fieldId: {
+                                    checklistId,
+                                    itemId: itemId,
+                                    fieldId: fieldId || "__global__"
+                                }
+                            },
                             data: {
                                 aiFlag: analysis.status,
                                 aiMessage: analysis.reason,

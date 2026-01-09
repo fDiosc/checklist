@@ -132,6 +132,17 @@ const options = [
     { source: 'desiccation_pre_harvest', label: 'Lifeline 280 SL', value: 'lifeline_280_sl', composition: 'Glufosinato 280 g/l', unit: 'l/ha' },
     { source: 'desiccation_pre_harvest', label: 'Trunfo 280 SL', value: 'trunfo_280_sl', composition: 'Glufosinato 280 g/l', unit: 'l/ha' },
     { source: 'desiccation_pre_harvest', label: 'Outro', value: 'outro', composition: 'Outro', unit: 'l/ha' },
+
+    { source: 'seed_variety', label: 'Variedade Semente', value: 'variedade_semente', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Mika', value: 'mika', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Oren', value: 'oren', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Ron', value: 'ron', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'K3', value: 'k3', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Victoria', value: 'victoria', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Jordan', value: 'jordan', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Anahy', value: 'anahy', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Seda', value: 'seda', composition: '', unit: '' },
+    { source: 'seed_variety', label: 'Outro', value: 'outro', composition: 'Outro', unit: '' },
 ];
 
 async function main() {

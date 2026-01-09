@@ -29,43 +29,49 @@ export async function POST(
 
         // 3. Save/Update responses
         await db.$transaction(
-            Object.entries(responses).map(([itemId, data]: [string, any]) => {
-                const existing = currentResponses.find(r => r.itemId === itemId);
-                let safeStatus = (data.status as any) || "PENDING_VERIFICATION";
+            Object.entries(responses)
+                .filter(([key]) => key !== '__selected_fields')
+                .map(([key, data]: [string, any]) => {
+                    const [itemId, fieldId] = key.includes('::') ? key.split('::') : [key, "__global__"];
 
-                // SERVER-SIDE GUARD: If item was REJECTED but producer provides answer, 
-                // reset status to PENDING_VERIFICATION.
-                if (existing?.status === 'REJECTED' && data.answer && data.answer !== existing.answer) {
-                    safeStatus = 'PENDING_VERIFICATION';
-                }
+                    const existing = currentResponses.find((r: any) => r.itemId === itemId && r.fieldId === fieldId);
+                    let safeStatus = (data.status as any) || "PENDING_VERIFICATION";
 
-                return db.response.upsert({
-                    where: {
-                        checklistId_itemId: {
+                    // SERVER-SIDE GUARD: If item was REJECTED but producer provides answer, 
+                    // reset status to PENDING_VERIFICATION.
+                    if (existing?.status === 'REJECTED' && data.answer && data.answer !== existing.answer) {
+                        safeStatus = 'PENDING_VERIFICATION';
+                    }
+
+                    return (db.response as any).upsert({
+                        where: {
+                            checklistId_itemId_fieldId: {
+                                checklistId: checklist.id,
+                                itemId: itemId,
+                                fieldId: fieldId,
+                            },
+                        },
+                        update: {
+                            answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
+                            quantity: data.quantity ? String(data.quantity) : null,
+                            observation: data.observationValue || null,
+                            fileUrl: data.fileUrl || null,
+                            validity: data.validity ? new Date(data.validity) : null,
+                            status: safeStatus,
+                        },
+                        create: {
                             checklistId: checklist.id,
                             itemId: itemId,
+                            fieldId: fieldId,
+                            answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
+                            quantity: data.quantity ? String(data.quantity) : null,
+                            observation: data.observationValue || null,
+                            fileUrl: data.fileUrl || null,
+                            validity: data.validity ? new Date(data.validity) : null,
+                            status: safeStatus,
                         },
-                    },
-                    update: {
-                        answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
-                        quantity: data.quantity ? String(data.quantity) : null,
-                        observation: data.observationValue || null,
-                        fileUrl: data.fileUrl || null,
-                        validity: data.validity ? new Date(data.validity) : null,
-                        status: safeStatus,
-                    },
-                    create: {
-                        checklistId: checklist.id,
-                        itemId: itemId,
-                        answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
-                        quantity: data.quantity ? String(data.quantity) : null,
-                        observation: data.observationValue || null,
-                        fileUrl: data.fileUrl || null,
-                        validity: data.validity ? new Date(data.validity) : null,
-                        status: safeStatus,
-                    },
-                });
-            })
+                    });
+                })
         );
 
         // 3. Update checklist status
@@ -76,6 +82,62 @@ export async function POST(
                 submittedAt: new Date(),
             },
         });
+
+        // 4. PERMANENT PERSISTENCE: Sync Maps to Producer (User Suggestion)
+        // If there's a PROPERTY_MAP answer, we save it to the permanent table.
+        if (checklist.producerId) {
+            try {
+                // Fetch the template items to identify MAP responses
+                const template = await db.template.findUnique({
+                    where: { id: checklist.templateId },
+                    include: { sections: { include: { items: true } } }
+                });
+
+                const mapItems = template?.sections.flatMap(s => s.items).filter(i => i.type === 'PROPERTY_MAP') || [];
+
+                for (const item of mapItems) {
+                    const submissionResponse = responses[item.id];
+                    if (submissionResponse && submissionResponse.answer) {
+                        try {
+                            const mapData = typeof submissionResponse.answer === 'string'
+                                ? JSON.parse(submissionResponse.answer)
+                                : submissionResponse.answer;
+
+                            if (mapData && mapData.fields) {
+                                // Upsert to PropertyMap
+                                await (db.propertyMap as any).upsert({
+                                    where: {
+                                        // We use the combination of producer and name as a soft unique key 
+                                        // or we can find an existing one from this specific checklist
+                                        id: `map-${checklist.id}-${item.id}` // Deterministic ID for this pair
+                                    },
+                                    update: {
+                                        fields: mapData.fields,
+                                        propertyLocation: mapData.propertyLocation || null,
+                                        city: mapData.city || null,
+                                        state: mapData.state || null,
+                                        updatedAt: new Date()
+                                    },
+                                    create: {
+                                        id: `map-${checklist.id}-${item.id}`,
+                                        producerId: checklist.producerId,
+                                        name: `Mapa do Checklist: ${template?.name || 'Geral'}`,
+                                        fields: mapData.fields,
+                                        propertyLocation: mapData.propertyLocation || null,
+                                        city: mapData.city || null,
+                                        state: mapData.state || null,
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error("Failed to sync map data:", e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Map sync infrastructure failure:", e);
+            }
+        }
 
         return NextResponse.json({ success: true });
     } catch (err: any) {

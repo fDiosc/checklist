@@ -57,6 +57,10 @@ export interface DocumentItem {
     requestArtifact?: boolean;
     artifactRequired?: boolean;
     fileUrl?: string;
+    metadata?: {
+        composition?: string;
+        unit?: string;
+    };
     aiAnalysis?: {
         flag: 'APROVADO' | 'REPROVADO';
         message: string;

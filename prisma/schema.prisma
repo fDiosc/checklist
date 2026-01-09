@@ -229,12 +229,13 @@ model Response {
   filledById      String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  
+  fieldId         String         @default("__global__") // ID do talhão ou "__global__" para geral
+
   checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
   item      Item      @relation(fields: [itemId], references: [id])
   filledBy  User?     @relation("InternalResponses", fields: [filledById], references: [id])
-  
-  @@unique([checklistId, itemId])
+
+  @@unique([checklistId, itemId, fieldId], name: "checklistId_itemId_fieldId")
   @@index([checklistId])
   @@map("responses")
 }

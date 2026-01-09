@@ -21,16 +21,56 @@ export default async function PublicChecklistPage({
             },
             responses: true,
             producer: {
-                select: {
-                    name: true,
+                include: {
                     maps: true,
-                },
+                    checklists: {
+                        include: {
+                            template: { select: { name: true } },
+                            responses: {
+                                where: {
+                                    item: { type: 'PROPERTY_MAP' },
+                                },
+                                include: { item: true }
+                            },
+                        },
+                        orderBy: { createdAt: "desc" },
+                    }
+                }
             },
         },
     });
 
     if (!checklist) {
         notFound();
+    }
+
+    // Aggregate maps from all producer's checklists
+    let aggregatedMaps: any[] = [];
+    if (checklist.producer) {
+        const extractedMaps = checklist.producer.checklists.flatMap(c =>
+            c.responses
+                .filter(r => r.item.type === 'PROPERTY_MAP' && r.answer)
+                .map(r => {
+                    try {
+                        const data = JSON.parse(r.answer as string);
+                        return {
+                            id: `resp-${r.id}`,
+                            producerId: checklist.producer?.id,
+                            name: `Mapa do Checklist: ${c.template.name}`,
+                            location: data.propertyLocation,
+                            fields: data.fields,
+                            city: data.city,
+                            state: data.state,
+                            createdAt: r.createdAt,
+                            isFromResponse: true
+                        };
+                    } catch (e) {
+                        return null;
+                    }
+                })
+                .filter((m): m is any => m !== null)
+        );
+        aggregatedMaps = [...checklist.producer.maps, ...extractedMaps];
     }
 
     if (checklist.status === "FINALIZED") {
@@ -48,5 +88,14 @@ export default async function PublicChecklistPage({
         );
     }
 
-    return <ChecklistFormClient checklist={checklist} />;
+    // Prepare a safe version of the checklist for the client, including aggregated maps
+    const clientChecklist = {
+        ...checklist,
+        producer: checklist.producer ? {
+            ...checklist.producer,
+            maps: aggregatedMaps
+        } : null
+    };
+
+    return <ChecklistFormClient checklist={clientChecklist} />;
 }

@@ -121,8 +121,19 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             ) : (
                                 <select
                                     value={item.answer as string || ''}
-                                    onChange={(e) => onUpdate({ answer: e.target.value })}
-                                    className="w-full appearance-none p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-bold outline-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const selectedOption = dbOptions.find(o => o.label === val);
+                                        onUpdate({
+                                            answer: val,
+                                            // Pass DB metadata if available so parent can auto-fill
+                                            metadata: selectedOption ? {
+                                                composition: selectedOption.composition,
+                                                unit: selectedOption.unit
+                                            } : undefined
+                                        });
+                                    }}
+                                    className="w-full appearance-none p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] text-xl font-bold outline-none shadow-sm text-slate-900 transition-all focus:bg-white focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500"
                                 >
                                     <option value="">Selecione uma opção...</option>
                                     {options.map((opt, i) => (
@@ -174,14 +185,14 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                                 key={i}
                                 onClick={() => onUpdate({ answer: opt })}
                                 className={`
-                                    flex items-center gap-6 p-8 rounded-[2.5rem] border-4 transition-all text-left
-                                    ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-2xl shadow-emerald-500/20 scale-[1.02]' : 'bg-gray-50 border-transparent text-slate-600 hover:bg-white hover:border-gray-100'}
+                                    flex items-center gap-6 p-8 rounded-[2.5rem] border-2 transition-all text-left group
+                                    ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-500/20 scale-[1.01]' : 'bg-white border-slate-100 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/10'}
                                 `}
                             >
-                                <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'bg-white border-gray-200'}`}>
+                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'bg-slate-50 border-slate-200 group-hover:border-emerald-300'}`}>
                                     {isSelected && <div className="w-3 h-3 rounded-full bg-emerald-500" />}
                                 </div>
-                                <span className="text-xl font-bold">{opt}</span>
+                                <span className="text-xl font-black tracking-tight">{opt}</span>
                             </button>
                         );
                     })}
@@ -204,18 +215,18 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                                 key={i}
                                 onClick={handleToggle}
                                 className={`
-                                    flex items-center gap-6 p-8 rounded-[2.5rem] border-4 transition-all text-left
-                                    ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-2xl shadow-emerald-500/20 scale-[1.02]' : 'bg-gray-50 border-transparent text-slate-600 hover:bg-white hover:border-gray-100'}
+                                    flex items-center gap-6 p-8 rounded-[2.5rem] border-2 transition-all text-left group
+                                    ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-500/20 scale-[1.01]' : 'bg-white border-slate-100 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/10'}
                                 `}
                             >
-                                <div className={`w-8 h-8 rounded-xl border-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'bg-white border-gray-200'}`}>
+                                <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'bg-slate-50 border-slate-200 group-hover:border-emerald-300'}`}>
                                     {isSelected && (
                                         <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
                                             <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                     )}
                                 </div>
-                                <span className="text-xl font-bold">{opt}</span>
+                                <span className="text-xl font-black tracking-tight">{opt}</span>
                             </button>
                         );
                     })}
@@ -237,7 +248,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                 <textarea
                     value={item.answer as string || ''}
                     onChange={(e) => onUpdate({ answer: e.target.value })}
-                    className="w-full h-64 p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-medium outline-none resize-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
+                    className="w-full h-64 p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] text-xl font-bold outline-none resize-none shadow-sm text-slate-900 transition-all focus:bg-white focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500"
                     placeholder="Digite sua resposta detalhada..."
                 />
             );
@@ -274,13 +285,18 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
 
     return (
         <div className="animate-fade-in pb-20 max-w-3xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
-                <div>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">{item.type.replace('_', ' ')}</span>
-                    <h2 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight mt-4 tracking-tighter">{item.name}</h2>
-                    {producerIdentifier && <p className="text-xs text-primary mt-3 font-bold flex items-center gap-2 animate-fade-in"><span className="w-1.5 h-1.5 rounded-full bg-primary ring-4 ring-primary/20"></span> {producerIdentifier}</p>}
+            <div className="flex flex-col md:flex-row md:items-start justify-between mb-12 gap-6 bg-slate-50/50 p-6 md:p-8 rounded-[2.5rem] border border-slate-100">
+                <div className="flex-1">
+                    <span className="px-3 py-1 bg-emerald-100/50 rounded-full text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">{item.type.replace('_', ' ')}</span>
+                    <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-[1.1] mt-5 tracking-tighter">{item.name}</h2>
+                    {producerIdentifier && (
+                        <div className="flex items-center gap-3 mt-4 text-slate-500 font-bold text-xs bg-white/80 w-fit px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                            {producerIdentifier}
+                        </div>
+                    )}
                 </div>
-                {item.required && <span className="self-start md:self-auto bg-red-50 text-red-500 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100 shadow-sm animate-bounce-slow">Obrigatório</span>}
+                {item.required && <span className="self-start md:self-auto bg-red-50 text-red-500 px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest border-2 border-red-100/50 shadow-sm animate-bounce-slow">Obrigatório</span>}
             </div>
 
             <div className="space-y-12">

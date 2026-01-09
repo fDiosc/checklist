@@ -59,43 +59,50 @@ export async function POST(
 
         // 3. Save/Update responses
         await db.$transaction(
-            Object.entries(responses).map(([itemId, data]: [string, any]) => {
-                const existing = currentResponses.find(r => r.itemId === itemId);
-                let safeStatus = sanitizeStatus(data.status);
+            Object.entries(responses)
+                .filter(([key]) => key !== '__selected_fields')
+                .map(([key, data]: [string, any]) => {
+                    // Key format: "itemId" or "itemId::fieldId"
+                    const [itemId, fieldId] = key.includes('::') ? key.split('::') : [key, "__global__"];
 
-                // SERVER-SIDE GUARD: If item was REJECTED but producer provides answer, 
-                // reset status to PENDING_VERIFICATION to ensure Auditor review.
-                if (existing?.status === 'REJECTED' && data.answer && data.answer !== existing.answer) {
-                    safeStatus = 'PENDING_VERIFICATION';
-                }
+                    const existing = currentResponses.find((r: any) => r.itemId === itemId && r.fieldId === fieldId);
+                    let safeStatus = sanitizeStatus(data.status);
 
-                return db.response.upsert({
-                    where: {
-                        checklistId_itemId: {
+                    // SERVER-SIDE GUARD: If item was REJECTED but producer provides answer, 
+                    // reset status to PENDING_VERIFICATION to ensure Auditor review.
+                    if (existing?.status === 'REJECTED' && data.answer && data.answer !== existing.answer) {
+                        safeStatus = 'PENDING_VERIFICATION';
+                    }
+
+                    return (db.response as any).upsert({
+                        where: {
+                            checklistId_itemId_fieldId: {
+                                checklistId: checklist.id,
+                                itemId: itemId,
+                                fieldId: fieldId,
+                            },
+                        },
+                        update: {
+                            answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
+                            quantity: data.quantity ? String(data.quantity) : null,
+                            observation: data.observationValue || null,
+                            fileUrl: data.fileUrl || null,
+                            validity: data.validity ? new Date(data.validity) : null,
+                            status: safeStatus,
+                        },
+                        create: {
                             checklistId: checklist.id,
                             itemId: itemId,
+                            fieldId: fieldId,
+                            answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
+                            quantity: data.quantity ? String(data.quantity) : null,
+                            observation: data.observationValue || null,
+                            fileUrl: data.fileUrl || null,
+                            validity: data.validity ? new Date(data.validity) : null,
+                            status: safeStatus,
                         },
-                    },
-                    update: {
-                        answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
-                        quantity: data.quantity ? String(data.quantity) : null,
-                        observation: data.observationValue || null,
-                        fileUrl: data.fileUrl || null,
-                        validity: data.validity ? new Date(data.validity) : null,
-                        status: safeStatus,
-                    },
-                    create: {
-                        checklistId: checklist.id,
-                        itemId: itemId,
-                        answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
-                        quantity: data.quantity ? String(data.quantity) : null,
-                        observation: data.observationValue || null,
-                        fileUrl: data.fileUrl || null,
-                        validity: data.validity ? new Date(data.validity) : null,
-                        status: safeStatus,
-                    },
-                });
-            })
+                    });
+                })
         );
 
         return NextResponse.json({ success: true });

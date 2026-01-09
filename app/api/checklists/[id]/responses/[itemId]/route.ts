@@ -13,7 +13,7 @@ export async function PUT(
         }
 
         const { id, itemId } = await params;
-        const { status, rejectionReason, answer, observation, quantity, fileUrl, validity, isInternal } = await req.json();
+        const { status, rejectionReason, answer, observation, quantity, fileUrl, validity, isInternal, fieldId } = await req.json();
 
         // Validate status enum
         if (status && !['APPROVED', 'REJECTED', 'PENDING_VERIFICATION', 'MISSING'].includes(status)) {
@@ -47,18 +47,20 @@ export async function PUT(
             if (!status) data.status = 'PENDING_VERIFICATION';
         }
 
-        const response = await db.response.upsert({
+        const response = await (db.response as any).upsert({
             where: {
-                checklistId_itemId: {
+                checklistId_itemId_fieldId: {
                     checklistId: id,
-                    itemId: itemId
+                    itemId: itemId,
+                    fieldId: fieldId || "__global__"
                 }
             },
             update: data,
             create: {
                 ...data,
                 checklistId: id,
-                itemId: itemId
+                itemId: itemId,
+                fieldId: fieldId || "__global__"
             }
         });
 
@@ -74,6 +76,50 @@ export async function PUT(
             });
         } catch (auditError) {
             console.error("Non-blocking audit log error:", auditError);
+        }
+
+        // 5. PERMANENT PERSISTENCE SYNC (Auditor Side)
+        if (answer) {
+            try {
+                const item = await db.item.findUnique({ where: { id: itemId } });
+                if (item?.type === 'PROPERTY_MAP') {
+                    const checklist = await db.checklist.findUnique({
+                        where: { id },
+                        include: { template: true }
+                    });
+
+                    if (checklist?.producerId) {
+                        try {
+                            const mapData = typeof answer === 'string' ? JSON.parse(answer) : answer;
+                            if (mapData && mapData.fields) {
+                                await (db.propertyMap as any).upsert({
+                                    where: { id: `map-${id}-${itemId}` },
+                                    update: {
+                                        fields: mapData.fields,
+                                        propertyLocation: mapData.propertyLocation || null,
+                                        city: mapData.city || null,
+                                        state: mapData.state || null,
+                                        updatedAt: new Date()
+                                    },
+                                    create: {
+                                        id: `map-${id}-${itemId}`,
+                                        producerId: checklist.producerId,
+                                        name: `Mapa do Checklist: ${checklist.template?.name || 'Geral'}`,
+                                        fields: mapData.fields,
+                                        propertyLocation: mapData.propertyLocation || null,
+                                        city: mapData.city || null,
+                                        state: mapData.state || null,
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error("Map sync error (auditor):", e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Map sync infrastructure error (auditor):", e);
+            }
         }
 
         return NextResponse.json(response);
