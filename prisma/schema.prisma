@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USERS & AUTH (synced from Clerk)
+// ============================================
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  PRODUCER
+}
+
+model User {
+  id        String   @id
+  email     String   @unique
+  name      String?
+  role      UserRole @default(PRODUCER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  templatesCreated  Template[]
+  checklistsCreated Checklist[]
+  auditLogs         AuditLog[]
+  internalResponses Response[] @relation("InternalResponses")
+  
+  @@map("users")
+}
+
+// ============================================
+// PRODUCERS
+// ============================================
+
+model Producer {
+  id        String   @id @default(cuid())
+  name      String
+  cpf       String   @unique
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subUsers   SubUser[]
+  checklists Checklist[]
+  maps       PropertyMap[]
+  
+  @@index([cpf])
+  @@index([email])
+  @@map("producers")
+}
+
+model SubUser {
+  id         String   @id @default(cuid())
+  producerId String
+  name       String
+  cpf        String
+  email      String
+  phone      String?
+  role       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  producer   Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  checklists Checklist[]
+  
+  @@index([producerId])
+  @@map("sub_users")
+}
+
+// ============================================
+// TEMPLATES
+// ============================================
+
+enum TemplateStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model Template {
+  id                              String         @id @default(cuid())
+  name                            String
+  folder                          String
+  status                          TemplateStatus @default(ACTIVE)
+  requiresProducerIdentification  Boolean        @default(false)
+  createdById                     String
+  createdAt                       DateTime       @default(now())
+  updatedAt                       DateTime       @updatedAt
+
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  sections   Section[]
+  checklists Checklist[]
+  
+  @@index([status])
+  @@index([createdById])
+  @@map("templates")
+}
+
+model Section {
+  id                String  @id @default(cuid())
+  templateId        String
+  name              String
+  order             Int
+  iterateOverFields Boolean @default(false)
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items    Item[]
+  
+  @@index([templateId])
+  @@map("sections")
+}
+
+enum ItemType {
+  FILE
+  TEXT
+  LONG_TEXT
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  DATE
+  PROPERTY_MAP
+  FIELD_SELECTOR
+  DROPDOWN_SELECT
+}
+
+model Item {
+  id                 String   @id @default(cuid())
+  sectionId          String
+  name               String
+  type               ItemType
+  order              Int
+  required           Boolean  @default(true)
+  validityControl    Boolean  @default(false)
+  observationEnabled Boolean  @default(false)
+  requestArtifact    Boolean  @default(false)
+  artifactRequired   Boolean  @default(false)
+  askForQuantity     Boolean  @default(false)
+  options            String[]
+  databaseSource     String?
+  
+  section   Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  responses Response[]
+  
+  @@index([sectionId])
+  @@map("items")
+}
+
+// ============================================
+// CHECKLISTS (Instâncias)
+// ============================================
+
+enum ChecklistStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  FINALIZED
+}
+
+model Checklist {
+  id          String          @id @default(cuid())
+  templateId  String
+  producerId  String?
+  subUserId   String?
+  status      ChecklistStatus @default(DRAFT)
+  publicToken String          @unique
+  sentAt      DateTime?
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  finalizedAt DateTime?
+  createdById String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  sentVia     String?
+  sentTo      String?
+  
+  template   Template   @relation(fields: [templateId], references: [id])
+  producer   Producer?  @relation(fields: [producerId], references: [id])
+  subUser    SubUser?   @relation(fields: [subUserId], references: [id])
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  responses  Response[]
+  auditLogs  AuditLog[]
+  
+  @@index([publicToken])
+  @@index([producerId])
+  @@index([status])
+  @@map("checklists")
+}
+
+// ============================================
+// RESPONSES
+// ============================================
+
+enum ResponseStatus {
+  MISSING
+  PENDING_VERIFICATION
+  APPROVED
+  REJECTED
+}
+
+model Response {
+  id              String         @id @default(cuid())
+  checklistId     String
+  itemId          String
+  status          ResponseStatus @default(MISSING)
+  answer          String?
+  quantity        String?
+  observation     String?
+  fileUrl         String?
+  validity        DateTime?
+  rejectionReason String?
+  reviewedAt      DateTime?
+  aiFlag          String?
+  aiMessage       String?
+  aiConfidence    Float?
+  isInternal      Boolean        @default(false)
+  filledById      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id])
+  filledBy  User?     @relation("InternalResponses", fields: [filledById], references: [id])
+  
+  @@unique([checklistId, itemId])
+  @@index([checklistId])
+  @@map("responses")
+}
+
+// ============================================
+// MAPAS GEOESPACIAIS
+// ============================================
+
+model PropertyMap {
+  id               String   @id @default(cuid())
+  producerId       String
+  propertyLocation Json?
+  fields           Json
+  city             String?
+  state            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  producer Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  
+  @@index([producerId])
+  @@map("property_maps")
+}
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  checklistId String?
+  userId      String
+  action      String
+  details     Json?
+  createdAt   DateTime @default(now())
+  
+  checklist Checklist? @relation(fields: [checklistId], references: [id], onDelete: SetNull)
+  user      User       @relation(fields: [userId], references: [id])
+  
+  @@index([checklistId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+// ============================================
+// CONFIGURAÇÃO IA
+// ============================================
+
+model AiPrompt {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  description String?
+  template    String   @db.Text
+  model       String   @default("gpt-4o")
+  temperature Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ai_prompts")
+}

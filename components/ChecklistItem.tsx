@@ -1,0 +1,310 @@
+'use client';
+
+import React, { useState } from 'react';
+import { DocumentItem } from '@/types/checklist';
+import { DATABASE_FERTILIZERS, DATABASE_DESICCATION } from '@/lib/constants';
+import PropertyMapInput from './PropertyMapInput';
+import CameraCapture from './CameraCapture';
+
+import FieldSelectorInput from './FieldSelectorInput';
+
+interface ChecklistItemProps {
+    item: DocumentItem;
+    idSuffix?: string;
+    onUpdate: (updates: Partial<DocumentItem>) => void;
+    producerIdentifier?: string;
+    producerMaps?: any[];
+    readOnly?: boolean;
+}
+
+const ChecklistItem: React.FC<ChecklistItemProps> = ({
+    item,
+    idSuffix = '',
+    onUpdate,
+    producerIdentifier,
+    producerMaps,
+    readOnly = false
+}) => {
+    const [showCamera, setShowCamera] = useState(false);
+    const uniqueId = `${item.id}${idSuffix}`;
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            onUpdate({ answer: file.name, status: item.status }); // Simple mock for file handling
+        }
+    };
+
+    const renderFileUpload = (compact = false) => (
+        <div className={`mt-6 p-6 md:p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 transition-all hover:bg-white hover:border-primary/20`}>
+            <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Anexar Comprovante</span>
+                </div>
+
+                {item.answer && item.type === 'file' ? (
+                    <div className="flex items-center gap-3 bg-emerald-50 px-6 py-3 rounded-2xl text-emerald-700 border border-emerald-100 animate-fade-in">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-xs font-bold truncate max-w-[150px]">{item.answer as string}</span>
+                        <button onClick={() => onUpdate({ answer: '' })} className="ml-2 hover:text-red-500 transition-colors">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => document.getElementById(`file-${uniqueId}`)?.click()}
+                            className="bg-white border text-gray-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all"
+                        >
+                            Arquivo
+                        </button>
+                        <button
+                            onClick={() => setShowCamera(true)}
+                            className="bg-primary text-primary-foreground px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center gap-2 hover:scale-105 transition-all"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />
+                                <circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            Câmera
+                        </button>
+                        <input
+                            id={`file-${uniqueId}`}
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
+                    </div>
+                )}
+            </div>
+            {showCamera && <CameraCapture onCapture={(file) => { onUpdate({ answer: file.name }); setShowCamera(false); }} onClose={() => setShowCamera(false)} />}
+        </div>
+    );
+
+    const renderInput = () => {
+        const type = item.type.toLowerCase();
+        switch (type) {
+            case 'file': return renderFileUpload();
+            case 'dropdown_select': {
+                let options = item.options || [];
+                let currentUnit = '';
+
+                if (item.databaseSource === 'fertilizers') {
+                    options = DATABASE_FERTILIZERS.map((i: any) => i.product);
+                } else if (item.databaseSource === 'desiccation') {
+                    options = DATABASE_DESICCATION.map((i: any) => i.product);
+                }
+
+                if (item.databaseSource && item.answer) {
+                    const db = item.databaseSource === 'fertilizers' ? DATABASE_FERTILIZERS : DATABASE_DESICCATION;
+                    const dbItem = db.find((i: any) => i.product === item.answer);
+                    if (dbItem) currentUnit = dbItem.unit;
+                }
+
+                return (
+                    <div className="space-y-6">
+                        <div className="relative group">
+                            <select
+                                value={item.answer as string || ''}
+                                onChange={(e) => onUpdate({ answer: e.target.value })}
+                                className="w-full appearance-none p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-bold outline-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
+                            >
+                                <option value="">Selecione uma opção...</option>
+                                {options.map((opt, i) => (
+                                    <option key={i} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-primary transition-colors">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {item.askForQuantity && item.answer && (
+                            <div className="p-8 bg-emerald-50/50 rounded-[2.5rem] border-2 border-emerald-100 flex flex-col gap-4 animate-fade-in">
+                                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">
+                                    Quantidade {currentUnit ? `(${currentUnit})` : ''} de {item.answer}
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="number"
+                                        value={item.quantity || ''}
+                                        onChange={(e) => onUpdate({ quantity: e.target.value })}
+                                        placeholder="0.00"
+                                        className="flex-1 bg-transparent border-none p-0 text-3xl font-black text-emerald-900 placeholder:text-emerald-900/20 outline-none"
+                                    />
+                                    {currentUnit && <span className="text-xl font-black text-emerald-400 uppercase tracking-widest">{currentUnit}</span>}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            case 'single_choice': return (
+                <div className="grid gap-4">
+                    {item.options?.map((opt, i) => {
+                        const isSelected = item.answer === opt;
+                        return (
+                            <button
+                                key={i}
+                                onClick={() => onUpdate({ answer: opt })}
+                                className={`
+                                    flex items-center gap-6 p-8 rounded-[2.5rem] border-4 transition-all text-left
+                                    ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-2xl shadow-emerald-500/20 scale-[1.02]' : 'bg-gray-50 border-transparent text-slate-600 hover:bg-white hover:border-gray-100'}
+                                `}
+                            >
+                                <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'bg-white border-gray-200'}`}>
+                                    {isSelected && <div className="w-3 h-3 rounded-full bg-emerald-500" />}
+                                </div>
+                                <span className="text-xl font-bold">{opt}</span>
+                            </button>
+                        );
+                    })}
+                    {item.requestArtifact && item.answer === 'Sim' && renderFileUpload(true)}
+                </div>
+            );
+
+            case 'multiple_choice': return (
+                <div className="grid gap-4">
+                    {item.options?.map((opt, i) => {
+                        const answers = Array.isArray(item.answer) ? item.answer : [];
+                        const isSelected = answers.includes(opt);
+                        const handleToggle = () => {
+                            const newAnswers = isSelected ? answers.filter(a => a !== opt) : [...answers, opt];
+                            onUpdate({ answer: newAnswers });
+                        };
+
+                        return (
+                            <button
+                                key={i}
+                                onClick={handleToggle}
+                                className={`
+                                    flex items-center gap-6 p-8 rounded-[2.5rem] border-4 transition-all text-left
+                                    ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-2xl shadow-emerald-500/20 scale-[1.02]' : 'bg-gray-50 border-transparent text-slate-600 hover:bg-white hover:border-gray-100'}
+                                `}
+                            >
+                                <div className={`w-8 h-8 rounded-xl border-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white' : 'bg-white border-gray-200'}`}>
+                                    {isSelected && (
+                                        <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24">
+                                            <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <span className="text-xl font-bold">{opt}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            );
+
+            case 'date': return (
+                <div className="p-8 bg-gray-50 rounded-[2.5rem] shadow-inner">
+                    <input
+                        type="date"
+                        value={item.answer as string || ''}
+                        onChange={(e) => onUpdate({ answer: e.target.value })}
+                        className="w-full bg-transparent border-none text-2xl font-black text-slate-800 outline-none"
+                    />
+                </div>
+            );
+
+            case 'long_text': return (
+                <textarea
+                    value={item.answer as string || ''}
+                    onChange={(e) => onUpdate({ answer: e.target.value })}
+                    className="w-full h-64 p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-medium outline-none resize-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
+                    placeholder="Digite sua resposta detalhada..."
+                />
+            );
+
+            case 'property_map': return (
+                <PropertyMapInput
+                    value={item.answer as string || ''}
+                    onChange={(val) => onUpdate({ answer: val })}
+                    readOnly={readOnly}
+                />
+            );
+
+            case 'field_selector': return (
+                <FieldSelectorInput
+                    producerIdentifier={producerIdentifier}
+                    producerMaps={producerMaps}
+                    value={Array.isArray(item.answer) ? item.answer : []}
+                    onChange={(val) => onUpdate({ answer: val })}
+                />
+            );
+
+
+            default: return (
+                <input
+                    type="text"
+                    value={item.answer as string || ''}
+                    onChange={(e) => onUpdate({ answer: e.target.value })}
+                    className="w-full p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-bold outline-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
+                    placeholder="Digite sua resposta..."
+                />
+            );
+        }
+    };
+
+    return (
+        <div className="animate-fade-in pb-20 max-w-3xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+                <div>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">{item.type.replace('_', ' ')}</span>
+                    <h2 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight mt-4 tracking-tighter">{item.name}</h2>
+                    {producerIdentifier && <p className="text-xs text-primary mt-3 font-bold flex items-center gap-2 animate-fade-in"><span className="w-1.5 h-1.5 rounded-full bg-primary ring-4 ring-primary/20"></span> {producerIdentifier}</p>}
+                </div>
+                {item.required && <span className="self-start md:self-auto bg-red-50 text-red-500 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-100 shadow-sm animate-bounce-slow">Obrigatório</span>}
+            </div>
+
+            <div className="space-y-12">
+                <div className="min-h-[200px]">{renderInput()}</div>
+
+                {item.observationEnabled && (
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-100/50 animate-fade-in transition-all hover:border-primary/30">
+                        <div className="flex items-center gap-3 mb-4 text-gray-400">
+                            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path d="M17 10H3M21 6H3M21 14H3M17 18H3" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Observações Extras</span>
+                        </div>
+                        <textarea
+                            value={item.observationValue || ''}
+                            onChange={(e) => onUpdate({ observationValue: e.target.value })}
+                            placeholder="Algum comentário ou ressalva?"
+                            className="w-full h-32 bg-gray-50 border-none rounded-2xl p-6 font-medium outline-none resize-none shadow-inner text-slate-800 transition-all focus:bg-white"
+                        />
+                    </div>
+                )}
+
+                {item.validityControl && (
+                    <div className="bg-indigo-50 p-8 rounded-[2.5rem] border border-indigo-100 animate-fade-in">
+                        <div className="flex items-center gap-3 mb-4 text-indigo-500">
+                            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Controle de Validade</span>
+                        </div>
+                        <input
+                            type="date"
+                            className="w-full p-4 bg-white rounded-xl font-bold outline-none border-2 border-indigo-100 focus:border-indigo-500 text-indigo-900 transition-all"
+                        />
+                        <p className="mt-3 text-[10px] font-bold text-indigo-400 italic">Este documento possui prazo de expiração monitorado.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default ChecklistItem;

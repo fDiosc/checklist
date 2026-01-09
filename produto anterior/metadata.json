@@ -1,0 +1,7 @@
+{
+  "name": "CheckList - Maxsum - Base",
+  "description": "A comprehensive document checklist management system for MerX, featuring template creation, document validation, and status tracking for analysts and producers.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
