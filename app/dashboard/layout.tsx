@@ -1,8 +1,10 @@
 'use client';
 
+import React, { useEffect } from 'react';
 import { UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 export default function DashboardLayout({
     children,
@@ -10,7 +12,25 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const { user } = useUser();
+    const router = useRouter();
+    const { user: clerkUser } = useUser();
+
+    const { data: userData } = useQuery({
+        queryKey: ['me'],
+        queryFn: async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) throw new Error('Failed to fetch user');
+            return res.json();
+        }
+    });
+
+    useEffect(() => {
+        if (userData?.needsOnboarding && pathname !== '/dashboard/onboarding') {
+            router.push('/dashboard/onboarding');
+        }
+    }, [userData, pathname, router]);
+
+    const isAdmin = userData?.role === 'ADMIN';
 
     const navItems = [
         {
@@ -33,6 +53,11 @@ export default function DashboardLayout({
             href: "/dashboard/checklists",
             icon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" /><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M9 14l2 2 4-4M8 10h8M8 18h8" /></svg>
         },
+        ...(isAdmin ? [{
+            name: "Supervisores",
+            href: "/dashboard/supervisores",
+            icon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
+        }] : []),
     ];
 
     return (
@@ -77,8 +102,8 @@ export default function DashboardLayout({
                     <div className="bg-white/5 p-4 rounded-[1.5rem] flex items-center gap-4">
                         <UserButton afterSignOutUrl="/" />
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-xs font-bold text-white truncate">{user?.fullName}</p>
-                            <p className="text-[10px] text-slate-500 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                            <p className="text-xs font-bold text-white truncate">{clerkUser?.fullName}</p>
+                            <p className="text-[10px] text-slate-500 truncate">{clerkUser?.primaryEmailAddress?.emailAddress}</p>
                         </div>
                     </div>
                 </div>

@@ -14,10 +14,22 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: { role: true }
+        });
+
         const producer = await db.producer.findUnique({
             where: { id },
             include: {
                 subUsers: true,
+                assignedSupervisors: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
                 checklists: {
                     include: {
                         template: {
@@ -25,6 +37,11 @@ export async function GET(
                                 name: true,
                             },
                         },
+                        responses: {
+                            include: {
+                                item: true
+                            }
+                        }
                     },
                     orderBy: { createdAt: "desc" },
                 },
@@ -36,7 +53,45 @@ export async function GET(
             return NextResponse.json({ error: "Producer not found" }, { status: 404 });
         }
 
-        return NextResponse.json(producer);
+        // Apply role-based filters (Only ADMIN sees everything)
+        if (user?.role !== "ADMIN") {
+            const isAssigned = producer.assignedSupervisors.some((a: any) => a.id === userId);
+            if (!isAssigned) {
+                return NextResponse.json({ error: "Forbidden: Not assigned to this producer" }, { status: 403 });
+            }
+        }
+
+        // Aggregate maps from checklist responses
+        const extractedMaps = producer.checklists.flatMap(checklist =>
+            checklist.responses
+                .filter(r => r.item.type === 'PROPERTY_MAP' && r.answer)
+                .map(r => {
+                    try {
+                        const data = JSON.parse(r.answer as string);
+                        return {
+                            id: `resp-${r.id}`,
+                            producerId: producer.id,
+                            name: `Mapa do Checklist: ${checklist.template.name}`,
+                            location: data.propertyLocation,
+                            fields: data.fields,
+                            city: data.city,
+                            state: data.state,
+                            createdAt: r.createdAt,
+                            isFromResponse: true
+                        };
+                    } catch (e) {
+                        return null;
+                    }
+                })
+                .filter(m => m !== null)
+        );
+
+        const allMaps = [...producer.maps, ...extractedMaps];
+
+        return NextResponse.json({
+            ...producer,
+            maps: allMaps
+        });
     } catch (error) {
         console.error("Error fetching producer:", error);
         return NextResponse.json(
@@ -52,6 +107,9 @@ const updateProducerSchema = z.object({
     cpf: z.string().length(11),
     email: z.string().email().optional().nullable(),
     phone: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    state: z.string().optional().nullable(),
+    assignedSupervisorIds: z.array(z.string()).optional(),
     subUsers: z
         .array(
             z.object({
@@ -89,6 +147,11 @@ export async function PATCH(
                     cpf: validatedData.cpf,
                     email: validatedData.email,
                     phone: validatedData.phone,
+                    city: validatedData.city,
+                    state: validatedData.state,
+                    assignedSupervisors: validatedData.assignedSupervisorIds ? {
+                        set: validatedData.assignedSupervisorIds.map(id => ({ id }))
+                    } : undefined,
                 },
             });
 

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         const email = (sessionClaims as any)?.email || "";
         const name = (sessionClaims as any)?.name || (sessionClaims as any)?.fullName || "";
 
-        await db.user.upsert({
+        const user = await db.user.upsert({
             where: { id: userId },
             update: {},
             create: {
@@ -22,10 +22,24 @@ export async function POST(req: Request) {
                 email: email || `${userId}@clerk.user`,
                 name: name || "User",
             },
+            select: { id: true, role: true }
         });
 
         const { templateId, producerId, subUserId, sentVia, sentTo } =
             await req.json();
+
+        // If NOT Admin, check if assigned to this producer
+        if (user.role !== "ADMIN" && producerId) {
+            const isAssigned = await db.producer.findFirst({
+                where: {
+                    id: producerId,
+                    assignedSupervisors: { some: { id: userId } }
+                }
+            });
+            if (!isAssigned) {
+                return NextResponse.json({ error: "Forbidden: Not assigned to this producer" }, { status: 403 });
+            }
+        }
 
         const publicToken = nanoid(32);
 
@@ -86,15 +100,28 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: { role: true }
+        });
+
         const { searchParams } = new URL(req.url);
         const status = searchParams.get("status");
 
+        const where: any = {};
+        if (status) {
+            where.status = status as any;
+        }
+
+        // Apply role-based filters (Only ADMIN sees everything)
+        if (user?.role !== "ADMIN") {
+            where.producer = {
+                assignedSupervisors: { some: { id: userId } }
+            };
+        }
+
         const checklists = await db.checklist.findMany({
-            where: status
-                ? {
-                    status: status as any,
-                }
-                : undefined,
+            where,
             include: {
                 template: {
                     select: {

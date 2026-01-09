@@ -21,7 +21,8 @@ model User {
   id        String   @id
   email     String   @unique
   name      String?
-  role      UserRole @default(PRODUCER)
+  cpf       String?  @unique
+  role      UserRole @default(SUPERVISOR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -29,6 +30,7 @@ model User {
   checklistsCreated Checklist[]
   auditLogs         AuditLog[]
   internalResponses Response[] @relation("InternalResponses")
+  assignedProducers Producer[] @relation("SupervisorProducers")
   
   @@map("users")
 }
@@ -43,12 +45,15 @@ model Producer {
   cpf       String   @unique
   email     String?
   phone     String?
+  city      String?
+  state     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subUsers   SubUser[]
-  checklists Checklist[]
-  maps       PropertyMap[]
+  subUsers          SubUser[]
+  checklists        Checklist[]
+  maps              PropertyMap[]
+  assignedSupervisors  User[]        @relation("SupervisorProducers")
   
   @@index([cpf])
   @@index([email])

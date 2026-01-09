@@ -115,10 +115,30 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
         localStorage.setItem('merx_producers', JSON.stringify(allProducers));
     };
 
-    const handleMapClick = (lat: number, lng: number) => {
+    const fetchReverseGeocode = async (lat: number, lng: number) => {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await response.json();
+            const address = data.address;
+            const city = address.city || address.town || address.village || address.municipality || address.suburb || '';
+            const state = address.state || '';
+            return { city, state };
+        } catch (error) {
+            console.error("Reverse geocoding error:", error);
+            return { city: '', state: '' };
+        }
+    };
+
+    const handleMapClick = async (lat: number, lng: number) => {
         if (readOnly) return;
         if (mode === 'set_location') {
-            const newData = { ...mapData, propertyLocation: { lat, lng } };
+            const geoInfo = await fetchReverseGeocode(lat, lng);
+            const newData = {
+                ...mapData,
+                propertyLocation: { lat, lng },
+                city: geoInfo.city,
+                state: geoInfo.state
+            };
             setMapData(newData);
             onChange?.(JSON.stringify(newData));
             saveToProducerHistory(newData);
@@ -128,16 +148,33 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
         }
     };
 
-    const handleSaveField = () => {
+    const handleSaveField = async () => {
         if (!currentFieldName || currentPolygon.length < 3) return;
         const area = calculateAreaInHectares(currentPolygon);
+
+        let city = mapData.city;
+        let state = mapData.state;
+
+        // Auto-detect city/state from field if not yet set
+        if (!city && currentPolygon.length > 0) {
+            const geoInfo = await fetchReverseGeocode(currentPolygon[0].lat, currentPolygon[0].lng);
+            city = geoInfo.city;
+            state = geoInfo.state;
+        }
+
         const newField: PropertyField = {
             id: Date.now().toString(),
             name: currentFieldName,
             points: currentPolygon,
             area: `${area} ha`
         };
-        const newData = { ...mapData, fields: [...mapData.fields, newField] };
+
+        const newData = {
+            ...mapData,
+            fields: [...mapData.fields, newField],
+            city,
+            state
+        };
         setMapData(newData);
         onChange?.(JSON.stringify(newData));
         saveToProducerHistory(newData);
@@ -171,7 +208,26 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                     {suggestions.map((item) => (
                                         <div
                                             key={item.place_id}
-                                            onClick={() => { setCenter([parseFloat(item.lat), parseFloat(item.lon)]); setShowSuggestions(false); }}
+                                            onClick={async () => {
+                                                const lat = parseFloat(item.lat);
+                                                const lon = parseFloat(item.lon);
+                                                setCenter([lat, lon]);
+                                                setShowSuggestions(false);
+                                                // If we are in "set_location" mode, we could also trigger the click logic
+                                                if (mode === 'set_location') {
+                                                    const geoInfo = await fetchReverseGeocode(lat, lon);
+                                                    const newData = {
+                                                        ...mapData,
+                                                        propertyLocation: { lat, lng: lon },
+                                                        city: geoInfo.city,
+                                                        state: geoInfo.state
+                                                    };
+                                                    setMapData(newData);
+                                                    onChange?.(JSON.stringify(newData));
+                                                    saveToProducerHistory(newData);
+                                                    setMode('view');
+                                                }
+                                            }}
                                             className="px-6 py-4 hover:bg-emerald-50 cursor-pointer border-b border-gray-100 last:border-0 flex items-start gap-4 transition-colors"
                                         >
                                             <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -292,13 +348,25 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                 <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Sede</span>
                             </div>
                             {!readOnly && mapData.propertyLocation && (
-                                <button onClick={() => { setMapData({ ...mapData, propertyLocation: undefined }); onChange?.(JSON.stringify({ ...mapData, propertyLocation: undefined })); }} className="text-gray-300 hover:text-red-500 transition-colors pointer-events-auto">
+                                <button onClick={() => { setMapData({ ...mapData, propertyLocation: undefined, city: undefined, state: undefined }); onChange?.(JSON.stringify({ ...mapData, propertyLocation: undefined, city: undefined, state: undefined })); }} className="text-gray-300 hover:text-red-500 transition-colors pointer-events-auto">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </button>
                             )}
                         </div>
+
+                        {mapData.city && (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 animate-fade-in">
+                                <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path d="M3 21h18M3 10a9 9 0 1118 0v11H3V10z" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider">{mapData.city}</span>
+                                    <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest opacity-70">{mapData.state}</span>
+                                </div>
+                            </div>
+                        )}
                         {mapData.fields.map((field: PropertyField) => (
                             <div key={field.id} className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">

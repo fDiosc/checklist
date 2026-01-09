@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save, X } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Trash2, Save, X, Shield } from 'lucide-react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface SubUser {
     id: string;
@@ -14,13 +14,22 @@ interface SubUser {
     role?: string;
 }
 
+interface Supervisor {
+    id: string;
+    name: string;
+    email: string;
+}
+
 interface ProducerData {
     id?: string;
     name: string;
     cpf: string;
     email: string;
     phone: string;
+    city?: string;
+    state?: string;
     subUsers: SubUser[];
+    assignedSupervisors?: Supervisor[];
 }
 
 interface ProducerFormProps {
@@ -38,26 +47,50 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
             cpf: '',
             email: '',
             phone: '',
-            subUsers: []
+            city: '',
+            state: '',
+            subUsers: [],
+            assignedSupervisors: []
         }
     );
 
-    // Sync state if initialData changes (for Edit mode)
-    useEffect(() => {
-        if (initialData) {
-            setProducer(initialData);
+    // Fetch user role
+    const { data: userData } = useQuery({
+        queryKey: ['me'],
+        queryFn: async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) throw new Error('Failed to fetch user');
+            return res.json();
         }
-    }, [initialData]);
+    });
+
+    const isAdmin = userData?.role === 'ADMIN';
+
+    // Fetch all supervisors if Admin
+    const { data: allSupervisors } = useQuery({
+        queryKey: ['supervisors'],
+        queryFn: async () => {
+            const res = await fetch('/api/users/supervisors');
+            if (!res.ok) throw new Error('Failed to fetch supervisors');
+            return res.json();
+        },
+        enabled: isAdmin
+    });
 
     const mutation = useMutation({
         mutationFn: async (data: ProducerData) => {
             const url = mode === 'EDIT' ? `/api/producers/${data.id}` : '/api/producers';
             const method = mode === 'EDIT' ? 'PATCH' : 'POST';
 
+            const payload = {
+                ...data,
+                assignedSupervisorIds: data.assignedSupervisors?.map(a => a.id)
+            };
+
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
             if (!res.ok) {
                 const errorData = await res.json();
@@ -172,7 +205,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                     type="text"
                                     placeholder="Digite o nome completo do produtor"
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
-                                    value={producer.name}
+                                    value={producer.name || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, name: e.target.value }))}
                                 />
                             </div>
@@ -184,7 +217,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                     maxLength={11}
                                     placeholder="00000000000"
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
-                                    value={producer.cpf}
+                                    value={producer.cpf || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, cpf: e.target.value.replace(/\D/g, '') }))}
                                 />
                             </div>
@@ -195,7 +228,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                     type="email"
                                     placeholder="contato@exemplo.com"
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
-                                    value={producer.email}
+                                    value={producer.email || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, email: e.target.value }))}
                                 />
                             </div>
@@ -206,8 +239,37 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                     type="text"
                                     placeholder="(00) 00000-0000"
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
-                                    value={producer.phone}
+                                    value={producer.phone || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, phone: e.target.value }))}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
+                                    Cidade
+                                    <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[8px] leading-none">NOVO</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Ex: Sorriso"
+                                    className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
+                                    value={producer.city || ''}
+                                    onChange={e => setProducer(prev => ({ ...prev, city: e.target.value }))}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
+                                    Estado (UF)
+                                    <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[8px] leading-none">NOVO</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Ex: MT"
+                                    maxLength={2}
+                                    className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all uppercase"
+                                    value={producer.state || ''}
+                                    onChange={e => setProducer(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
                                 />
                             </div>
                         </div>
@@ -307,6 +369,74 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                             ))}
                         </ul>
                     </div>
+
+                    {/* Analyst Assignment (ADMIN ONLY) */}
+                    {isAdmin && (
+                        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-100/50 p-10 overflow-hidden">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-10 flex items-center gap-3">
+                                <Shield className="w-4 h-4 text-primary" />
+                                Supervisores Responsáveis [RESTRITO ADMIN]
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Atribuir Supervisor</label>
+                                    <select
+                                        className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
+                                        onChange={(e) => {
+                                            const supervisorId = e.target.value;
+                                            if (!supervisorId) return;
+                                            const supervisor = allSupervisors?.find((a: any) => a.id === supervisorId);
+                                            if (supervisor && !producer.assignedSupervisors?.some(a => a.id === supervisorId)) {
+                                                setProducer(prev => ({
+                                                    ...prev,
+                                                    assignedSupervisors: [...(prev.assignedSupervisors || []), { id: supervisor.id, name: supervisor.name, email: supervisor.email }]
+                                                }));
+                                            }
+                                            e.target.value = '';
+                                        }}
+                                    >
+                                        <option value="">Selecione um supervisor para atribuir...</option>
+                                        {allSupervisors?.filter((a: any) => !producer.assignedSupervisors?.some(ap => ap.id === a.id)).map((a: any) => (
+                                            <option key={a.id} value={a.id}>{a.name} ({a.email})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {producer.assignedSupervisors && producer.assignedSupervisors.length > 0 ? (
+                                    producer.assignedSupervisors.map((supervisor) => (
+                                        <div key={supervisor.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white text-[10px] font-bold">
+                                                    {supervisor.name?.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-900">{supervisor.name}</p>
+                                                    <p className="text-[10px] font-medium text-slate-400">{supervisor.email}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setProducer(prev => ({
+                                                    ...prev,
+                                                    assignedSupervisors: prev.assignedSupervisors?.filter(a => a.id !== supervisor.id)
+                                                }))}
+                                                className="p-2 text-slate-300 hover:text-red-500 transition-all"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="md:col-span-2 py-8 text-center bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-3xl">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Nenhum supervisor vinculado a este produtor</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

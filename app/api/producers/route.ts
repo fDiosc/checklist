@@ -8,6 +8,8 @@ const createProducerSchema = z.object({
     cpf: z.string().length(11),
     email: z.string().email().optional(),
     phone: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
     subUsers: z
         .array(
             z.object({
@@ -37,6 +39,8 @@ export async function POST(req: Request) {
                 cpf: validatedData.cpf,
                 email: validatedData.email,
                 phone: validatedData.phone,
+                city: validatedData.city,
+                state: validatedData.state,
                 subUsers: validatedData.subUsers
                     ? {
                         create: validatedData.subUsers,
@@ -69,26 +73,39 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: { role: true }
+        });
+
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
 
+        const where: any = {};
+
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: "insensitive" } },
+                { cpf: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+            ];
+        }
+
+        // Apply role-based filters (Only ADMIN sees everything)
+        if (user?.role !== "ADMIN") {
+            where.assignedSupervisors = {
+                some: { id: userId }
+            };
+        }
+
         const producers = await db.producer.findMany({
-            where: search
-                ? {
-                    OR: [
-                        { name: { contains: search, mode: "insensitive" } },
-                        { cpf: { contains: search } },
-                        { email: { contains: search, mode: "insensitive" } },
-                    ],
-                }
-                : undefined,
+            where,
             include: {
-                subUsers: true,
                 _count: {
                     select: { checklists: true },
                 },
             },
-            orderBy: { createdAt: "desc" },
+            orderBy: { name: "asc" },
         });
 
         return NextResponse.json(producers);

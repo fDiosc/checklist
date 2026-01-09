@@ -1,14 +1,18 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, ChevronRight, MapPin, ClipboardList, ExternalLink, Loader2 } from 'lucide-react';
+import { Calendar, ChevronRight, MapPin, ClipboardList, ExternalLink, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
+import React, { useState } from 'react';
+import PropertyMapInput from '@/components/PropertyMapInput';
 
 interface ProducerHistoryProps {
     producerId: string;
 }
 
 export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
+    const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
+
     const { data: producer, isLoading } = useQuery({
         queryKey: ['producer-detail', producerId],
         queryFn: async () => {
@@ -91,19 +95,50 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                             producer.maps.map((map: any) => (
                                 <div
                                     key={map.id}
-                                    className="flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-3xl"
+                                    className="flex flex-col bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                                 >
-                                    <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-500">
-                                        <MapPin size={24} />
+                                    <div
+                                        onClick={() => setExpandedMapId(expandedMapId === map.id ? null : map.id)}
+                                        className="flex items-center gap-6 p-6 cursor-pointer hover:bg-slate-50 transition-colors"
+                                    >
+                                        <div className={`p-4 rounded-2xl transition-all ${expandedMapId === map.id ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-500'}`}>
+                                            <MapPin size={24} />
+                                        </div>
+                                        <div className="space-y-1 flex-1 min-w-0">
+                                            <h4 className="font-black text-slate-900 uppercase tracking-tighter truncate">
+                                                {map.name || 'Sede não definida'}
+                                            </h4>
+                                            <div className="flex flex-col gap-0.5">
+                                                {map.city && (
+                                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider">
+                                                        {map.city} - {map.state}
+                                                    </p>
+                                                )}
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
+                                                    {map.fields?.length || 0} talhões cadastrados
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 text-slate-300">
+                                            {expandedMapId === map.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <h4 className="font-black text-slate-900 uppercase tracking-tighter">
-                                            Sede: {map.name || 'Não definida'}
-                                        </h4>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-                                            {map.fields?.length || 0} talhões cadastrados
-                                        </p>
-                                    </div>
+
+                                    {expandedMapId === map.id && (
+                                        <div className="p-4 bg-slate-50 border-t border-slate-100 animate-fade-in">
+                                            <div className="h-[400px] w-full rounded-2xl overflow-hidden shadow-inner border border-slate-200">
+                                                <PropertyMapInput
+                                                    value={JSON.stringify({
+                                                        propertyLocation: map.location || map.propertyLocation,
+                                                        fields: map.fields || [],
+                                                        city: map.city,
+                                                        state: map.state
+                                                    })}
+                                                    readOnly={true}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         ) : (
