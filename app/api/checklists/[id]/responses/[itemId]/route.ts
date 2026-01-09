@@ -13,7 +13,7 @@ export async function PUT(
         }
 
         const { id, itemId } = await params;
-        const { status, rejectionReason, answer, observation, quantity, isInternal } = await req.json();
+        const { status, rejectionReason, answer, observation, quantity, fileUrl, validity, isInternal } = await req.json();
 
         // Validate status enum
         if (status && !['APPROVED', 'REJECTED', 'PENDING_VERIFICATION', 'MISSING'].includes(status)) {
@@ -37,6 +37,8 @@ export async function PUT(
             if (answer !== undefined) data.answer = answer;
             if (observation !== undefined) data.observation = observation;
             if (quantity !== undefined) data.quantity = quantity;
+            if (fileUrl !== undefined) data.fileUrl = fileUrl;
+            if (validity !== undefined) data.validity = validity ? new Date(validity) : null;
             // If internal, we often set it to PENDING_VERIFICATION or APPROVED automatically depending on flow?
             // User said "produtor envia um doc por email, o usuario validador sobe para o produtor".
             // So it should probably be PENDING_VERIFICATION so the auditor can then approve it? 

@@ -26,12 +26,28 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
     readOnly = false
 }) => {
     const [showCamera, setShowCamera] = useState(false);
+    const [dbOptions, setDbOptions] = useState<any[]>([]);
+    const [isLoadingDb, setIsLoadingDb] = useState(false);
     const uniqueId = `${item.id}${idSuffix}`;
+
+    React.useEffect(() => {
+        if (item.databaseSource) {
+            setIsLoadingDb(true);
+            fetch(`/api/database-options?source=${item.databaseSource}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setDbOptions(data);
+                    }
+                })
+                .finally(() => setIsLoadingDb(false));
+        }
+    }, [item.databaseSource]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            onUpdate({ answer: file.name, status: item.status }); // Simple mock for file handling
+            onUpdate({ fileUrl: file.name, status: item.status }); // Simple mock for file handling
         }
     };
 
@@ -45,13 +61,13 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     <span className="text-[10px] font-black uppercase tracking-widest">Anexar Comprovante</span>
                 </div>
 
-                {item.answer && item.type === 'file' ? (
+                {item.fileUrl ? (
                     <div className="flex items-center gap-3 bg-emerald-50 px-6 py-3 rounded-2xl text-emerald-700 border border-emerald-100 animate-fade-in">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                             <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-xs font-bold truncate max-w-[150px]">{item.answer as string}</span>
-                        <button onClick={() => onUpdate({ answer: '' })} className="ml-2 hover:text-red-500 transition-colors">
+                        <span className="text-xs font-bold truncate max-w-[150px]">Arquivo Enviado</span>
+                        <button onClick={() => onUpdate({ fileUrl: '' })} className="ml-2 hover:text-red-500 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
@@ -84,7 +100,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     </div>
                 )}
             </div>
-            {showCamera && <CameraCapture onCapture={(file) => { onUpdate({ answer: file.name }); setShowCamera(false); }} onClose={() => setShowCamera(false)} />}
+            {showCamera && <CameraCapture onCapture={(file) => { onUpdate({ fileUrl: file.name }); setShowCamera(false); }} onClose={() => setShowCamera(false)} />}
         </div>
     );
 
@@ -93,34 +109,27 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
         switch (type) {
             case 'file': return renderFileUpload();
             case 'dropdown_select': {
-                let options = item.options || [];
-                let currentUnit = '';
-
-                if (item.databaseSource === 'fertilizers') {
-                    options = DATABASE_FERTILIZERS.map((i: any) => i.product);
-                } else if (item.databaseSource === 'desiccation') {
-                    options = DATABASE_DESICCATION.map((i: any) => i.product);
-                }
-
-                if (item.databaseSource && item.answer) {
-                    const db = item.databaseSource === 'fertilizers' ? DATABASE_FERTILIZERS : DATABASE_DESICCATION;
-                    const dbItem = db.find((i: any) => i.product === item.answer);
-                    if (dbItem) currentUnit = dbItem.unit;
-                }
+                const options = item.databaseSource ? dbOptions.map(o => o.label) : (item.options || []);
 
                 return (
                     <div className="space-y-6">
                         <div className="relative group">
-                            <select
-                                value={item.answer as string || ''}
-                                onChange={(e) => onUpdate({ answer: e.target.value })}
-                                className="w-full appearance-none p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-bold outline-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
-                            >
-                                <option value="">Selecione uma opção...</option>
-                                {options.map((opt, i) => (
-                                    <option key={i} value={opt}>{opt}</option>
-                                ))}
-                            </select>
+                            {isLoadingDb ? (
+                                <div className="w-full p-8 bg-gray-50 rounded-[2.5rem] flex items-center justify-center">
+                                    <div className="w-6 h-6 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                </div>
+                            ) : (
+                                <select
+                                    value={item.answer as string || ''}
+                                    onChange={(e) => onUpdate({ answer: e.target.value })}
+                                    className="w-full appearance-none p-8 bg-gray-50 border-none rounded-[2.5rem] text-xl font-bold outline-none shadow-inner text-slate-800 transition-all focus:bg-white focus:ring-4 focus:ring-primary/10"
+                                >
+                                    <option value="">Selecione uma opção...</option>
+                                    {options.map((opt, i) => (
+                                        <option key={i} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            )}
                             <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-primary transition-colors">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -130,8 +139,13 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
 
                         {item.askForQuantity && item.answer && (
                             <div className="p-8 bg-emerald-50/50 rounded-[2.5rem] border-2 border-emerald-100 flex flex-col gap-4 animate-fade-in">
-                                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">
-                                    Quantidade {currentUnit ? `(${currentUnit})` : ''} de {item.answer}
+                                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] flex justify-between items-center">
+                                    <span>Quantidade de {item.answer}</span>
+                                    {dbOptions.find(o => o.label === item.answer)?.composition && (
+                                        <span className="text-[8px] opacity-70 italic lowercase font-medium">
+                                            ({dbOptions.find(o => o.label === item.answer)?.composition})
+                                        </span>
+                                    )}
                                 </label>
                                 <div className="flex items-center gap-4">
                                     <input
@@ -139,9 +153,11 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                                         value={item.quantity || ''}
                                         onChange={(e) => onUpdate({ quantity: e.target.value })}
                                         placeholder="0.00"
-                                        className="flex-1 bg-transparent border-none p-0 text-3xl font-black text-emerald-900 placeholder:text-emerald-900/20 outline-none"
+                                        className="flex-1 bg-transparent border-none text-3xl font-black text-emerald-900 outline-none placeholder:text-emerald-200"
                                     />
-                                    {currentUnit && <span className="text-xl font-black text-emerald-400 uppercase tracking-widest">{currentUnit}</span>}
+                                    <span className="text-xl font-black text-emerald-400">
+                                        {dbOptions.find(o => o.label === item.answer)?.unit || 'un'}
+                                    </span>
                                 </div>
                             </div>
                         )}
@@ -297,6 +313,8 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                         </div>
                         <input
                             type="date"
+                            value={item.validity ? new Date(item.validity).toISOString().split('T')[0] : ''}
+                            onChange={(e) => onUpdate({ validity: e.target.value as any })}
                             className="w-full p-4 bg-white rounded-xl font-bold outline-none border-2 border-indigo-100 focus:border-indigo-500 text-indigo-900 transition-all"
                         />
                         <p className="mt-3 text-[10px] font-bold text-indigo-400 italic">Este documento possui prazo de expiração monitorado.</p>

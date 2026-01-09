@@ -112,7 +112,10 @@ export async function PATCH(
                                 required: item.required ?? true,
                                 validityControl: item.validityControl ?? false,
                                 observationEnabled: item.observationEnabled ?? false,
+                                requestArtifact: item.requestArtifact ?? false,
+                                askForQuantity: item.askForQuantity ?? false,
                                 options: item.options || [],
+                                databaseSource: item.databaseSource || null,
                                 order: iIdx,
                             })),
                         });

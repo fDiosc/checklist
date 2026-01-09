@@ -45,16 +45,18 @@ export interface DocumentItem {
     status: DocumentStatus;
     type: 'file' | 'text' | 'long_text' | 'single_choice' | 'multiple_choice' | 'date' | 'property_map' | 'field_selector' | 'dropdown_select';
     options?: string[];
-    databaseSource?: 'fertilizers' | 'desiccation';
+    databaseSource?: string;
     askForQuantity?: boolean;
     answer?: string | string[];
     quantity?: string;
     required: boolean;
     validityControl: boolean;
+    validity?: string | Date;
     observationEnabled?: boolean;
     observationValue?: string;
     requestArtifact?: boolean;
     artifactRequired?: boolean;
+    fileUrl?: string;
     aiAnalysis?: {
         flag: 'APROVADO' | 'REPROVADO';
         message: string;

@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react';
 import PropertyMapInput from '@/components/PropertyMapInput';
 import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
 
 interface ChecklistItemDetailProps {
     item: any;
@@ -8,8 +9,23 @@ interface ChecklistItemDetailProps {
 }
 
 export default function ChecklistItemDetail({ item, response }: ChecklistItemDetailProps) {
-    if (!item) return null;
+    const [unit, setUnit] = useState<string>('');
 
+    useEffect(() => {
+        if (item?.askForQuantity && response?.answer && item?.databaseSource) {
+            fetch(`/api/database-options?source=${item.databaseSource}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        const opt = data.find(o => o.label === response.answer);
+                        if (opt?.unit) setUnit(opt.unit);
+                    }
+                })
+                .catch(console.error);
+        }
+    }, [item, response?.answer]);
+
+    if (!item) return null;
     const answer = response?.answer;
     const observation = response?.observation;
     const quantity = response?.quantity;
@@ -39,7 +55,7 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
                 // We'll trust next/image only if we are relatively sure, or use standard img tag as fallback to avoid constructor errors?
                 // next/image requires absolute source or imported. if "answer" is just "foo.jpg", it fails.
                 // Let's assume valid URL if it starts with http or /
-                const isValidUrl = answer.startsWith('http') || answer.startsWith('/');
+                const isValidUrl = typeof answer === 'string' && (answer.startsWith('http') || answer.startsWith('/'));
 
                 if (isImage && isValidUrl) {
                     return (
@@ -88,8 +104,8 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
                             {displayAnswer || <span className="text-slate-300 italic">Não respondido</span>}
                         </h3>
                         {quantity && item.askForQuantity && (
-                            <div className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-bold uppercase tracking-wider text-sm">
-                                Quantidade: {quantity}
+                            <div className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-bold uppercase tracking-wider text-sm flex items-center gap-2">
+                                Quantidade: {quantity} <span className="opacity-60 text-xs">{unit || 'un'}</span>
                             </div>
                         )}
                     </div>

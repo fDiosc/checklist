@@ -50,6 +50,8 @@ export async function POST(
                         answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
                         quantity: data.quantity ? String(data.quantity) : null,
                         observation: data.observationValue || null,
+                        fileUrl: data.fileUrl || null,
+                        validity: data.validity ? new Date(data.validity) : null,
                         status: safeStatus,
                     },
                     create: {
@@ -58,6 +60,8 @@ export async function POST(
                         answer: typeof data.answer === 'object' ? JSON.stringify(data.answer) : String(data.answer || ''),
                         quantity: data.quantity ? String(data.quantity) : null,
                         observation: data.observationValue || null,
+                        fileUrl: data.fileUrl || null,
+                        validity: data.validity ? new Date(data.validity) : null,
                         status: safeStatus,
                     },
                 });

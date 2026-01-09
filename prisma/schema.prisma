@@ -290,3 +290,16 @@ model AiPrompt {
 
   @@map("ai_prompts")
 }
+
+model DatabaseOption {
+  id          String   @id @default(cuid())
+  source      String
+  label       String
+  value       String
+  composition String?
+  unit        String?
+  createdAt   DateTime @default(now())
+
+  @@index([source])
+  @@map("database_options")
+}

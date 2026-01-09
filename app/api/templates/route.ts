@@ -32,7 +32,7 @@ const createTemplateSchema = z.object({
                     artifactRequired: z.boolean().optional(),
                     askForQuantity: z.boolean().optional(),
                     options: z.array(z.string()).optional(),
-                    databaseSource: z.string().optional(),
+                    databaseSource: z.string().nullable().optional(),
                 })
             ),
         })
