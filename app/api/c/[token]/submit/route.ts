@@ -93,7 +93,7 @@ export async function POST(
                     include: { sections: { include: { items: true } } }
                 });
 
-                const mapItems = template?.sections.flatMap(s => s.items).filter(i => i.type === 'PROPERTY_MAP') || [];
+                const mapItems = template?.sections.flatMap((s: any) => s.items).filter((i: any) => i.type === 'PROPERTY_MAP') || [];
 
                 for (const item of mapItems) {
                     const submissionResponse = responses[item.id];
