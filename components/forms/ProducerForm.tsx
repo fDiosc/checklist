@@ -98,7 +98,18 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
             }
             return res.json();
         },
-        onSuccess: () => {
+        onSuccess: async (data) => {
+            // Trigger ESG Analysis in background
+            try {
+                await fetch('/api/integration/esg/producer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ producerId: data.id, cpf: data.cpf })
+                });
+            } catch (e) {
+                console.error("Failed to trigger ESG analysis", e);
+            }
+
             queryClient.invalidateQueries({ queryKey: ['producers'] });
             if (producer.id) {
                 queryClient.invalidateQueries({ queryKey: ['producers', producer.id] });

@@ -126,13 +126,18 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
 
                                     {expandedMapId === map.id && (
                                         <div className="p-4 bg-slate-50 border-t border-slate-100 animate-fade-in">
-                                            <div className="h-[400px] w-full rounded-2xl overflow-hidden shadow-inner border border-slate-200">
+                                            <div className="w-full rounded-2xl shadow-inner border border-slate-200 bg-white">
                                                 <PropertyMapInput
+                                                    mapId={map.id}
                                                     value={JSON.stringify({
                                                         propertyLocation: map.location || map.propertyLocation,
                                                         fields: map.fields || [],
                                                         city: map.city,
-                                                        state: map.state
+                                                        state: map.state,
+                                                        carCode: map.carCode,
+                                                        carData: map.carData,
+                                                        carEsgStatus: map.carEsgStatus,
+                                                        carEsgData: map.carEsgData
                                                     })}
                                                     readOnly={true}
                                                 />

@@ -24,6 +24,10 @@ export interface PropertyMapData {
     fields: PropertyField[];
     city?: string;
     state?: string;
+    carCode?: string;
+    carData?: any;
+    carEsgStatus?: string;
+    carEsgData?: any;
 }
 
 export interface ProducerChecklistRef {

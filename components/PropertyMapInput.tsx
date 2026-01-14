@@ -30,6 +30,8 @@ interface PropertyMapInputProps {
     value: string;
     onChange?: (val: string) => void;
     readOnly?: boolean;
+    mapId?: string;
+    hideEsg?: boolean;
 }
 
 interface SearchResult {
@@ -39,7 +41,7 @@ interface SearchResult {
     display_name: string;
 }
 
-const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, readOnly = false }) => {
+const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, readOnly = false, mapId, hideEsg = false }) => {
     const [mapData, setMapData] = useState<PropertyMapData>({ fields: [] });
     const [mode, setMode] = useState<'view' | 'set_location' | 'draw_field'>('view');
     const [currentPolygon, setCurrentPolygon] = useState<GeoPoint[]>([]);
@@ -51,6 +53,9 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [carPolygon, setCarPolygon] = useState<GeoPoint[]>([]);
+    const [isLoadingCAR, setIsLoadingCAR] = useState(false);
+    const [isInfoExpanded, setIsInfoExpanded] = useState(true);
 
     useEffect(() => {
         setIsMounted(true);
@@ -60,6 +65,22 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                 setMapData(parsed);
                 if (parsed.propertyLocation) {
                     setCenter([parsed.propertyLocation.lat, parsed.propertyLocation.lng]);
+                }
+
+                // Load CAR data if exists
+                if (parsed.carData?.geoJson) {
+                    const car = parsed.carData;
+                    let points: GeoPoint[] = [];
+
+                    if (car.geoJson.type === 'Polygon') {
+                        const ring = car.geoJson.coordinates[0];
+                        points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
+                    } else if (car.geoJson.type === 'MultiPolygon') {
+                        const polygon = car.geoJson.coordinates[0];
+                        const ring = polygon[0];
+                        points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
+                    }
+                    setCarPolygon(points);
                 }
             }
         } catch (e) {
@@ -73,6 +94,8 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
         }, 500);
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
+
+
 
     const fetchSuggestions = async () => {
         setIsSearching(true);
@@ -129,19 +152,104 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
         }
     };
 
+    const fetchCAR = async (lat: number, lng: number) => {
+        setIsLoadingCAR(true);
+        try {
+            const response = await fetch(`/api/integration/car?latitude=${lat}&longitude=${lng}`);
+            if (!response.ok) throw new Error('Falha ao buscar CAR');
+
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                const car = data[0];
+                const newData: PropertyMapData = {
+                    ...mapData,
+                    propertyLocation: { lat, lng },
+                    carCode: car.cod_imovel,
+                    carData: car
+                };
+
+                // Preserve city/state if they exist or fetch them
+                if (!newData.city) {
+                    const geoInfo = await fetchReverseGeocode(lat, lng);
+                    newData.city = geoInfo.city;
+                    newData.state = geoInfo.state;
+                }
+
+                setMapData(newData);
+                onChange?.(JSON.stringify(newData));
+                saveToProducerHistory(newData);
+
+                // Handle GeoJSON for polygon rendering
+                if (car.geoJson) {
+                    // GeoJSON geometry could be Polygon or MultiPolygon.
+                    // Leaflet expects [lat, lng] arrays. GeoJSON uses [lng, lat].
+                    // We need to swap coordinates.
+
+                    let points: GeoPoint[] = [];
+
+                    if (car.geoJson.type === 'Polygon') {
+                        // car.geoJson.coordinates is Array of Rings. First ring is outer.
+                        // Ring is Array of Positions [lng, lat]
+                        const ring = car.geoJson.coordinates[0];
+                        points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
+                    } else if (car.geoJson.type === 'MultiPolygon') {
+                        // Take the first polygon's outer ring for simplicity or join them?
+                        // For visualization, let's take the first polygon.
+                        const polygon = car.geoJson.coordinates[0];
+                        const ring = polygon[0];
+                        points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
+                    }
+
+                    setCarPolygon(points);
+                }
+            }
+        } catch (error) {
+            console.error("CAR Fetch Error", error);
+            alert("Erro ao buscar dados do CAR. Verifique se a localização está correta.");
+        } finally {
+            setIsLoadingCAR(false);
+        }
+    };
+
+    const [isLoadingEsg, setIsLoadingEsg] = useState(false);
+
+    const handleAnalyzeEsg = async () => {
+        if (!mapData.carCode) return;
+        setIsLoadingEsg(true);
+        try {
+            const response = await fetch('/api/integration/esg/property', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    propertyMapId: mapId,
+                    carCode: mapData.carCode
+                })
+            });
+
+            if (!response.ok) throw new Error('Analysis failed');
+
+            const data = await response.json();
+
+            setMapData(prev => ({
+                ...prev,
+                carEsgStatus: data.esg_status,
+                carEsgData: data
+            }));
+
+        } catch (error) {
+            console.error("ESG Analysis Error", error);
+            alert("Erro na análise socioambiental.");
+        } finally {
+            setIsLoadingEsg(false);
+        }
+    };
+
     const handleMapClick = async (lat: number, lng: number) => {
         if (readOnly) return;
         if (mode === 'set_location') {
-            const geoInfo = await fetchReverseGeocode(lat, lng);
-            const newData = {
-                ...mapData,
-                propertyLocation: { lat, lng },
-                city: geoInfo.city,
-                state: geoInfo.state
-            };
-            setMapData(newData);
-            onChange?.(JSON.stringify(newData));
-            saveToProducerHistory(newData);
+            // New logic: Fetch CAR when setting location
+            await fetchCAR(lat, lng);
             setMode('view');
         } else if (mode === 'draw_field') {
             setCurrentPolygon([...currentPolygon, { lat, lng }]);
@@ -215,16 +323,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                                 setShowSuggestions(false);
                                                 // If we are in "set_location" mode, we could also trigger the click logic
                                                 if (mode === 'set_location') {
-                                                    const geoInfo = await fetchReverseGeocode(lat, lon);
-                                                    const newData = {
-                                                        ...mapData,
-                                                        propertyLocation: { lat, lng: lon },
-                                                        city: geoInfo.city,
-                                                        state: geoInfo.state
-                                                    };
-                                                    setMapData(newData);
-                                                    onChange?.(JSON.stringify(newData));
-                                                    saveToProducerHistory(newData);
+                                                    await fetchCAR(lat, lon);
                                                     setMode('view');
                                                 }
                                             }}
@@ -257,18 +356,33 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                     <div className="flex flex-col md:flex-row gap-3">
                         {mode === 'view' ? (
                             <>
-                                <button onClick={() => setMode('draw_field')} className="flex-1 flex items-center justify-center gap-3 py-4 bg-white border-2 border-dashed border-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:border-emerald-500 hover:text-emerald-500 transition-all">
+                                <button
+                                    onClick={() => setMode('draw_field')}
+                                    disabled={!mapData.propertyLocation || !mapData.carCode}
+                                    className={`flex-1 flex items-center justify-center gap-3 py-4 bg-white border-2 border-dashed rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all
+                                        ${(!mapData.propertyLocation || !mapData.carCode)
+                                            ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                                            : 'border-gray-200 text-gray-400 hover:border-emerald-500 hover:text-emerald-500'
+                                        }`}
+                                    title={(!mapData.propertyLocation || !mapData.carCode) ? "Defina a Sede e o CAR primeiro" : "Desenhar Talhão"}
+                                >
                                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path d="M12 2l9 6.75V17.5L12 22l-9-4.5V8.75L12 2z" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                     Desenhar Talhão
                                 </button>
                                 <button onClick={() => setMode('set_location')} className="flex-1 flex items-center justify-center gap-3 py-4 bg-white border-2 border-dashed border-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:border-emerald-500 hover:text-emerald-500 transition-all">
-                                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
-                                        <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                    Marcar Sede
+                                    {isLoadingCAR ? (
+                                        <svg className="w-4 h-4 animate-spin text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+                                            <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    )}
+                                    {isLoadingCAR ? 'Buscando CAR...' : (mapData.propertyLocation ? 'Alterar Sede' : 'Marcar Sede')}
                                 </button>
                             </>
                         ) : (
@@ -307,7 +421,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                 </div>
             )}
 
-            <div className="h-[500px] w-full relative rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl z-0 group">
+            <div className={`h-[500px] w-full relative rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl z-0 group ${readOnly && mapData.carCode ? 'mb-4' : ''}`}>
                 <MapContainer
                     center={center}
                     zoom={15}
@@ -325,6 +439,12 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                             pathOptions={{ color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.3, weight: 3 }}
                         />
                     ))}
+                    {carPolygon && carPolygon.length > 0 && (
+                        <Polygon
+                            positions={carPolygon.map((p: GeoPoint) => [p.lat, p.lng])}
+                            pathOptions={{ color: 'white', fillColor: 'transparent', fillOpacity: 0, weight: 2 }}
+                        />
+                    )}
                     {currentPolygon.length > 0 && (
                         <Polygon
                             positions={currentPolygon.map((p: GeoPoint) => [p.lat, p.lng])}
@@ -336,60 +456,177 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                     ))}
                 </MapContainer>
 
-                <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] shadow-2xl z-[400] border border-white min-w-[180px] pointer-events-none group-hover:pointer-events-auto transition-opacity opacity-0 group-hover:opacity-100">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Propriedade</h4>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <svg className={`w-3.5 h-3.5 ${mapData.propertyLocation ? 'text-emerald-500' : 'text-gray-300'}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
-                                    <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
+                <div className={`absolute top-6 right-6 bg-white/90 backdrop-blur-md transition-all duration-300 ease-in-out shadow-2xl z-[400] border border-white overflow-hidden ${isInfoExpanded ? 'p-6 rounded-[2rem] min-w-[200px]' : 'p-3 rounded-2xl w-12 h-12 flex items-center justify-center cursor-pointer hover:bg-white'}`}>
+                    {isInfoExpanded ? (
+                        <div className="animate-fade-in relative">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setIsInfoExpanded(false); }}
+                                className="absolute -top-1 -right-1 p-2 text-gray-300 hover:text-gray-500 transition-colors"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
-                                <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Sede</span>
+                            </button>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4 pr-6">Propriedade</h4>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className={`w-3.5 h-3.5 ${mapData.propertyLocation ? 'text-emerald-500' : 'text-gray-300'}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+                                            <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Sede</span>
+                                            {mapData.carCode && (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">{mapData.carCode}</span>
+                                                    {(mapData.carData?.num_area || mapData.carData?.area_ha) && (
+                                                        <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">
+                                                            Área CAR: {Number(mapData.carData?.num_area || mapData.carData?.area_ha).toLocaleString('pt-BR')} ha
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {!readOnly && mapData.propertyLocation && (
+                                        <button onClick={() => { setMapData({ ...mapData, propertyLocation: undefined, city: undefined, state: undefined, carCode: undefined, carData: undefined }); onChange?.(JSON.stringify({ ...mapData, propertyLocation: undefined, city: undefined, state: undefined, carCode: undefined, carData: undefined })); }} className="text-gray-300 hover:text-red-500 transition-colors pointer-events-auto">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                <path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {mapData.city && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 animate-fade-in">
+                                        <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M3 21h18M3 10a9 9 0 1118 0v11H3V10z" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider">{mapData.city}</span>
+                                            <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest opacity-70">{mapData.state}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {mapData.fields.map((field: PropertyField) => (
+                                    <div key={field.id} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                <path d="M12 2l9 6.75V17.5L12 22l-9-4.5V8.75L12 2z" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                            <div className="flex flex-col flex-1 min-w-0">
+                                                <span className="text-[10px] font-black font-bold text-gray-700 uppercase tracking-widest truncate">{field.name}</span>
+                                                {field.area && <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">{field.area}</span>}
+                                            </div>
+                                        </div>
+                                        {!readOnly && (
+                                            <button onClick={() => { const nd = { ...mapData, fields: mapData.fields.filter(f => f.id !== field.id) }; setMapData(nd); onChange?.(JSON.stringify(nd)); }} className="text-gray-300 hover:text-red-500 transition-colors pointer-events-auto">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                    <path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
-                            {!readOnly && mapData.propertyLocation && (
-                                <button onClick={() => { setMapData({ ...mapData, propertyLocation: undefined, city: undefined, state: undefined }); onChange?.(JSON.stringify({ ...mapData, propertyLocation: undefined, city: undefined, state: undefined })); }} className="text-gray-300 hover:text-red-500 transition-colors pointer-events-auto">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                        <path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
+                        </div>
+                    ) : (
+                        <button onClick={() => setIsInfoExpanded(true)} className="w-full h-full flex items-center justify-center text-gray-400 group-hover:text-emerald-500 transition-colors">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {readOnly && mapData.carCode && !hideEsg && (
+                <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-xl shadow-gray-50 animate-fade-in relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-500">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
+                                </div>
+                                <div className="flex flex-col">
+                                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight">Análise Socioambiental</h3>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Conformidade e Monitoramento</span>
+                                </div>
+                            </div>
+
+                            {!mapData.carEsgStatus && (
+                                <button
+                                    onClick={handleAnalyzeEsg}
+                                    disabled={isLoadingEsg}
+                                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoadingEsg ? (
+                                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    )}
+                                    {isLoadingEsg ? 'Analisando...' : 'Executar Análise'}
                                 </button>
                             )}
                         </div>
 
-                        {mapData.city && (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 animate-fade-in">
-                                <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                    <path d="M3 21h18M3 10a9 9 0 1118 0v11H3V10z" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider">{mapData.city}</span>
-                                    <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest opacity-70">{mapData.state}</span>
-                                </div>
-                            </div>
-                        )}
-                        {mapData.fields.map((field: PropertyField) => (
-                            <div key={field.id} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                        <path d="M12 2l9 6.75V17.5L12 22l-9-4.5V8.75L12 2z" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                    <div className="flex flex-col flex-1 min-w-0">
-                                        <span className="text-[10px] font-black font-bold text-gray-700 uppercase tracking-widest truncate">{field.name}</span>
-                                        {field.area && <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">{field.area}</span>}
+                        {mapData.carEsgStatus && (
+                            <div className="animate-slide-up">
+                                <div className={`flex items-center gap-4 p-4 rounded-2xl border ${mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK'
+                                    ? 'bg-emerald-50 border-emerald-100'
+                                    : 'bg-red-50 border-red-100'
+                                    }`}>
+                                    <div className={`w-3 h-3 rounded-full shadow-sm ring-4 ring-white ${mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK'
+                                        ? 'bg-emerald-500'
+                                        : 'bg-red-500'
+                                        }`} />
+                                    <div className="flex flex-col flex-1">
+                                        <span className={`text-xs font-black uppercase tracking-widest ${mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK'
+                                            ? 'text-emerald-700'
+                                            : 'text-red-700'
+                                            }`}>
+                                            {mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK' ? 'Situação Regular' : 'Irregularidades Encontradas'}
+                                        </span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider opacity-70 ${mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK'
+                                            ? 'text-emerald-600'
+                                            : 'text-red-600'
+                                            }`}>
+                                            Última verificação: Hoje
+                                        </span>
                                     </div>
-                                </div>
-                                {!readOnly && (
-                                    <button onClick={() => { const nd = { ...mapData, fields: mapData.fields.filter(f => f.id !== field.id) }; setMapData(nd); onChange?.(JSON.stringify(nd)); }} className="text-gray-300 hover:text-red-500 transition-colors pointer-events-auto">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                            <path d="M3 6h18m-2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <button onClick={handleAnalyzeEsg} disabled={isLoadingEsg} className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="Reanalisar">
+                                        <svg className={`w-5 h-5 ${isLoadingEsg ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                     </button>
+                                </div>
+
+                                {mapData.carEsgData && (
+                                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {Object.entries(mapData.carEsgData).map(([key, value]) => {
+                                            if (key.startsWith('qtd_') && typeof value === 'number') {
+                                                const label = key.replace('qtd_', '').replace(/_/g, ' ');
+                                                const isIssue = value > 0;
+                                                return (
+                                                    <div key={key} className={`p-3 rounded-xl border ${isIssue ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'} flex flex-col gap-1`}>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate" title={label}>{label}</span>
+                                                        <span className={`text-xl font-black ${isIssue ? 'text-red-500' : 'text-gray-700'}`}>{value}</span>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+                                    </div>
                                 )}
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

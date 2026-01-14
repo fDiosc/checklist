@@ -76,6 +76,11 @@ export async function GET(
                             fields: data.fields,
                             city: data.city,
                             state: data.state,
+                            carCode: data.carCode,
+                            carData: data.carData,
+                            carEsgStatus: data.carEsgStatus,
+                            carEsgData: data.carEsgData,
+                            carEsgLastCheck: data.carEsgLastCheck,
                             createdAt: r.createdAt,
                             isFromResponse: true
                         };

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import ProducerHistory from '@/components/dashboard/ProducerHistory';
 
@@ -10,6 +10,7 @@ import SendChecklistModal from '@/components/modals/SendChecklistModal';
 
 export default function ProdutoresPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [selectedProducerId, setSelectedProducerId] = useState<string | undefined>();
@@ -82,6 +83,9 @@ export default function ProdutoresPage() {
                                         Identificação
                                     </th>
                                     <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                        Status Socioambiental
+                                    </th>
+                                    <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         E-mail de Contato
                                     </th>
                                     <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
@@ -113,6 +117,15 @@ export default function ProdutoresPage() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-xs font-bold text-slate-500 uppercase tracking-widest">{producer.cpf}</td>
+                                            <td className="px-8 py-6">
+                                                {producer.esgStatus ? (
+                                                    <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${producer.esgStatus === 'CONFORME' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                                        {producer.esgStatus === 'CONFORME' ? 'Sem Apontamento' : 'Com Apontamento'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Não Analisado</span>
+                                                )}
+                                            </td>
                                             <td className="px-8 py-6 text-xs font-medium text-slate-400">
                                                 {producer.email || '-'}
                                             </td>
@@ -126,6 +139,28 @@ export default function ProdutoresPage() {
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                const res = await fetch('/api/integration/esg/producer', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ producerId: producer.id, cpf: producer.cpf })
+                                                                });
+                                                                if (!res.ok) throw new Error('Analysis failed');
+                                                                queryClient.invalidateQueries({ queryKey: ['producers'] });
+                                                            } catch (err) {
+                                                                alert('Erro ao reanalisar produtor');
+                                                            }
+                                                        }}
+                                                        className="p-3 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                                        title="Reanalisar Socioambiental"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
+                                                    </button>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -154,7 +189,7 @@ export default function ProdutoresPage() {
                                         </tr>
                                         {expandedId === producer.id && (
                                             <tr>
-                                                <td colSpan={6} className="p-0 border-none bg-slate-50/50">
+                                                <td colSpan={7} className="p-0 border-none bg-slate-50/50">
                                                     <ProducerHistory producerId={producer.id} />
                                                 </td>
                                             </tr>

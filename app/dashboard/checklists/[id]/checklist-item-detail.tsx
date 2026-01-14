@@ -42,7 +42,7 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
             case 'PROPERTY_MAP':
                 return (
                     <div className="w-full h-[500px]">
-                        <PropertyMapInput value={answer || ''} readOnly={true} />
+                        <PropertyMapInput value={answer || ''} readOnly={true} hideEsg={true} />
                     </div>
                 );
             case 'FILE':
