@@ -60,7 +60,8 @@ export async function POST(
 
                 if (section.items && section.items.length > 0) {
                     await tx.item.createMany({
-                        data: section.items.map((item) => ({
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        data: section.items.map((item: any) => ({
                             sectionId: newSection.id,
                             name: item.name,
                             type: item.type,
