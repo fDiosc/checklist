@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Npm
+node_modules
+npm-debug.log
+
+# Next.js
+.next
+out
+build
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# Legacy
+produto anterior
+
+# Docker
+Dockerfile
+.dockerignore
+captain-definition
