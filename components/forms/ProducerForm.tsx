@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, X, Shield } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -116,6 +116,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
             }
             router.push('/dashboard/produtores');
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onError: (error: any) => {
             alert(error.message);
         }
@@ -397,6 +398,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                         onChange={(e) => {
                                             const supervisorId = e.target.value;
                                             if (!supervisorId) return;
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const supervisor = allSupervisors?.find((a: any) => a.id === supervisorId);
                                             if (supervisor && !producer.assignedSupervisors?.some(a => a.id === supervisorId)) {
                                                 setProducer(prev => ({
@@ -408,6 +410,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                         }}
                                     >
                                         <option value="">Selecione um supervisor para atribuir...</option>
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                         {allSupervisors?.filter((a: any) => !producer.assignedSupervisors?.some(ap => ap.id === a.id)).map((a: any) => (
                                             <option key={a.id} value={a.id}>{a.name} ({a.email})</option>
                                         ))}

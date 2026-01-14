@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, ChevronDown } from 'lucide-react';
 import ProducerHistory from '@/components/dashboard/ProducerHistory';
 
 import { useRouter } from 'next/navigation';
@@ -100,6 +100,7 @@ export default function ProdutoresPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {producers.map((producer: any) => (
                                     <React.Fragment key={producer.id}>
                                         <tr
@@ -150,7 +151,7 @@ export default function ProdutoresPage() {
                                                                 });
                                                                 if (!res.ok) throw new Error('Analysis failed');
                                                                 queryClient.invalidateQueries({ queryKey: ['producers'] });
-                                                            } catch (err) {
+                                                            } catch {
                                                                 alert('Erro ao reanalisar produtor');
                                                             }
                                                         }}

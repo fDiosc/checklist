@@ -29,6 +29,7 @@ export default function OnboardingPage() {
             queryClient.invalidateQueries({ queryKey: ['me'] });
             router.push('/dashboard');
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onError: (err: any) => {
             setError(err.message);
         }

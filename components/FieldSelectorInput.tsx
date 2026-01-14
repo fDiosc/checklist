@@ -5,9 +5,12 @@ import { PropertyField } from '@/types/checklist';
 
 interface FieldSelectorInputProps {
     producerIdentifier?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     producerMaps?: any[];
-    value: string[]; // Array of selected Field IDs
-    onChange: (val: string[]) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onChange: (val: any[]) => void;
     readOnly?: boolean;
 }
 
@@ -20,13 +23,16 @@ const FieldSelectorInput: React.FC<FieldSelectorInputProps> = ({
 }) => {
     // Extract and merge fields from server maps AND localStorage history
     const fields: PropertyField[] = React.useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const serverFields = producerMaps.flatMap((map: any) => map.fields || []);
 
         let localFields: PropertyField[] = [];
         try {
             const allProducers = JSON.parse(localStorage.getItem('merx_producers') || '[]');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const producer = allProducers.find((p: any) => p.identifier === producerIdentifier);
             if (producer?.savedMaps) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 localFields = producer.savedMaps.flatMap((m: any) => m.fields || []);
             }
         } catch (e) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, ChevronRight, MapPin, ClipboardList, ExternalLink, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, MapPin, ClipboardList, ExternalLink, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import React, { useState } from 'react';
 import PropertyMapInput from '@/components/PropertyMapInput';
@@ -50,6 +50,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
 
                     <div className="grid grid-cols-1 gap-4">
                         {producer.checklists && producer.checklists.length > 0 ? (
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             producer.checklists.map((checklist: any) => (
                                 <Link
                                     key={checklist.id}
@@ -92,6 +93,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
 
                     <div className="grid grid-cols-1 gap-4">
                         {producer.maps && producer.maps.length > 0 ? (
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             producer.maps.map((map: any) => (
                                 <div
                                     key={map.id}

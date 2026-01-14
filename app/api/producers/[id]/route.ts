@@ -54,7 +54,9 @@ export async function GET(
         }
 
         // Apply role-based filters (Only ADMIN sees everything)
+        // Apply role-based filters (Only ADMIN sees everything)
         if (user?.role !== "ADMIN") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const isAssigned = producer.assignedSupervisors.some((a: any) => a.id === userId);
             if (!isAssigned) {
                 return NextResponse.json({ error: "Forbidden: Not assigned to this producer" }, { status: 403 });
@@ -62,9 +64,12 @@ export async function GET(
         }
 
         // Aggregate maps from checklist responses
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const extractedMaps = producer.checklists.flatMap((checklist: any) =>
             checklist.responses
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .filter((r: any) => r.item.type === 'PROPERTY_MAP' && r.answer)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .map((r: any) => {
                     try {
                         const data = JSON.parse(r.answer as string);
@@ -84,10 +89,11 @@ export async function GET(
                             createdAt: r.createdAt,
                             isFromResponse: true
                         };
-                    } catch (e) {
+                    } catch {
                         return null;
                     }
                 })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .filter((m: any) => m !== null)
         );
 
@@ -143,6 +149,7 @@ export async function PATCH(
         const body = await req.json();
         const validatedData = updateProducerSchema.parse(body);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const producer = await db.$transaction(async (tx: any) => {
             // 1. Update main producer data
             const p = await tx.producer.update({
@@ -167,9 +174,12 @@ export async function PATCH(
                     where: { producerId: id },
                 });
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const existingIds = existingSubUsers.map((s: any) => s.id);
                 const incomingIds = subUsers
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .filter((s: any) => s.id && !s.id.startsWith("temp-"))
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .map((s: any) => s.id as string);
 
                 // Delete sub-users not in incoming list

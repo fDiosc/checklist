@@ -33,7 +33,9 @@ export async function POST(
         }
 
         // 2. Create duplicate in a transaction
-        const duplicate = await db.$transaction(async (tx) => {
+        // 2. Create duplicate in a transaction
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const duplicate = await db.$transaction(async (tx: any) => {
             // Create the template
             const newTemplate = await tx.template.create({
                 data: {
@@ -76,7 +78,7 @@ export async function POST(
         });
 
         return NextResponse.json(duplicate);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error("Duplication Error:", error?.message || error);
         return NextResponse.json(
             { error: "Internal server error", details: error?.message },

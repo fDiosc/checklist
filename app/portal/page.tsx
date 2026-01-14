@@ -25,7 +25,7 @@ export default function PortalLogin() {
                 const data = await res.json();
                 setError(data.error || 'CPF não encontrado ou sem checklists vinculados.');
             }
-        } catch (err) {
+        } catch {
             setError('Erro ao conectar ao servidor.');
         } finally {
             setLoading(false);

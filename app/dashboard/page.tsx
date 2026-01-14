@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Users, FolderOpen, ClipboardList, TrendingUp, ShieldCheck, Zap } from "lucide-react";
+import { Users, FolderOpen, ClipboardList, ShieldCheck, Zap } from "lucide-react";
 
 export default function DashboardPage() {
     const { data: stats, isLoading } = useQuery({

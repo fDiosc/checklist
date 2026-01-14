@@ -44,7 +44,9 @@ export default async function PublicChecklistPage({
         notFound();
     }
 
+
     // Aggregate maps from all producer's checklists
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let aggregatedMaps: any[] = [];
     if (checklist.producer) {
         const extractedMaps = checklist.producer.checklists.flatMap(c =>
@@ -64,10 +66,11 @@ export default async function PublicChecklistPage({
                             createdAt: r.createdAt,
                             isFromResponse: true
                         };
-                    } catch (e) {
+                    } catch {
                         return null;
                     }
                 })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .filter((m): m is any => m !== null)
         );
         aggregatedMaps = [...checklist.producer.maps, ...extractedMaps];

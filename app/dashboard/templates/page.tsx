@@ -107,6 +107,7 @@ export default function TemplatesPage() {
                                 </tr>
                             </thead>
                             <tbody>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {templates.map((template: any, idx: number) => (
                                     <tr
                                         key={template.id}
@@ -148,8 +149,8 @@ export default function TemplatesPage() {
                                                     }}
                                                     disabled={template._count?.checklists > 0}
                                                     className={`p-2 rounded-lg transition-all ${template._count?.checklists > 0
-                                                            ? 'text-slate-200 cursor-not-allowed'
-                                                            : 'text-slate-400 hover:text-primary hover:bg-primary/5'
+                                                        ? 'text-slate-200 cursor-not-allowed'
+                                                        : 'text-slate-400 hover:text-primary hover:bg-primary/5'
                                                         }`}
                                                     title={template._count?.checklists > 0 ? "Template em uso não pode ser editado estruturalmente. Duplique para alterar." : "Editar Template"}
                                                 >

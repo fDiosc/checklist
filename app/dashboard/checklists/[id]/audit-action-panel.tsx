@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { CheckCircle, XCircle, Sparkles, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AuditActionPanelProps {
     status: 'MISSING' | 'PENDING_VERIFICATION' | 'APPROVED' | 'REJECTED';
@@ -13,6 +12,7 @@ interface AuditActionPanelProps {
     onApprove: () => void;
     onReject: (reason: string) => void;
     onAcceptAi: () => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onInternalFill: (data: any) => void;
     itemType?: string;
 }

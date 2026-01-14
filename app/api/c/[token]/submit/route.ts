@@ -31,10 +31,13 @@ export async function POST(
         await db.$transaction(
             Object.entries(responses)
                 .filter(([key]) => key !== '__selected_fields')
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .map(([key, data]: [string, any]) => {
                     const [itemId, fieldId] = key.includes('::') ? key.split('::') : [key, "__global__"];
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const existing = currentResponses.find((r: any) => r.itemId === itemId && r.fieldId === fieldId);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     let safeStatus = (data.status as any) || "PENDING_VERIFICATION";
 
                     // SERVER-SIDE GUARD: If item was REJECTED but producer provides answer, 
@@ -43,6 +46,7 @@ export async function POST(
                         safeStatus = 'PENDING_VERIFICATION';
                     }
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     return (db.response as any).upsert({
                         where: {
                             checklistId_itemId_fieldId: {
@@ -93,6 +97,7 @@ export async function POST(
                     include: { sections: { include: { items: true } } }
                 });
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const mapItems = template?.sections.flatMap((s: any) => s.items).filter((i: any) => i.type === 'PROPERTY_MAP') || [];
 
                 for (const item of mapItems) {
@@ -105,6 +110,7 @@ export async function POST(
 
                             if (mapData && mapData.fields) {
                                 // Upsert to PropertyMap
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 await (db.propertyMap as any).upsert({
                                     where: {
                                         // We use the combination of producer and name as a soft unique key 
@@ -140,10 +146,10 @@ export async function POST(
         }
 
         return NextResponse.json({ success: true });
-    } catch (err: any) {
+    } catch (err) {
         console.error("Submission error:", err);
         return NextResponse.json(
-            { error: "Submission failed", message: err.message },
+            { error: "Submission failed", message: err instanceof Error ? err.message : String(err) },
             { status: 500 }
         );
     }

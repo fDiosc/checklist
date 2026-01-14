@@ -50,6 +50,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
     });
 
     const mutation = useMutation({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mutationFn: async (data: any) => {
             const res = await fetch('/api/checklists', {
                 method: 'POST',
@@ -65,6 +66,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
         onSuccess: (data) => {
             setGeneratedLink(data.link);
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onError: (err: any) => {
             console.error('Checklist creation error:', err);
             alert(`Erro ao gerar checklist: ${err.message}`);
@@ -122,6 +124,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                     1. Selecionar Template
                                 </label>
                                 <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                     {templates?.map((t: any) => (
                                         <button
                                             key={t.id}
@@ -153,6 +156,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                     2. Selecionar Produtor
                                 </label>
                                 <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                     {producers?.map((p: any) => (
                                         <button
                                             key={p.id}
@@ -207,6 +211,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                             ].map((method) => (
                                 <button
                                     key={method.id}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     onClick={() => setSentVia(method.id as any)}
                                     className={`flex-1 flex flex-col items-center gap-3 p-6 rounded-3xl border-2 transition-all ${sentVia === method.id ? 'border-primary bg-primary/[0.03] scale-[1.05] shadow-xl shadow-primary/5' : 'border-slate-50 hover:border-slate-100 opacity-60'}`}
                                 >

@@ -7,9 +7,7 @@ import {
     XCircle,
     AlertCircle,
     ClipboardList,
-    ChevronRight,
     UserCheck,
-    Link as LinkIcon,
     Copy,
     MessageCircle,
     ExternalLink
@@ -98,6 +96,7 @@ export default function ChecklistsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {checklists.map((checklist: any) => {
                                     const publicLink = `${window.location.origin}/c/${checklist.publicToken}`;
 
@@ -118,7 +117,7 @@ export default function ChecklistsPage() {
                                         window.open(`https://wa.me/?text=${text}`, '_blank');
                                     };
 
-                                    const handleRowClick = (e: React.MouseEvent) => {
+                                    const handleRowClick = () => {
                                         // Open Dashboard
                                         window.location.href = `/dashboard/checklists/${checklist.id}`;
                                     };

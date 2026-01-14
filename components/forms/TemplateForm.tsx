@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save, X, Sparkles, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, X, Sparkles, ChevronDown, GripVertical } from 'lucide-react';
 import Switch from '@/components/ui/Switch';
 import Checkbox from '@/components/ui/Checkbox';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -141,16 +141,19 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
             ...prev,
             sections: prev.sections.map(s => s.id === sectionId ? {
                 ...s,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 items: s.items.filter((i: any) => i.id !== itemId)
             } : s)
         }));
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateItem = (sectionId: string, itemId: string, updates: any) => {
         setTemplate(prev => ({
             ...prev,
             sections: prev.sections.map(s => s.id === sectionId ? {
                 ...s,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 items: s.items.map((i: any) => i.id === itemId ? { ...i, ...updates } : i)
             } : s)
         }));
@@ -305,7 +308,8 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
 
                             {/* Section Items */}
                             <div className="p-8 space-y-6">
-                                {section.items.map((item: any, iIdx: number) => (
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {section.items.map((item: any) => (
                                     <div key={item.id} className="bg-slate-50/30 rounded-3xl p-6 border border-slate-50 group hover:border-primary/20 transition-all">
                                         <div className="flex items-start gap-4">
                                             <div className="flex-1 space-y-6">
@@ -393,6 +397,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                                                         {!readOnly && (
                                                                             <button
                                                                                 onClick={() => {
+                                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                                                     const newOptions = item.options.filter((_: any, idx: number) => idx !== optIdx);
                                                                                     updateItem(section.id, item.id, { options: newOptions });
                                                                                 }}

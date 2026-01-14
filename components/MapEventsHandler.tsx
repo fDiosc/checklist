@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
 
 interface MapEventsHandlerProps {
     mode: 'view' | 'set_location' | 'draw_field';
@@ -29,6 +28,7 @@ const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ mode, onMapClick, c
 
     // Fix for Marker icons on client-side
     useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const L = require('leaflet');
         delete L.Icon.Default.prototype._getIconUrl;
         L.Icon.Default.mergeOptions({

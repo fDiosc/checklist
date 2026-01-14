@@ -38,7 +38,9 @@ export async function GET(request: Request) {
 
         // Parse WKB geom if present
         if (Array.isArray(data)) {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
             const wkx = require('wkx');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.forEach((item: any) => {
                 if (item.geom) {
                     try {

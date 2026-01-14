@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { DocumentItem } from '@/types/checklist';
-import { DATABASE_FERTILIZERS, DATABASE_DESICCATION } from '@/lib/constants';
 import PropertyMapInput from './PropertyMapInput';
 import CameraCapture from './CameraCapture';
 
@@ -13,6 +12,7 @@ interface ChecklistItemProps {
     idSuffix?: string;
     onUpdate: (updates: Partial<DocumentItem>) => void;
     producerIdentifier?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     producerMaps?: any[];
     readOnly?: boolean;
 }
@@ -26,6 +26,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
     readOnly = false
 }) => {
     const [showCamera, setShowCamera] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [dbOptions, setDbOptions] = useState<any[]>([]);
     const [isLoadingDb, setIsLoadingDb] = useState(false);
     const uniqueId = `${item.id}${idSuffix}`;
@@ -51,7 +52,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
         }
     };
 
-    const renderFileUpload = (compact = false) => (
+    const renderFileUpload = () => (
         <div className={`mt-6 p-6 md:p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 transition-all hover:bg-white hover:border-primary/20`}>
             <div className="flex flex-col items-center gap-4 text-center">
                 <div className="flex items-center gap-2 text-gray-400 mb-2">
@@ -196,7 +197,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             </button>
                         );
                     })}
-                    {item.requestArtifact && item.answer === 'Sim' && renderFileUpload(true)}
+                    {item.requestArtifact && item.answer === 'Sim' && renderFileUpload()}
                 </div>
             );
 
@@ -330,6 +331,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                         <input
                             type="date"
                             value={item.validity ? new Date(item.validity).toISOString().split('T')[0] : ''}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             onChange={(e) => onUpdate({ validity: e.target.value as any })}
                             className="w-full p-4 bg-white rounded-xl font-bold outline-none border-2 border-indigo-100 focus:border-indigo-500 text-indigo-900 transition-all"
                         />

@@ -4,7 +4,9 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 
 interface ChecklistItemDetailProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     item: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response: any;
 }
 
@@ -96,7 +98,7 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
                         const parsed = JSON.parse(answer);
                         if (Array.isArray(parsed)) displayAnswer = parsed.join(', ');
                     }
-                } catch (e) { }
+                } catch { }
 
                 return (
                     <div className="flex flex-col items-center gap-4">

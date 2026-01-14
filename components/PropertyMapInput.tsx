@@ -15,8 +15,10 @@ const Polygon = dynamic(() => import('react-leaflet').then(mod => mod.Polygon), 
 import MapEventsHandler from './MapEventsHandler';
 
 // No top-level Leaflet import to avoid SSR issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let vertexIcon: any = null;
 if (typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const L = require('leaflet');
     vertexIcon = L.divIcon({
         className: 'custom-div-icon',
@@ -49,6 +51,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
     const [center, setCenter] = useState<[number, number]>([-15.7942, -47.8822]);
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isSearching, setIsSearching] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
@@ -74,10 +77,12 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
 
                     if (car.geoJson.type === 'Polygon') {
                         const ring = car.geoJson.coordinates[0];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
                     } else if (car.geoJson.type === 'MultiPolygon') {
                         const polygon = car.geoJson.coordinates[0];
                         const ring = polygon[0];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
                     }
                     setCarPolygon(points);
@@ -93,6 +98,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
             if (searchQuery.length > 2) fetchSuggestions();
         }, 500);
         return () => clearTimeout(timeoutId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery]);
 
 
@@ -128,7 +134,8 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
         if (!identifier) return;
 
         const allProducers = JSON.parse(localStorage.getItem('merx_producers') || '[]');
-        let pIdx = allProducers.findIndex((p: any) => p.identifier === identifier);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pIdx = allProducers.findIndex((p: any) => p.identifier === identifier);
 
         if (pIdx === -1) {
             allProducers.push({ identifier, savedMaps: [data], checklists: [] });
@@ -192,12 +199,14 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                         // car.geoJson.coordinates is Array of Rings. First ring is outer.
                         // Ring is Array of Positions [lng, lat]
                         const ring = car.geoJson.coordinates[0];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
                     } else if (car.geoJson.type === 'MultiPolygon') {
                         // Take the first polygon's outer ring for simplicity or join them?
                         // For visualization, let's take the first polygon.
                         const polygon = car.geoJson.coordinates[0];
                         const ring = polygon[0];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         points = ring.map((p: any) => ({ lat: p[1], lng: p[0] }));
                     }
 

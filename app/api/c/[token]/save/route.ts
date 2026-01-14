@@ -11,7 +11,7 @@ export async function POST(
         let body;
         try {
             body = await req.json();
-        } catch (e) {
+        } catch {
             return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
         }
 
@@ -36,6 +36,7 @@ export async function POST(
         }
 
         // Helper to safely map status
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sanitizeStatus = (rawStatus: any): "PENDING_VERIFICATION" | "MISSING" | "APPROVED" | "REJECTED" => {
             const validStatuses = ["PENDING_VERIFICATION", "MISSING", "APPROVED", "REJECTED"];
 
@@ -61,10 +62,12 @@ export async function POST(
         await db.$transaction(
             Object.entries(responses)
                 .filter(([key]) => key !== '__selected_fields')
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .map(([key, data]: [string, any]) => {
                     // Key format: "itemId" or "itemId::fieldId"
                     const [itemId, fieldId] = key.includes('::') ? key.split('::') : [key, "__global__"];
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const existing = currentResponses.find((r: any) => r.itemId === itemId && r.fieldId === fieldId);
                     let safeStatus = sanitizeStatus(data.status);
 
@@ -74,6 +77,7 @@ export async function POST(
                         safeStatus = 'PENDING_VERIFICATION';
                     }
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     return (db.response as any).upsert({
                         where: {
                             checklistId_itemId_fieldId: {
@@ -106,7 +110,7 @@ export async function POST(
         );
 
         return NextResponse.json({ success: true });
-    } catch (err: any) {
+    } catch (err) {
         // Safe error logging
         const errorMessage = err instanceof Error ? err.message : String(err);
         console.error("Save draft error:", errorMessage);

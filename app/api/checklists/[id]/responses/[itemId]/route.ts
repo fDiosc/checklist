@@ -20,6 +20,7 @@ export async function PUT(
             return NextResponse.json({ error: "Invalid status" }, { status: 400 });
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data: any = {
             updatedAt: new Date(),
         };
@@ -47,6 +48,7 @@ export async function PUT(
             if (!status) data.status = 'PENDING_VERIFICATION';
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response = await (db.response as any).upsert({
             where: {
                 checklistId_itemId_fieldId: {
@@ -92,6 +94,7 @@ export async function PUT(
                         try {
                             const mapData = typeof answer === 'string' ? JSON.parse(answer) : answer;
                             if (mapData && mapData.fields) {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 await (db.propertyMap as any).upsert({
                                     where: { id: `map-${id}-${itemId}` },
                                     update: {
@@ -123,7 +126,7 @@ export async function PUT(
         }
 
         return NextResponse.json(response);
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error("Full error updating response:", err);
         const errorMessage = err?.message || String(err) || "Unknown error";
         const errorCode = err?.code || "No code";

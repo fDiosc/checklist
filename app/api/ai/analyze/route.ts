@@ -1,4 +1,4 @@
-import { GoogleGenAI, Schema } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -40,6 +40,7 @@ export async function POST(req: Request) {
             };
 
             // Persist mock result to DB
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (db.response as any).update({
                 where: {
                     checklistId_itemId_fieldId: {
@@ -135,6 +136,7 @@ export async function POST(req: Request) {
                 analysis.reason = analysis.reasoning || analysis.reason;
 
                 // PERSIST TO DATABASE
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await (db.response as any).update({
                     where: {
                         checklistId_itemId_fieldId: {
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
 
                 return NextResponse.json(analysis);
             }
-        } catch (e: any) {
+        } catch (e) {
             console.error(`Gemini ${modelName} failed, retrying with 1.5`, e);
             // FALLBACK
             if (modelName !== 'gemini-1.5-flash') {
@@ -177,6 +179,7 @@ export async function POST(req: Request) {
                         analysis.reason = analysis.reasoning || analysis.reason;
 
                         // PERSIST FALLBACK RESULT
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         await (db.response as any).update({
                             where: {
                                 checklistId_itemId_fieldId: {

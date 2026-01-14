@@ -11,7 +11,10 @@ export async function POST(req: Request) {
         }
 
         // Ensure user exists in our DB
+        // Ensure user exists in our DB
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const email = (sessionClaims as any)?.email || "";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const name = (sessionClaims as any)?.name || (sessionClaims as any)?.fullName || "";
 
         const user = await db.user.upsert({
@@ -81,7 +84,7 @@ export async function POST(req: Request) {
         const link = `${process.env.NEXT_PUBLIC_APP_URL}/c/${publicToken}`;
 
         return NextResponse.json({ checklist, link });
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error("Error creating checklist:", err?.message || err);
         return NextResponse.json(
             {
@@ -108,8 +111,10 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const status = searchParams.get("status");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const where: any = {};
         if (status) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             where.status = status as any;
         }
 

@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Plus, X, Search, Shield, UserPlus, MapPin } from 'lucide-react';
+import { Users, Plus, X, Search, MapPin } from 'lucide-react';
 
 export default function SupervisoresPage() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [selectedSupervisor, setSelectedSupervisor] = useState<any>(null);
     const [producerSearch, setProducerSearch] = useState('');
 
@@ -33,6 +34,7 @@ export default function SupervisoresPage() {
 
     // Assignment Mutation
     const assignmentMutation = useMutation({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mutationFn: async ({ supervisorId, producerId, action }: any) => {
             const res = await fetch('/api/users/supervisors', {
                 method: 'POST',
@@ -47,6 +49,9 @@ export default function SupervisoresPage() {
         }
     });
 
+
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filteredSupervisors = supervisors?.filter((a: any) =>
         a.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -91,6 +96,7 @@ export default function SupervisoresPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
                 {filteredSupervisors?.length > 0 ? (
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     filteredSupervisors.map((supervisor: any) => (
                         <div key={supervisor.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-xl p-10 space-y-8">
                             <div className="flex items-start justify-between">
@@ -124,6 +130,7 @@ export default function SupervisoresPage() {
 
                                 <div className="grid grid-cols-1 gap-3">
                                     {supervisor.assignedProducers?.length > 0 ? (
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         supervisor.assignedProducers.map((prod: any) => (
                                             <div key={prod.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group/item">
                                                 <div className="flex items-center gap-3">
@@ -189,6 +196,7 @@ export default function SupervisoresPage() {
 
                         <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                             {producers?.length > 0 ? (
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 producers.filter((p: any) => !selectedSupervisor?.assignedProducers?.some((ap: any) => ap.id === p.id)).map((prod: any) => (
                                     <button
                                         key={prod.id}

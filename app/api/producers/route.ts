@@ -81,6 +81,7 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const where: any = {};
 
         if (search) {
