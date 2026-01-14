@@ -62,7 +62,7 @@ export async function GET(
         }
 
         // Aggregate maps from checklist responses
-        const extractedMaps = producer.checklists.flatMap(checklist =>
+        const extractedMaps = producer.checklists.flatMap((checklist: any) =>
             checklist.responses
                 .filter(r => r.item.type === 'PROPERTY_MAP' && r.answer)
                 .map(r => {
