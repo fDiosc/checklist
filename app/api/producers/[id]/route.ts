@@ -143,7 +143,7 @@ export async function PATCH(
         const body = await req.json();
         const validatedData = updateProducerSchema.parse(body);
 
-        const producer = await db.$transaction(async (tx) => {
+        const producer = await db.$transaction(async (tx: any) => {
             // 1. Update main producer data
             const p = await tx.producer.update({
                 where: { id },
@@ -167,13 +167,14 @@ export async function PATCH(
                     where: { producerId: id },
                 });
 
-                const existingIds = existingSubUsers.map((s) => s.id);
+                const existingIds = existingSubUsers.map((s: any) => s.id);
                 const incomingIds = subUsers
-                    .filter((s) => s.id && !s.id.startsWith("temp-"))
-                    .map((s) => s.id as string);
+                    .filter((s: any) => s.id && !s.id.startsWith("temp-"))
+                    .map((s: any) => s.id as string);
 
                 // Delete sub-users not in incoming list
-                const toDelete = existingIds.filter((extId) => !incomingIds.includes(extId));
+                const existingIdsArray = existingIds as string[];
+                const toDelete = existingIdsArray.filter((extId: string) => !incomingIds.includes(extId));
                 if (toDelete.length > 0) {
                     await tx.subUser.deleteMany({
                         where: { id: { in: toDelete } },
