@@ -162,7 +162,11 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
     const fetchCAR = async (lat: number, lng: number) => {
         setIsLoadingCAR(true);
         try {
-            const response = await fetch(`/api/integration/car?latitude=${lat}&longitude=${lng}`);
+            // Force dot separator and limit precision to avoid URL issues
+            const safeLat = String(lat).replace(',', '.');
+            const safeLng = String(lng).replace(',', '.');
+
+            const response = await fetch(`/api/integration/car?latitude=${safeLat}&longitude=${safeLng}`);
             if (!response.ok) throw new Error('Falha ao buscar CAR');
 
             const data = await response.json();

@@ -20,7 +20,11 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
         }
 
-        const apiUrl = `https://api.merx.tech/api/v1/integration/car/getCarsByLatLong?latitude=${lat}&longitude=${lng}&cooperative-id=${coopIdConfig.value}`;
+        // Sanitize coordinates (ensure dot separator)
+        const safeLat = String(lat).replace(',', '.');
+        const safeLng = String(lng).replace(',', '.');
+
+        const apiUrl = `https://api.merx.tech/api/v1/integration/car/getCarsByLatLong?latitude=${safeLat}&longitude=${safeLng}&cooperative-id=${coopIdConfig.value}`;
 
         const response = await fetch(apiUrl, {
             headers: {
