@@ -1,9 +1,11 @@
 
 FROM node:18-slim AS base
 
+# Install dependencies for all stages
+RUN apt-get update && apt-get install -y openssl procps
+
 # Install dependencies only when needed
 FROM base AS deps
-RUN apt-get update && apt-get install -y openssl procps
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -45,9 +47,6 @@ ENV NODE_ENV production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
-
-# Install openssl for Prisma in runner
-RUN apt-get update && apt-get install -y openssl procps
 
 COPY --from=builder /app/public ./public
 
