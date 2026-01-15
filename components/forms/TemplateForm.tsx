@@ -458,6 +458,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                                                         >
                                                                             <option value="fertilizers_soil">Fertilizante Solo</option>
                                                                             <option value="seed_treatment">Tratamento Sementes</option>
+                                                                            <option value="seed_variety">Variedade Semente</option>
                                                                             <option value="desiccation_pre_planting">Dessecação Pré Plantio</option>
                                                                             <option value="pre_emergent_planting">Pré Emergente Plante Aplique</option>
                                                                             <option value="post_emergent_narrow_leaves">Pós Emergente Folhas Estreitas</option>
