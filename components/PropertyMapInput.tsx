@@ -658,14 +658,16 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                 </div>
 
                                 {mapData.carEsgData && (
-                                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
                                         {Object.entries(mapData.carEsgData).map(([key, value]) => {
                                             if (key.startsWith('qtd_') && typeof value === 'number') {
-                                                const label = key.replace('qtd_', '').replace(/_/g, ' ');
+                                                let label = key.replace('qtd_', '').replace('apontamentos_', '').replace('apontamentos', '').replace(/_/g, ' ').trim();
+                                                // Se for apenas "prodes", adicionar "amazonia" para clareza
+                                                if (label.toLowerCase() === 'prodes') label = 'prodes amazonia';
                                                 const isIssue = value > 0;
                                                 return (
                                                     <div key={key} className={`p-3 rounded-xl border ${isIssue ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'} flex flex-col gap-1`}>
-                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate" title={label}>{label}</span>
+                                                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide leading-tight">{label}</span>
                                                         <span className={`text-xl font-black ${isIssue ? 'text-red-500' : 'text-gray-700'}`}>{value}</span>
                                                     </div>
                                                 );
