@@ -9,16 +9,20 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const [producersCount, templatesCount, checklistsCount] = await Promise.all([
+        const [producersCount, templatesCount, checklistsCount, finalizedChecklistsCount] = await Promise.all([
             db.producer.count(),
             db.template.count(),
             db.checklist.count(),
+            db.checklist.count({
+                where: { status: 'FINALIZED' } // Assuming 'FINALIZED' is the status enum value
+            })
         ]);
 
         return NextResponse.json({
             producers: producersCount,
             templates: templatesCount,
             checklists: checklistsCount,
+            finalizedChecklists: finalizedChecklistsCount
         });
     } catch (error) {
         console.error("Error fetching dashboard stats:", error);

@@ -139,3 +139,46 @@ export async function PATCH(
         return NextResponse.json({ error: "Internal server error", details: error?.message }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    req: Request,
+    props: { params: Promise<{ id: string }> }
+) {
+    try {
+        const params = await props.params;
+        const { id } = params;
+        const { userId } = await auth();
+
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Verificar se template existe e não está em uso
+        const template = await db.template.findUnique({
+            where: { id },
+            include: { _count: { select: { checklists: true } } },
+        });
+
+        if (!template) {
+            return NextResponse.json({ error: "Template not found" }, { status: 404 });
+        }
+
+        if (template._count.checklists > 0) {
+            return NextResponse.json(
+                { error: "Não é possível excluir um template que já foi utilizado em checklists" },
+                { status: 400 }
+            );
+        }
+
+        // Deletar template (sections e items serão deletados em cascata)
+        await db.template.delete({ where: { id } });
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        console.error("DELETE Template Error:", error?.message || error);
+        return NextResponse.json(
+            { error: "Internal server error", details: error?.message },
+            { status: 500 }
+        );
+    }
+}

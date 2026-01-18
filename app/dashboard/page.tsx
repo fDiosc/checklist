@@ -3,7 +3,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Users, FolderOpen, ClipboardList, ShieldCheck, Zap } from "lucide-react";
 
+import { useRouter } from 'next/navigation';
+
 export default function DashboardPage() {
+    const router = useRouter();
     const { data: stats, isLoading } = useQuery({
         queryKey: ['dashboard-stats'],
         queryFn: async () => {
@@ -29,9 +32,16 @@ export default function DashboardPage() {
             bg: 'bg-indigo-50'
         },
         {
-            name: 'Vistorias Realizadas',
+            name: 'Checklists Enviados',
             value: stats?.checklists ?? '...',
             icon: ClipboardList,
+            color: 'text-blue-500',
+            bg: 'bg-blue-50'
+        },
+        {
+            name: 'Checklists Finalizados',
+            value: stats?.finalizedChecklists ?? '...',
+            icon: ShieldCheck,
             color: 'text-amber-500',
             bg: 'bg-amber-50'
         },
@@ -48,7 +58,7 @@ export default function DashboardPage() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
                 {statCards.map((stat, idx) => (
                     <div
                         key={stat.name}
@@ -76,7 +86,10 @@ export default function DashboardPage() {
                         <p className="text-slate-400 text-sm font-medium mb-8 max-w-xs">
                             Crie checklists complexos em segundos carregando seu documento PDF ou DOCX.
                         </p>
-                        <button className="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
+                        <button
+                            onClick={() => router.push('/dashboard/templates/new')}
+                            className="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                        >
                             Testar Gerador IA
                         </button>
                     </div>
@@ -92,8 +105,8 @@ export default function DashboardPage() {
                         <p className="text-emerald-100/70 text-sm font-medium mb-8 max-w-xs">
                             Gere relatórios automatizados baseados nas fotos e evidências coletadas.
                         </p>
-                        <button className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">
-                            Ver Relatórios
+                        <button disabled className="bg-slate-900/50 text-white/50 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/10">
+                            EM BREVE
                         </button>
                     </div>
                     <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/10 blur-[80px] -mb-32 -mr-32"></div>

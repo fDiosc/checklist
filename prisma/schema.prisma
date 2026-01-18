@@ -261,6 +261,8 @@ model PropertyMap {
   fields           Json
   city             String?
   state            String?
+  emeCode          String?
+  ruralRegionCode  Int?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
@@ -325,4 +327,34 @@ model SystemConfig {
   value String
 
   @@map("system_config")
+}
+
+// ============================================
+// RURAL REGIONS (Municípios e Regiões Rurais)
+// ============================================
+
+model RuralRegion {
+  id           String @id @default(cuid())
+  munCode      String @unique
+  municipality String
+  stateCode    String
+  stateShort   String
+  rrCode       Int
+
+  @@index([stateShort])
+  @@index([rrCode])
+  @@map("rural_regions")
+}
+
+// ============================================
+// EME (Órgãos Estaduais de Meio Ambiente)
+// ============================================
+
+model EME {
+  id     String @id @default(cuid())
+  uf     String @unique
+  codigo Int
+  eme    String
+
+  @@map("eme")
 }

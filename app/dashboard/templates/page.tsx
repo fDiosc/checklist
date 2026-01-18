@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit, Copy, Send, Folder } from 'lucide-react';
+import { Plus, Search, Edit, Copy, Send, Folder, Trash2, Filter } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SendChecklistModal from '@/components/modals/SendChecklistModal';
 
@@ -11,6 +11,7 @@ export default function TemplatesPage() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [folderFilter, setFolderFilter] = useState('');
+    const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>();
 
@@ -38,6 +39,31 @@ export default function TemplatesPage() {
         onError: (err) => {
             alert(err.message);
         }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to delete template');
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['templates'] });
+        },
+        onError: (err) => {
+            alert(err.message);
+        }
+    });
+
+    // Filtrar por status de uso localmente
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredTemplates = templates?.filter((t: any) => {
+        if (usageFilter === 'used') return t._count?.checklists > 0;
+        if (usageFilter === 'unused') return t._count?.checklists === 0;
+        return true;
     });
 
     return (
@@ -86,6 +112,20 @@ export default function TemplatesPage() {
                         onChange={(e) => setFolderFilter(e.target.value)}
                     />
                 </div>
+                <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors">
+                        <Filter size={18} />
+                    </div>
+                    <select
+                        className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/5 transition-all appearance-none cursor-pointer"
+                        value={usageFilter}
+                        onChange={(e) => setUsageFilter(e.target.value as 'all' | 'used' | 'unused')}
+                    >
+                        <option value="all">Todos os templates</option>
+                        <option value="used">Em uso (com checklists)</option>
+                        <option value="unused">Não utilizados</option>
+                    </select>
+                </div>
             </div>
 
             {isLoading ? (
@@ -93,7 +133,7 @@ export default function TemplatesPage() {
                     <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Carregando Biblioteca...</p>
                 </div>
-            ) : templates && templates.length > 0 ? (
+            ) : filteredTemplates && filteredTemplates.length > 0 ? (
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/50 overflow-hidden animate-fade-in">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -108,7 +148,7 @@ export default function TemplatesPage() {
                             </thead>
                             <tbody>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {templates.map((template: any, idx: number) => (
+                                {filteredTemplates.map((template: any, idx: number) => (
                                     <tr
                                         key={template.id}
                                         className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group animate-slide-up"
@@ -166,6 +206,22 @@ export default function TemplatesPage() {
                                                     title="Duplicar Template"
                                                 >
                                                     <Copy size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (template._count?.checklists > 0) return;
+                                                        if (confirm('Tem certeza que deseja excluir este template? Esta ação não pode ser desfeita.')) {
+                                                            deleteMutation.mutate(template.id);
+                                                        }
+                                                    }}
+                                                    disabled={template._count?.checklists > 0}
+                                                    className={`p-2 rounded-lg transition-all ${template._count?.checklists > 0
+                                                        ? 'text-slate-200 cursor-not-allowed'
+                                                        : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                        }`}
+                                                    title={template._count?.checklists > 0 ? "Template em uso não pode ser excluído" : "Excluir Template"}
+                                                >
+                                                    <Trash2 size={18} />
                                                 </button>
                                                 <button
                                                     onClick={() => {

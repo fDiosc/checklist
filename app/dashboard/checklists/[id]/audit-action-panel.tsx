@@ -46,7 +46,7 @@ export default function AuditActionPanel({
     };
 
     return (
-        <div className="flex flex-col gap-6 w-96 shrink-0 animate-fade-in pl-8 border-l border-slate-100 bg-slate-50/30">
+        <div className="flex flex-col gap-6 w-64 xl:w-80 shrink-0 animate-fade-in pl-4 xl:pl-8 border-l border-slate-100 bg-slate-50/30">
             <div className="space-y-4 px-2">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                     Ação do Auditor

@@ -187,6 +187,23 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                     newData.state = geoInfo.state;
                 }
 
+                // Fetch EME and Rural Region based on UF and city
+                if (newData.state && newData.city) {
+                    try {
+                        // Extract UF abbreviation from state (e.g., "São Paulo" -> need API to handle)
+                        // The API expects UF short code, but state might be full name
+                        // We'll try to pass state as-is and let the API handle lookup
+                        const lookupRes = await fetch(`/api/lookup/eme-rr?uf=${encodeURIComponent(newData.state)}&city=${encodeURIComponent(newData.city)}`);
+                        if (lookupRes.ok) {
+                            const lookupData = await lookupRes.json();
+                            newData.emeCode = lookupData.eme;
+                            newData.ruralRegionCode = lookupData.ruralRegionCode;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to fetch EME/RR lookup:', e);
+                    }
+                }
+
                 setMapData(newData);
                 onChange?.(JSON.stringify(newData));
                 saveToProducerHistory(newData);
@@ -395,13 +412,13 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                     )}
-                                    {isLoadingCAR ? 'Buscando CAR...' : (mapData.propertyLocation ? 'Alterar Sede' : 'Marcar Sede')}
+                                    {isLoadingCAR ? 'Buscando CAR...' : (mapData.propertyLocation ? 'Alterar Propriedade' : 'Marcar Propriedade')}
                                 </button>
                             </>
                         ) : (
                             <div className="flex-1 flex items-center justify-between px-6 py-4 bg-emerald-50 rounded-2xl border border-emerald-100 animate-fade-in">
                                 <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                                    {mode === 'set_location' ? 'Toque na Sede' : 'Toque os vértices'}
+                                    {mode === 'set_location' ? 'Clique na Propriedade' : 'Toque os vértices'}
                                 </span>
                                 <button onClick={() => setMode('view')} className="text-emerald-400 hover:text-red-500">
                                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -519,6 +536,28 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                         <div className="flex flex-col">
                                             <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider">{mapData.city}</span>
                                             <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-widest opacity-70">{mapData.state}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {mapData.emeCode && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl border border-indigo-100 animate-fade-in">
+                                        <svg className="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] font-black text-indigo-800 uppercase tracking-widest">Órgão Ambiental</span>
+                                            <span className="text-[9px] font-bold text-indigo-600">{mapData.emeCode}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {mapData.ruralRegionCode && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-100 animate-fade-in">
+                                        <svg className="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] font-black text-amber-800 uppercase tracking-widest">Região Rural</span>
+                                            <span className="text-[9px] font-bold text-amber-600">RR {mapData.ruralRegionCode}</span>
                                         </div>
                                     </div>
                                 )}

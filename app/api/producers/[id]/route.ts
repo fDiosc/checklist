@@ -86,6 +86,8 @@ export async function GET(
                             carEsgStatus: data.carEsgStatus,
                             carEsgData: data.carEsgData,
                             carEsgLastCheck: data.carEsgLastCheck,
+                            emeCode: data.emeCode,
+                            ruralRegionCode: data.ruralRegionCode,
                             createdAt: r.createdAt,
                             isFromResponse: true
                         };

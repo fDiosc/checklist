@@ -110,6 +110,10 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const status = searchParams.get("status");
+        const templateId = searchParams.get("templateId");
+        const producerSearch = searchParams.get("producer");
+        const dateFrom = searchParams.get("dateFrom");
+        const dateTo = searchParams.get("dateTo");
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const where: any = {};
@@ -117,13 +121,33 @@ export async function GET(req: Request) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             where.status = status as any;
         }
+        if (templateId) {
+            where.templateId = templateId;
+        }
+        if (producerSearch) {
+            where.producer = {
+                OR: [
+                    { name: { contains: producerSearch, mode: "insensitive" } },
+                    { cpf: { contains: producerSearch } },
+                ],
+            };
+        }
+        if (dateFrom || dateTo) {
+            where.sentAt = {};
+            if (dateFrom) where.sentAt.gte = new Date(dateFrom);
+            if (dateTo) where.sentAt.lte = new Date(dateTo);
+        }
 
         // Apply role-based filters (Only ADMIN sees everything)
         if (user?.role !== "ADMIN") {
+            // Merge with existing producer filter if any
+            const existingProducerFilter = where.producer || {};
             where.producer = {
+                ...existingProducerFilter,
                 assignedSupervisors: { some: { id: userId } }
             };
         }
+
 
         const checklists = await db.checklist.findMany({
             where,

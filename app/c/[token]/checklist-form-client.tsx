@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import 'leaflet/dist/leaflet.css';
 import ChecklistItem from '@/components/ChecklistItem';
 import { DocumentItem } from '@/types/checklist';
@@ -423,11 +424,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
             <div className="md:hidden bg-slate-900 text-white sticky top-0 z-50 shadow-2xl">
                 <div className="p-4 flex items-center justify-between border-b border-white/5">
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-9 h-9 bg-emerald-500 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />
-                            </svg>
-                        </div>
+                        <Image src="/MX_logo_formC_Green.png" alt="Maxsum" width={36} height={36} className="rounded-xl shadow-lg shadow-emerald-500/20 brightness-0 invert flex-shrink-0" />
                         <div className="overflow-hidden">
                             <h1 className="text-[10px] font-black uppercase tracking-widest truncate opacity-60">{checklist.template.name}</h1>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -469,11 +466,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
         `}>
                 <div className="flex flex-col h-full w-full p-8">
                     <div className="hidden md:flex items-center gap-4 mb-16 px-2">
-                        <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-emerald-500/40">
-                            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />
-                            </svg>
-                        </div>
+                        <Image src="/MX_logo_formC_Green.png" alt="Maxsum" width={56} height={56} className="rounded-2xl shadow-2xl shadow-emerald-500/40 brightness-0 invert" />
                         <div>
                             <h1 className="text-white font-black text-sm uppercase tracking-[0.25em] leading-tight">{checklist.template.name}</h1>
                             <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 opacity-90">Portal do Produtor</p>

@@ -91,6 +91,9 @@ export default function ProdutoresPage() {
                                     <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         Checklists
                                     </th>
+                                    <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                        Região / Órgão
+                                    </th>
                                     <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         Cadastro
                                     </th>
@@ -134,6 +137,23 @@ export default function ProdutoresPage() {
                                                 <span className={`inline-flex items-center px-4 py-1 rounded-full text-[10px] font-black transition-all ${producer._count?.checklists > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
                                                     {producer._count?.checklists || 0} Ativos
                                                 </span>
+                                            </td>
+                                            <td className="px-8 py-6 text-center">
+                                                <div className="flex flex-col gap-1 items-center">
+                                                    {producer.maps?.[0]?.emeCode && (
+                                                        <span className="text-[9px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                                                            {producer.maps[0].emeCode}
+                                                        </span>
+                                                    )}
+                                                    {producer.maps?.[0]?.ruralRegionCode && (
+                                                        <span className="text-[9px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">
+                                                            RR {producer.maps[0].ruralRegionCode}
+                                                        </span>
+                                                    )}
+                                                    {!producer.maps?.[0]?.emeCode && !producer.maps?.[0]?.ruralRegionCode && (
+                                                        <span className="text-[9px] font-bold text-slate-300">-</span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                                 {new Date(producer.createdAt).toLocaleDateString('pt-BR')}
@@ -190,7 +210,7 @@ export default function ProdutoresPage() {
                                         </tr>
                                         {expandedId === producer.id && (
                                             <tr>
-                                                <td colSpan={7} className="p-0 border-none bg-slate-50/50">
+                                                <td colSpan={8} className="p-0 border-none bg-slate-50/50">
                                                     <ProducerHistory producerId={producer.id} />
                                                 </td>
                                             </tr>

@@ -119,6 +119,19 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
                                                     {map.fields?.length || 0} talhões cadastrados
                                                 </p>
+                                                {/* EME and Rural Region Badges */}
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {map.emeCode && (
+                                                        <span className="text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                                                            {map.emeCode}
+                                                        </span>
+                                                    )}
+                                                    {map.ruralRegionCode && (
+                                                        <span className="text-[8px] font-black bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">
+                                                            RR {map.ruralRegionCode}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="p-3 text-slate-300">
@@ -139,7 +152,9 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                                                         carCode: map.carCode,
                                                         carData: map.carData,
                                                         carEsgStatus: map.carEsgStatus,
-                                                        carEsgData: map.carEsgData
+                                                        carEsgData: map.carEsgData,
+                                                        emeCode: map.emeCode,
+                                                        ruralRegionCode: map.ruralRegionCode
                                                     })}
                                                     readOnly={true}
                                                 />

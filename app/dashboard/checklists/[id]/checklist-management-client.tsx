@@ -248,9 +248,9 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
     // const sections = checklist.template.sections;
 
     return (
-        <div className="flex flex-col h-[calc(100vh-2rem)] gap-6 animate-fade-in" suppressHydrationWarning>
+        <div className="flex flex-col h-auto lg:h-[calc(100vh-2rem)] gap-4 lg:gap-6 animate-fade-in" suppressHydrationWarning>
             {/* Header */}
-            <header className="flex items-center justify-between pb-6 border-b border-slate-100">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between pb-4 lg:pb-6 border-b border-slate-100 gap-4">
                 <div className="flex items-center gap-4">
                     <Link
                         href="/dashboard/checklists"
@@ -262,7 +262,7 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                         <h1 className="text-2xl font-black text-slate-900 tracking-tight">
                             {checklist.template.name}
                         </h1>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-sm font-medium text-slate-500">
                                 {checklist.producer?.name || 'Produtor não identificado'}
                             </span>
@@ -270,6 +270,24 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                             <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
                                 {checklist.status}
                             </span>
+                            {/* EME Badge */}
+                            {checklist.producer?.maps?.[0]?.emeCode && (
+                                <>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                                        {checklist.producer.maps[0].emeCode}
+                                    </span>
+                                </>
+                            )}
+                            {/* Rural Region Badge */}
+                            {checklist.producer?.maps?.[0]?.ruralRegionCode && (
+                                <>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="text-xs font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">
+                                        RR {checklist.producer.maps[0].ruralRegionCode}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -312,10 +330,10 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
             </header>
 
             {/* Main Content (Split View) */}
-            <div className="flex flex-1 gap-8 overflow-hidden">
+            <div className="flex flex-1 gap-4 xl:gap-8 overflow-hidden min-h-0">
 
                 {/* Sidebar - Items List */}
-                <aside className="w-96 flex flex-col bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-100/50 overflow-hidden">
+                <aside className="w-56 xl:w-72 flex-shrink-0 flex flex-col bg-white rounded-[1.5rem] xl:rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-100/50 overflow-hidden">
                     <div className="p-6 border-b border-slate-50">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />

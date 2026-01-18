@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Clock,
@@ -10,14 +11,52 @@ import {
     UserCheck,
     Copy,
     MessageCircle,
-    ExternalLink
+    ExternalLink,
+    Search,
+    Folder,
+    Calendar,
+    Filter
 } from 'lucide-react';
 
+const CHECKLIST_STATUSES = [
+    { value: '', label: 'Todos os status' },
+    { value: 'DRAFT', label: 'Rascunho' },
+    { value: 'SENT', label: 'Enviado' },
+    { value: 'IN_PROGRESS', label: 'Em Progresso' },
+    { value: 'PENDING_REVIEW', label: 'Aguardando Revisão' },
+    { value: 'APPROVED', label: 'Aprovado' },
+    { value: 'REJECTED', label: 'Rejeitado' },
+    { value: 'FINALIZED', label: 'Finalizado' },
+];
+
 export default function ChecklistsPage() {
-    const { data: checklists, isLoading } = useQuery({
-        queryKey: ['checklists'],
+    // Filtros
+    const [statusFilter, setStatusFilter] = useState('');
+    const [templateFilter, setTemplateFilter] = useState('');
+    const [producerSearch, setProducerSearch] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
+    // Query de templates para o dropdown
+    const { data: templates } = useQuery({
+        queryKey: ['templates-list'],
         queryFn: async () => {
-            const res = await fetch('/api/checklists');
+            const res = await fetch('/api/templates');
+            if (!res.ok) throw new Error('Failed to fetch templates');
+            return res.json();
+        },
+    });
+
+    const { data: checklists, isLoading } = useQuery({
+        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (statusFilter) params.append('status', statusFilter);
+            if (templateFilter) params.append('templateId', templateFilter);
+            if (producerSearch) params.append('producer', producerSearch);
+            if (dateFrom) params.append('dateFrom', dateFrom);
+            if (dateTo) params.append('dateTo', dateTo);
+            const res = await fetch(`/api/checklists?${params.toString()}`);
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
         },
@@ -61,6 +100,85 @@ export default function ChecklistsPage() {
                     <p className="text-slate-500 font-medium mt-2">
                         Acompanhe o status e as respostas de todas as vistorias
                     </p>
+                </div>
+            </div>
+
+            {/* Filtros */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                {/* Status Filter */}
+                <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+                        <Filter size={18} />
+                    </div>
+                    <select
+                        className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all appearance-none cursor-pointer"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        {CHECKLIST_STATUSES.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Template Filter */}
+                <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                        <Folder size={18} />
+                    </div>
+                    <select
+                        className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all appearance-none cursor-pointer"
+                        value={templateFilter}
+                        onChange={(e) => setTemplateFilter(e.target.value)}
+                    >
+                        <option value="">Todos os templates</option>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {templates?.map((t: any) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Producer Search */}
+                <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                        <Search size={18} />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar produtor..."
+                        className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all"
+                        value={producerSearch}
+                        onChange={(e) => setProducerSearch(e.target.value)}
+                    />
+                </div>
+
+                {/* Date From */}
+                <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors">
+                        <Calendar size={18} />
+                    </div>
+                    <input
+                        type="date"
+                        className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/5 transition-all"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        title="Data inicial"
+                    />
+                </div>
+
+                {/* Date To */}
+                <div className="relative group">
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors">
+                        <Calendar size={18} />
+                    </div>
+                    <input
+                        type="date"
+                        className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/5 transition-all"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        title="Data final"
+                    />
                 </div>
             </div>
 

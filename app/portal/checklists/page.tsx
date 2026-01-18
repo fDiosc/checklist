@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
+import Image from 'next/image';
 export default function PortalDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = useState<any>(null);
@@ -65,11 +65,13 @@ export default function PortalDashboard() {
             <header className="bg-slate-900 p-6 md:p-10 text-white shadow-2xl">
                 <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <rect width="7" height="7" x="3" y="3" rx="2" /><rect width="7" height="7" x="14" y="3" rx="2" /><rect width="7" height="7" x="14" y="14" rx="2" /><rect width="7" height="7" x="3" y="14" rx="2" />
-                            </svg>
-                        </div>
+                        <Image
+                            src="/MX_logo_formC_Green.png"
+                            alt="Maxsum"
+                            width={48}
+                            height={48}
+                            className="rounded-2xl shadow-lg shadow-emerald-500/20 brightness-0 invert"
+                        />
                         <div>
                             <h1 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Maxsum Portal</h1>
                             <p className="text-xl font-black truncate max-w-[250px]">{data?.producer?.name}</p>

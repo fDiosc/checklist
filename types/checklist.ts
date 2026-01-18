@@ -25,9 +25,13 @@ export interface PropertyMapData {
     city?: string;
     state?: string;
     carCode?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     carData?: any;
     carEsgStatus?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     carEsgData?: any;
+    emeCode?: string;
+    ruralRegionCode?: number;
 }
 
 export interface ProducerChecklistRef {

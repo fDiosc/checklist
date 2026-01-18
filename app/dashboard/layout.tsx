@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import Image from "next/image";
 import { UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function DashboardLayout({
     children,
@@ -14,6 +16,19 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const router = useRouter();
     const { user: clerkUser } = useUser();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Persist collapsed state in localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('sidebar_collapsed');
+        if (saved === 'true') setIsCollapsed(true);
+    }, []);
+
+    const toggleCollapse = () => {
+        const newState = !isCollapsed;
+        setIsCollapsed(newState);
+        localStorage.setItem('sidebar_collapsed', String(newState));
+    };
 
     const { data: userData } = useQuery({
         queryKey: ['me'],
@@ -63,57 +78,76 @@ export default function DashboardLayout({
     return (
         <div className="flex h-screen bg-gray-50/50 font-sans selection:bg-primary/10 selection:text-primary overflow-hidden">
             {/* Sidebar */}
-            <aside className="fixed inset-y-0 left-0 w-72 bg-slate-900 text-slate-300 hidden lg:flex flex-col z-50">
-                <div className="p-8 flex items-center gap-4">
-                    <div className="w-10 h-10 bg-primary rounded-[1rem] flex items-center justify-center shadow-2xl shadow-primary/20">
-                        <span className="text-white font-black text-xl">M</span>
-                    </div>
-                    <div>
-                        <h1 className="text-white font-black text-xs uppercase tracking-[0.2em]">MerX Platform</h1>
-                        <p className="text-primary/50 text-[10px] font-bold uppercase tracking-widest mt-0.5">Gestão ESG</p>
-                    </div>
+            <aside className={`fixed inset-y-0 left-0 bg-slate-900 text-slate-300 hidden lg:flex flex-col z-50 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`}>
+                {/* Collapse Toggle Button */}
+                <button
+                    onClick={toggleCollapse}
+                    className="absolute -right-3 top-20 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white p-1.5 rounded-full shadow-lg z-50 transition-all"
+                    title={isCollapsed ? 'Expandir' : 'Recolher'}
+                >
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                </button>
+
+                <div className={`p-8 flex items-center gap-4 ${isCollapsed ? 'justify-center px-4' : ''}`}>
+                    <Image
+                        src="/MX_logo_formC_Green.png"
+                        alt="Maxsum"
+                        width={isCollapsed ? 36 : 48}
+                        height={isCollapsed ? 36 : 48}
+                        className="rounded-xl brightness-0 invert"
+                    />
+                    {!isCollapsed && (
+                        <div>
+                            <h1 className="text-white font-black text-xs uppercase tracking-[0.2em]">Maxsum</h1>
+                            <p className="text-primary/50 text-[10px] font-bold uppercase tracking-widest mt-0.5">Gestão ESG</p>
+                        </div>
+                    )}
                 </div>
 
-                <nav className="flex-1 px-6 space-y-2 mt-4">
+                <nav className={`flex-1 space-y-2 mt-4 ${isCollapsed ? 'px-2' : 'px-6'}`}>
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
+                                title={isCollapsed ? item.name : undefined}
                                 className={`
-                                    flex items-center justify-between p-4 rounded-2xl transition-all group
+                                    flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-4 rounded-2xl transition-all group
                                     ${isActive ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/20 scale-[1.02]' : 'hover:bg-white/5 hover:text-white text-slate-400'}
                                 `}
                             >
-                                <div className="flex items-center gap-4">
+                                <div className={`flex items-center ${isCollapsed ? '' : 'gap-4'}`}>
                                     <div className={isActive ? 'text-white' : 'text-slate-500 group-hover:text-primary transition-colors'}>
                                         <item.icon />
                                     </div>
-                                    <span className="text-xs font-bold uppercase tracking-widest">{item.name}</span>
+                                    {!isCollapsed && <span className="text-xs font-bold uppercase tracking-widest">{item.name}</span>}
                                 </div>
-                                {isActive && <div className="w-1 h-1 rounded-full bg-white"></div>}
+                                {!isCollapsed && isActive && <div className="w-1 h-1 rounded-full bg-white"></div>}
                             </Link>
                         );
                     })}
                 </nav>
 
-                <div className="p-6 mt-auto border-t border-white/5">
-                    <div className="bg-white/5 p-4 rounded-[1.5rem] flex items-center gap-4">
+                <div className={`p-6 mt-auto border-t border-white/5 ${isCollapsed ? 'px-2' : ''}`}>
+                    <div className={`bg-white/5 p-4 rounded-[1.5rem] flex items-center ${isCollapsed ? 'justify-center' : 'gap-4'}`}>
                         <UserButton afterSignOutUrl="/" />
-                        <div className="flex-1 overflow-hidden">
-                            <p className="text-xs font-bold text-white truncate">{clerkUser?.fullName}</p>
-                            <p className="text-[10px] text-slate-500 truncate">{clerkUser?.primaryEmailAddress?.emailAddress}</p>
-                        </div>
+                        {!isCollapsed && (
+                            <div className="flex-1 overflow-hidden">
+                                <p className="text-xs font-bold text-white truncate">{clerkUser?.fullName}</p>
+                                <p className="text-[10px] text-slate-500 truncate">{clerkUser?.primaryEmailAddress?.emailAddress}</p>
+                            </div>
+                        )}
                     </div>
+                    {!isCollapsed && <p className="text-center text-[10px] text-slate-600 font-medium mt-4">Powered by Merx</p>}
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 lg:ml-72 flex flex-col h-screen overflow-hidden relative">
+            <main className={`flex-1 flex flex-col h-screen overflow-hidden relative transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
                 {/* Topbar Mobile (Simplified) */}
                 <div className="lg:hidden bg-slate-900 p-6 flex flex-none items-center justify-between">
-                    <h1 className="text-white font-black text-sm uppercase tracking-widest leading-none">MerX</h1>
+                    <Image src="/MX_logo_formC_Green.png" alt="Maxsum" width={32} height={32} className="rounded-lg brightness-0 invert" />
                     <UserButton afterSignOutUrl="/" />
                 </div>
 
