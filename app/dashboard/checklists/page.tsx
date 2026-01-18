@@ -36,6 +36,7 @@ export default function ChecklistsPage() {
     const [producerSearch, setProducerSearch] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [sendingWhatsappId, setSendingWhatsappId] = useState<string | null>(null);
 
     // Query de templates para o dropdown
     const { data: templates } = useQuery({
@@ -229,10 +230,35 @@ export default function ChecklistsPage() {
                                         window.open(publicLink, '_blank');
                                     };
 
-                                    const shareWhatsapp = (e: React.MouseEvent) => {
+                                    const shareWhatsapp = async (e: React.MouseEvent) => {
                                         e.stopPropagation();
-                                        const text = encodeURIComponent(`Olá! Siga o link para preencher seu checklist: ${publicLink}`);
-                                        window.open(`https://wa.me/?text=${text}`, '_blank');
+                                        if (sendingWhatsappId) return;
+
+                                        if (!checklist.producer?.phone) {
+                                            alert("Este produtor não possui telefone cadastrado.");
+                                            return;
+                                        }
+
+                                        if (!confirm(`Enviar checklist via WhatsApp para ${checklist.producer.name} (${checklist.producer.phone})?`)) return;
+
+                                        setSendingWhatsappId(checklist.id);
+                                        try {
+                                            const res = await fetch(`/api/checklists/${checklist.id}/send-whatsapp`, {
+                                                method: 'POST',
+                                            });
+
+                                            if (!res.ok) {
+                                                const data = await res.json();
+                                                throw new Error(data.error || 'Falha ao enviar');
+                                            }
+
+                                            alert('Checklist enviado com sucesso!');
+                                        } catch (error: any) {
+                                            console.error(error);
+                                            alert(error.message || 'Erro ao enviar WhatsApp.');
+                                        } finally {
+                                            setSendingWhatsappId(null);
+                                        }
                                     };
 
                                     const handleRowClick = () => {
@@ -312,10 +338,18 @@ export default function ChecklistsPage() {
                                                     </button>
                                                     <button
                                                         onClick={shareWhatsapp}
-                                                        className="p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm"
+                                                        disabled={sendingWhatsappId === checklist.id}
+                                                        className={cn(
+                                                            "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
+                                                            sendingWhatsappId === checklist.id && "animate-pulse cursor-wait"
+                                                        )}
                                                         title="Enviar WhatsApp"
                                                     >
-                                                        <MessageCircle size={16} />
+                                                        {sendingWhatsappId === checklist.id ? (
+                                                            <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                                        ) : (
+                                                            <MessageCircle size={16} />
+                                                        )}
                                                     </button>
                                                     <button
                                                         onClick={openLink}
