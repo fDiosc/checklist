@@ -151,10 +151,10 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
 
                         {item.askForQuantity && item.answer && (
                             <div className="p-8 bg-emerald-50/50 rounded-[2.5rem] border-2 border-emerald-100 flex flex-col gap-4 animate-fade-in">
-                                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] flex justify-between items-center">
-                                    <span>Quantidade de {item.answer}</span>
+                                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] flex flex-col gap-1">
+                                    <span>{item.databaseSource ? 'Dose' : `Quantidade de ${item.answer}`}</span>
                                     {dbOptions.find(o => o.label === item.answer)?.composition && (
-                                        <span className="text-[8px] opacity-70 italic lowercase font-medium">
+                                        <span className="text-xs font-bold text-emerald-700 italic">
                                             ({dbOptions.find(o => o.label === item.answer)?.composition})
                                         </span>
                                     )}

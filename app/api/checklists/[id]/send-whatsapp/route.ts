@@ -5,15 +5,14 @@ import { sendWhatsAppMessage } from '@/lib/evolution';
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id: checklistId } = await params;
         const { userId } = await auth();
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
-
-        const checklistId = params.id;
 
         // Buscar checklist com produtor
         const checklist = await db.checklist.findUnique({
@@ -54,10 +53,10 @@ export async function POST(
         });
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[WHATSAPP_SEND_ERROR]', error);
         return NextResponse.json(
-            { error: error.message || 'Erro ao enviar WhatsApp' },
+            { error: error instanceof Error ? error.message : 'Erro ao enviar WhatsApp' },
             { status: 500 }
         );
     }

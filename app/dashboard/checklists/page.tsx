@@ -17,6 +17,7 @@ import {
     Calendar,
     Filter
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const CHECKLIST_STATUSES = [
     { value: '', label: 'Todos os status' },
@@ -253,9 +254,9 @@ export default function ChecklistsPage() {
                                             }
 
                                             alert('Checklist enviado com sucesso!');
-                                        } catch (error: any) {
+                                        } catch (error: unknown) {
                                             console.error(error);
-                                            alert(error.message || 'Erro ao enviar WhatsApp.');
+                                            alert(error instanceof Error ? error.message : 'Erro ao enviar WhatsApp.');
                                         } finally {
                                             setSendingWhatsappId(null);
                                         }
