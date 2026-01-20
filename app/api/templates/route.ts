@@ -99,7 +99,7 @@ export async function POST(req: Request) {
             },
             include: {
                 sections: {
-                    include: { items: true },
+                    include: { items: { orderBy: { order: 'asc' } } },
                     orderBy: { order: "asc" },
                 },
             },

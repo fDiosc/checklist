@@ -21,7 +21,9 @@ export async function POST(
             include: {
                 sections: {
                     include: {
-                        items: true,
+                        items: {
+                            orderBy: { order: 'asc' }
+                        },
                     },
                     orderBy: { order: "asc" },
                 },

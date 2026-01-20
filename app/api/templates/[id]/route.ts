@@ -28,7 +28,9 @@ export async function GET(
             include: {
                 sections: {
                     include: {
-                        items: true,
+                        items: {
+                            orderBy: { order: 'asc' }
+                        },
                     },
                     orderBy: { order: "asc" },
                 },
