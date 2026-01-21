@@ -94,7 +94,7 @@ export async function POST(
                 // Fetch the template items to identify MAP responses
                 const template = await db.template.findUnique({
                     where: { id: checklist.templateId },
-                    include: { sections: { include: { items: true } } }
+                    include: { sections: { include: { items: { orderBy: { order: 'asc' } } } } }
                 });
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any

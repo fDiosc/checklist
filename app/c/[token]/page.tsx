@@ -14,7 +14,11 @@ export default async function PublicChecklistPage({
             template: {
                 include: {
                     sections: {
-                        include: { items: true },
+                        include: {
+                            items: {
+                                orderBy: { order: 'asc' }
+                            }
+                        },
                         orderBy: { order: "asc" },
                     },
                 },
