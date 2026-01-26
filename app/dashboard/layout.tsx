@@ -42,6 +42,8 @@ export default function DashboardLayout({
     useEffect(() => {
         if (userData?.needsOnboarding && pathname !== '/dashboard/onboarding') {
             router.push('/dashboard/onboarding');
+        } else if (userData && !userData.needsOnboarding && pathname === '/dashboard/onboarding') {
+            router.push('/dashboard');
         }
     }, [userData, pathname, router]);
 

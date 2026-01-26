@@ -15,10 +15,14 @@ export async function GET() {
 
         // Auto-sync if not found (similar to checklist POST logic)
         if (!user) {
+            console.log("Syncing user from Clerk session claims:", sessionClaims);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const email = (sessionClaims as any)?.email || "";
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const name = (sessionClaims as any)?.name || (sessionClaims as any)?.fullName || "";
+
+            console.log(`Creating user with email: ${email || 'fallback'}`);
+
             user = await db.user.create({
                 data: {
                     id: userId,

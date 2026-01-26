@@ -25,9 +25,10 @@ export default function OnboardingPage() {
             }
             return res.json();
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['me'] });
-            router.push('/dashboard');
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['me'] });
+            await queryClient.refetchQueries({ queryKey: ['me'] });
+            router.replace('/dashboard');
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onError: (err: any) => {
