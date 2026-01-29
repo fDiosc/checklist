@@ -1,0 +1,20 @@
+=== CHECKLIST cmkxy82li00i3ajn9ky20z8ms ===
+
+Type: COMPLETION
+Status: SENT
+ParentId: cmkwllp6z0001mitzf6ss8pm8
+
+ActionPlans on THIS checklist: 0
+
+Parent ActionPlans: 4
+  1. Plano de Ação - PAGR (ID: cmkwlov9s003zmitz27mfecru)
+  2. Plano de Ação - PAGR (ID: cmkwoq37l0061mitzqyltbmo2)
+  3. Plano de Ação - PAGR (ID: cmkxy32ur00hxajn9xi26kroc)
+  4. Plano de Ação - Felipe Fernandes Claro (ID: cmkxya89o00m3ajn9vh79n4i8)
+
+=== ALL ACTION PLANS ===
+ChecklistId: cmkwllp6z0001mitzf6ss8pm8 | Title: Plano de Ação - Felipe Fernandes Claro | Created: 2026-01-28T11:37:04.012Z
+ChecklistId: cmkwllp6z0001mitzf6ss8pm8 | Title: Plano de Ação - PAGR | Created: 2026-01-28T11:31:31.133Z
+ChecklistId: cmkx0nelb0003ajn9swwund0r | Title: Plano de Ação - PAGR | Created: 2026-01-27T19:57:36.817Z
+ChecklistId: cmkwllp6z0001mitzf6ss8pm8 | Title: Plano de Ação - PAGR | Created: 2026-01-27T14:21:42.442Z
+ChecklistId: cmkwllp6z0001mitzf6ss8pm8 | Title: Plano de Ação - PAGR | Created: 2026-01-27T12:56:46.379Z

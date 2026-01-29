@@ -1,0 +1,1091 @@
+[
+  {
+    "id": "cmkvm75pr002wiu98r9spdy0h",
+    "source": "desiccation_pre_harvest",
+    "label": "Connor 200 SL",
+    "value": "connor_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002tiu98xbb1dm1k",
+    "source": "desiccation_pre_harvest",
+    "label": "Crucial 698 Sumitomo",
+    "value": "crucial_698_sumitomo",
+    "composition": "Glifosato 540 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002iiu9801dw5shg",
+    "source": "desiccation_pre_harvest",
+    "label": "Diquat CCAB 200 SL",
+    "value": "diquat_ccab_200_sl",
+    "composition": "Diquat 200 g/l",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002jiu98xpppv5a3",
+    "source": "desiccation_pre_harvest",
+    "label": "Diquat Genérico 200 SL",
+    "value": "diquat_generico_200_sl",
+    "composition": "Diquat 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002kiu986s2hvjd4",
+    "source": "desiccation_pre_harvest",
+    "label": "Diquat Nortox",
+    "value": "diquat_nortox",
+    "composition": "Diquat 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002xiu98dz5okfxy",
+    "source": "desiccation_pre_harvest",
+    "label": "Finale 200 SL",
+    "value": "finale_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002miu98m5rhjgrm",
+    "source": "desiccation_pre_harvest",
+    "label": "Glifosato 480 SL Genérico Líquido",
+    "value": "glifosato_480_sl_generico_liquido",
+    "composition": "Glifosato 360 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002riu98xd0xkz14",
+    "source": "desiccation_pre_harvest",
+    "label": "Glifosato Genérico 500 Líquido",
+    "value": "glifosato_generico_500_liquido",
+    "composition": "Glifosato 500 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002uiu98u5xu5arl",
+    "source": "desiccation_pre_harvest",
+    "label": "Glifosato Genérico WG 720",
+    "value": "glifosato_generico_wg_720",
+    "composition": "Glifosato 720 g/kg",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002niu98v0ig4x5c",
+    "source": "desiccation_pre_harvest",
+    "label": "Glifosato Nortox 480 SL",
+    "value": "glifosato_nortox_480_sl",
+    "composition": "Glifosato 360 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002yiu987sojnh1g",
+    "source": "desiccation_pre_harvest",
+    "label": "Glufosinato Genérico 200 SL",
+    "value": "glufosinato_generico_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002ziu9830lfyj4f",
+    "source": "desiccation_pre_harvest",
+    "label": "Liberty 200 SL",
+    "value": "liberty_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0030iu9822rh54pp",
+    "source": "desiccation_pre_harvest",
+    "label": "Lifeline 280 SL",
+    "value": "lifeline_280_sl",
+    "composition": "Glufosinato 280 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0032iu98dof7wayp",
+    "source": "desiccation_pre_harvest",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002liu98sg55rc8x",
+    "source": "desiccation_pre_harvest",
+    "label": "Reglone",
+    "value": "reglone",
+    "composition": "Diquat 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002oiu98p2c34fda",
+    "source": "desiccation_pre_harvest",
+    "label": "Roundup Original",
+    "value": "roundup_original",
+    "composition": "Glifosato 360 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002piu982cu51i1z",
+    "source": "desiccation_pre_harvest",
+    "label": "Roundup Original Mais",
+    "value": "roundup_original_mais",
+    "composition": "Glifosato 480 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002qiu98dzdgxucb",
+    "source": "desiccation_pre_harvest",
+    "label": "Roundup Transorb",
+    "value": "roundup_transorb",
+    "composition": "Glifosato 480 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002viu98wsoxfmib",
+    "source": "desiccation_pre_harvest",
+    "label": "Roundup WG 720",
+    "value": "roundup_wg_720",
+    "composition": "Glifosato 720 g/kg",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0031iu98ixq5e0bm",
+    "source": "desiccation_pre_harvest",
+    "label": "Trunfo 280 SL",
+    "value": "trunfo_280_sl",
+    "composition": "Glufosinato 280 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr002siu98czynx4e3",
+    "source": "desiccation_pre_harvest",
+    "label": "Zapp QI Líquido",
+    "value": "zapp_qi_liquido",
+    "composition": "Glifosato 500 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0010iu98mq0is1ke",
+    "source": "desiccation_pre_planting",
+    "label": "Connor 200 SL",
+    "value": "connor_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000xiu98gauamu76",
+    "source": "desiccation_pre_planting",
+    "label": "Crucial 698 Sumitomo",
+    "value": "crucial_698_sumitomo",
+    "composition": "Glifosato 540 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0011iu988kcnzx27",
+    "source": "desiccation_pre_planting",
+    "label": "Finale 200 SL",
+    "value": "finale_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000qiu980p7geijg",
+    "source": "desiccation_pre_planting",
+    "label": "Glifosato 480 SL Genérico Líquido",
+    "value": "glifosato_480_sl_generico_liquido",
+    "composition": "Glifosato 360 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000viu980uevpxyv",
+    "source": "desiccation_pre_planting",
+    "label": "Glifosato Genérico 500 Líquido",
+    "value": "glifosato_generico_500_liquido",
+    "composition": "Glifosato 500 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000yiu98s97ho8in",
+    "source": "desiccation_pre_planting",
+    "label": "Glifosato Genérico WG 720",
+    "value": "glifosato_generico_wg_720",
+    "composition": "Glifosato 720 g/kg",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000riu984ps7aykh",
+    "source": "desiccation_pre_planting",
+    "label": "Glifosato Nortox 480 SL",
+    "value": "glifosato_nortox_480_sl",
+    "composition": "Glifosato 360 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0012iu98qap0s9ay",
+    "source": "desiccation_pre_planting",
+    "label": "Glufosinato Genérico 200 SL",
+    "value": "glufosinato_generico_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0013iu98d778lcu0",
+    "source": "desiccation_pre_planting",
+    "label": "Liberty 200 SL",
+    "value": "liberty_200_sl",
+    "composition": "Glufosinato 200 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0014iu98xg32pyyh",
+    "source": "desiccation_pre_planting",
+    "label": "Lifeline 280 SL",
+    "value": "lifeline_280_sl",
+    "composition": "Glufosinato 280 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0016iu98vrto8ik8",
+    "source": "desiccation_pre_planting",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000siu98gzx738nx",
+    "source": "desiccation_pre_planting",
+    "label": "Roundup Original",
+    "value": "roundup_original",
+    "composition": "Glifosato 360 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000tiu98gvr38fvm",
+    "source": "desiccation_pre_planting",
+    "label": "Roundup Original Mais",
+    "value": "roundup_original_mais",
+    "composition": "Glifosato 480 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000uiu98arbw1ig3",
+    "source": "desiccation_pre_planting",
+    "label": "Roundup Transorb",
+    "value": "roundup_transorb",
+    "composition": "Glifosato 480 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000ziu98vukev864",
+    "source": "desiccation_pre_planting",
+    "label": "Roundup WG 720",
+    "value": "roundup_wg_720",
+    "composition": "Glifosato 720 g/kg",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0015iu98iqwdtl8y",
+    "source": "desiccation_pre_planting",
+    "label": "Trunfo 280 SL",
+    "value": "trunfo_280_sl",
+    "composition": "Glufosinato 280 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000wiu98l89dipot",
+    "source": "desiccation_pre_planting",
+    "label": "Zapp QI Líquido",
+    "value": "zapp_qi_liquido",
+    "composition": "Glifosato 500 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0023iu98rg0i5ckw",
+    "source": "disease_management",
+    "label": "Bravonil 500 SC",
+    "value": "bravonil_500_sc",
+    "composition": "Clorotalonil 500 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0025iu98mtbs6tr9",
+    "source": "disease_management",
+    "label": "Bravonil Top",
+    "value": "bravonil_top",
+    "composition": "Clorotalonil 500 g/l + Difenoconazol 50 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0024iu98ildwxr1t",
+    "source": "disease_management",
+    "label": "Clorotalonil Genérico 500 SC",
+    "value": "clorotalonil_generico_500_sc",
+    "composition": "Clorotalonil 500 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0027iu980ruaxreg",
+    "source": "disease_management",
+    "label": "Difenoconazol Genérico",
+    "value": "difenoconazol_generico",
+    "composition": "Difenoconazol 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0026iu98u9dxuhog",
+    "source": "disease_management",
+    "label": "Miravis Duo",
+    "value": "miravis_duo",
+    "composition": "Difenoconazol 125 g/l + Pidiflumetofem 75 g/l",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002aiu98zjs6791b",
+    "source": "disease_management",
+    "label": "Orkestra",
+    "value": "orkestra",
+    "composition": "Fluxapiroxade 133 g/l + Piraclostrobina 333 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002biu98royxh163",
+    "source": "disease_management",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0028iu98gcezx16s",
+    "source": "disease_management",
+    "label": "Score",
+    "value": "score",
+    "composition": "Difenoconazol 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0029iu984b3k52mz",
+    "source": "disease_management",
+    "label": "Score Flexi",
+    "value": "score_flexi",
+    "composition": "Difenoconazol 250 g/l + Propiconazol 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pp0000iu98neyct7w8",
+    "source": "fertilizers_soil",
+    "label": "Boro Ulexita",
+    "value": "boro_ulexita",
+    "composition": "B2O3 43%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0008iu98o2vyweao",
+    "source": "fertilizers_soil",
+    "label": "Enxofre",
+    "value": "enxofre",
+    "composition": "",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0001iu983lq1gx4j",
+    "source": "fertilizers_soil",
+    "label": "KCl",
+    "value": "kcl",
+    "composition": "K2O 60%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0002iu98q3us49fs",
+    "source": "fertilizers_soil",
+    "label": "MAP",
+    "value": "map",
+    "composition": "N 11%-P 52%-K 00%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0009iu98m0vpml8l",
+    "source": "fertilizers_soil",
+    "label": "Manganês",
+    "value": "manganez",
+    "composition": "",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0003iu98tksvn7g4",
+    "source": "fertilizers_soil",
+    "label": "NPK 18-00-18",
+    "value": "npk_18_00_18",
+    "composition": "N 18%-P 00%-K 18%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0004iu98iu9rf5xp",
+    "source": "fertilizers_soil",
+    "label": "NPK 20-00-20",
+    "value": "npk_20_00_20",
+    "composition": "N 20%-P 00%-K 20%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000aiu986zgxfo3x",
+    "source": "fertilizers_soil",
+    "label": "Níquel",
+    "value": "niquel",
+    "composition": "",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000ciu98y4n54xam",
+    "source": "fertilizers_soil",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0006iu98so6ca34q",
+    "source": "fertilizers_soil",
+    "label": "Superfosfato Simples",
+    "value": "superfosfato_simples",
+    "composition": "P2O5 20%-S 10%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0007iu98nyyq8hbb",
+    "source": "fertilizers_soil",
+    "label": "Superfosfato Triplo",
+    "value": "superfosfato_triplo",
+    "composition": "P2O5 45%-Ca 10%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0005iu98rxn9osap",
+    "source": "fertilizers_soil",
+    "label": "Uréia",
+    "value": "ureia",
+    "composition": "N 45%",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000biu98mkexxu4j",
+    "source": "fertilizers_soil",
+    "label": "Zinco",
+    "value": "zinco",
+    "composition": "",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002diu98z2bf9bwa",
+    "source": "foliar_nutrition",
+    "label": "Borum",
+    "value": "borum",
+    "composition": "Boro 100 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002eiu98032vw31i",
+    "source": "foliar_nutrition",
+    "label": "Co-Mo",
+    "value": "co_mo",
+    "composition": "Co-Mo",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002ciu98qs5zszqo",
+    "source": "foliar_nutrition",
+    "label": "Dominio",
+    "value": "dominio",
+    "composition": "Bioestimulante",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002fiu98ih7zg3h2",
+    "source": "foliar_nutrition",
+    "label": "Manganês",
+    "value": "manganez",
+    "composition": "Manganês",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002giu98iqa32st3",
+    "source": "foliar_nutrition",
+    "label": "Níquel",
+    "value": "niquel",
+    "composition": "Níquel",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq002hiu984uvdsdhq",
+    "source": "foliar_nutrition",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001iiu98ui5uewba",
+    "source": "insect_control",
+    "label": "Acefato CCAB 750 SP",
+    "value": "acefato_ccab_750_sp",
+    "composition": "Acefato 750 g/kg",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001jiu98k7p096id",
+    "source": "insect_control",
+    "label": "Acefato Nortox",
+    "value": "acefato_nortox",
+    "composition": "Acefato 750 g/kg",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001niu986c0uo0fl",
+    "source": "insect_control",
+    "label": "Bifentrina 100 EC Nortox",
+    "value": "bifentrina_100_ec_nortox",
+    "composition": "Bifentrina 100 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001oiu9807ji72gl",
+    "source": "insect_control",
+    "label": "Bifentrina CCAB 100 EC",
+    "value": "bifentrina_ccab_100_ec",
+    "composition": "Bifentrina 100 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0021iu98goa9tmtb",
+    "source": "insect_control",
+    "label": "Engeo Pleno S",
+    "value": "engeo_pleno_s",
+    "composition": "Tiametoxam 141 g/l + Lambad-cialotrina 106 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001kiu98z4gdwqoz",
+    "source": "insect_control",
+    "label": "Feroce",
+    "value": "feroce",
+    "composition": "Acefato 850 g/kg + Bifentrina 30 g/kg",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001riu98cse5sip2",
+    "source": "insect_control",
+    "label": "Galil SC",
+    "value": "galil_sc",
+    "composition": "Imidacloprid 250 g/l + Bifentrina 50 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001siu98n5ucvc1c",
+    "source": "insect_control",
+    "label": "Karate Zeon 250 CS",
+    "value": "karate_zeon_250_cs",
+    "composition": "Lambda-cialotrina 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001tiu983ftq2mrc",
+    "source": "insect_control",
+    "label": "Lambda-cialotrina Genérica",
+    "value": "lambda_cialotrina_generica",
+    "composition": "Lambda-cialotrina 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001wiu98h48t9sfn",
+    "source": "insect_control",
+    "label": "Lannate BR",
+    "value": "lannate_br",
+    "composition": "Metomil 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001uiu98dsjbtnfh",
+    "source": "insect_control",
+    "label": "Lufenuron Genérico",
+    "value": "lufenuron_generico",
+    "composition": "Lufenuron 50 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001liu98s2gwfgwu",
+    "source": "insect_control",
+    "label": "Magnum",
+    "value": "magnum",
+    "composition": "Acefato 970 g/kg",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001viu98vx9l294q",
+    "source": "insect_control",
+    "label": "Match EC",
+    "value": "match_ec",
+    "composition": "Lufenuron 50 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001xiu9824dbpkfq",
+    "source": "insect_control",
+    "label": "Methomex 215 SL",
+    "value": "methomex_215_sl",
+    "composition": "Metomil 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001yiu98ps7cgvuy",
+    "source": "insect_control",
+    "label": "Metomil 215 SL Nortox",
+    "value": "metomil_215_sl_nortox",
+    "composition": "Metomil 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001ziu98qtu6euis",
+    "source": "insect_control",
+    "label": "Metomil Genérico 215 SL",
+    "value": "metomil_generico_215_sl",
+    "composition": "Metomil 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0020iu98pauu2yut",
+    "source": "insect_control",
+    "label": "Metomy",
+    "value": "metomy",
+    "composition": "Metomil 250 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0022iu98xi9eraye",
+    "source": "insect_control",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001miu984fcywirt",
+    "source": "insect_control",
+    "label": "Perito 970 SG",
+    "value": "perito_970_sg",
+    "composition": "Acefato 970 g/kg",
+    "unit": "kg/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001piu98r44si6nk",
+    "source": "insect_control",
+    "label": "Talstar 400 EC",
+    "value": "talstar_400_ec",
+    "composition": "Bifentrina 400 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001qiu98zvzp3hus",
+    "source": "insect_control",
+    "label": "Valente",
+    "value": "valente",
+    "composition": "Extrato de Neem",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001giu9820dydk3v",
+    "source": "post_emergent_broad_leaves",
+    "label": "Imazetapir Nortox",
+    "value": "imazetapir_nortox",
+    "composition": "Imazetapir 212 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001hiu98a4o9ftit",
+    "source": "post_emergent_broad_leaves",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001eiu9801gceuh1",
+    "source": "post_emergent_broad_leaves",
+    "label": "Vezir",
+    "value": "vezir",
+    "composition": "Imazetapir 106 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001fiu98wtxu2yfq",
+    "source": "post_emergent_broad_leaves",
+    "label": "Zephir",
+    "value": "zephir",
+    "composition": "Imazetapir 106 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0019iu9858su5acw",
+    "source": "post_emergent_narrow_leaves",
+    "label": "Cletodim Genérico",
+    "value": "cletodim_generico",
+    "composition": "Cletodim 240 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001aiu986kb0j59s",
+    "source": "post_emergent_narrow_leaves",
+    "label": "Poquer",
+    "value": "poquer",
+    "composition": "Cletodim 240 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001biu987ffduaj2",
+    "source": "post_emergent_narrow_leaves",
+    "label": "Select",
+    "value": "select",
+    "composition": "Cletodim 240 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001diu98ntmq9m5y",
+    "source": "post_emergent_narrow_leaves",
+    "label": "Verdict Max",
+    "value": "verdict_max",
+    "composition": "Haloxifope 540 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq001ciu98ilql02la",
+    "source": "post_emergent_narrow_leaves",
+    "label": "Verdict R",
+    "value": "verdict_r",
+    "composition": "Haloxifope 124,7 g/l",
+    "unit": "l/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0018iu981qh7qvky",
+    "source": "pre_emergent_planting",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq0017iu987cr5w6qu",
+    "source": "pre_emergent_planting",
+    "label": "Plateau",
+    "value": "plateau",
+    "composition": "Imazapic 700 g/kg",
+    "unit": "g/ha",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000liu98b7p9xfj0",
+    "source": "seed_treatment",
+    "label": "Aprove",
+    "value": "aprove",
+    "composition": "Tiofanato Metílico 350 g/l + Fluazinam 52,5 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000miu98f5bvzs0u",
+    "source": "seed_treatment",
+    "label": "Certeza N",
+    "value": "certeza_n",
+    "composition": "Tiofanato Metílico 350 g/l + Fluazinam 52,5 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000diu984jbqt93b",
+    "source": "seed_treatment",
+    "label": "Fipronil Genérico 250 FS",
+    "value": "fipronil_generico_250_fs",
+    "composition": "Fipronil 250 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000niu98pzjo5sfb",
+    "source": "seed_treatment",
+    "label": "Firmeza N",
+    "value": "firmeza_n",
+    "composition": "Tiofanato Metílico 350 g/l + Fluazinam 52,5 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000hiu98vzi2p3i9",
+    "source": "seed_treatment",
+    "label": "Gaucho FS 600",
+    "value": "gaucho_fs_600",
+    "composition": "Imidacloprid 600 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000iiu98r7avz7a9",
+    "source": "seed_treatment",
+    "label": "Imidacloprid FS 600 Genérico",
+    "value": "imidacloprid_fs_600_generico",
+    "composition": "Imidacloprid 600 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000piu9873ghfycs",
+    "source": "seed_treatment",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000oiu98ljj0axii",
+    "source": "seed_treatment",
+    "label": "Plust",
+    "value": "plust",
+    "composition": "Tiofanato Metílico 350 g/l + Fluazinam 52,5 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000eiu98kuat30ei",
+    "source": "seed_treatment",
+    "label": "Shelter",
+    "value": "shelter",
+    "composition": "Fipronil 250 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000jiu98in2bk3tk",
+    "source": "seed_treatment",
+    "label": "Simplex",
+    "value": "simplex",
+    "composition": "Simplex",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000fiu98vv9cf4v7",
+    "source": "seed_treatment",
+    "label": "Standak",
+    "value": "standak",
+    "composition": "Fipronil 250 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000giu98mpvzl8vy",
+    "source": "seed_treatment",
+    "label": "Standak Top",
+    "value": "standak_top",
+    "composition": "Fipronil 250 g/l + Tiofanato Metílico 225 g/l + Piraclostrobina 25 g/l",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pq000kiu98ezum3p2g",
+    "source": "seed_treatment",
+    "label": "Stimulate",
+    "value": "stimulate",
+    "composition": "Stimulate",
+    "unit": "ml/kg semente",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr003aiu983joqelbj",
+    "source": "seed_variety",
+    "label": "Anahy",
+    "value": "anahy",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0039iu98m4jlovo0",
+    "source": "seed_variety",
+    "label": "Jordan",
+    "value": "jordan",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0037iu989nnaw065",
+    "source": "seed_variety",
+    "label": "K3",
+    "value": "k3",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0034iu9834n495tj",
+    "source": "seed_variety",
+    "label": "Mika",
+    "value": "mika",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0035iu98vt0nw216",
+    "source": "seed_variety",
+    "label": "Oren",
+    "value": "oren",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr003ciu989yr1b894",
+    "source": "seed_variety",
+    "label": "Outro",
+    "value": "outro",
+    "composition": "Outro",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0036iu98ymrjok3j",
+    "source": "seed_variety",
+    "label": "Ron",
+    "value": "ron",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr003biu98vua57owx",
+    "source": "seed_variety",
+    "label": "Seda",
+    "value": "seda",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0033iu98klity3pp",
+    "source": "seed_variety",
+    "label": "Variedade Semente",
+    "value": "variedade_semente",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  },
+  {
+    "id": "cmkvm75pr0038iu98qzvytyfk",
+    "source": "seed_variety",
+    "label": "Victoria",
+    "value": "victoria",
+    "composition": "",
+    "unit": "",
+    "createdAt": "2026-01-26T20:23:13.835Z"
+  }
+]

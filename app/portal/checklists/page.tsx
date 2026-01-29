@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getPortalStatusInfo } from '@/lib/utils/status';
+
 export default function PortalDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = useState<any>(null);
@@ -38,7 +40,7 @@ export default function PortalDashboard() {
     }
 
     const pendingStatuses = ['SENT', 'IN_PROGRESS', 'REJECTED'];
-    const finishedStatuses = ['PENDING_REVIEW', 'APPROVED', 'FINALIZED'];
+    const finishedStatuses = ['PENDING_REVIEW', 'APPROVED', 'FINALIZED', 'PARTIALLY_FINALIZED'];
 
 
 
@@ -47,17 +49,7 @@ export default function PortalDashboard() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const finishedChecklists = data?.checklists?.filter((c: any) => finishedStatuses.includes(c.status)) || [];
 
-    const getStatusInfo = (status: string) => {
-        switch (status) {
-            case 'SENT': return { label: 'Pendente', class: 'bg-amber-100 text-amber-700' };
-            case 'IN_PROGRESS': return { label: 'Em Preenchimento', class: 'bg-blue-100 text-blue-700' };
-            case 'REJECTED': return { label: 'Revisão Necessária', class: 'bg-red-100 text-red-700' };
-            case 'PENDING_REVIEW': return { label: 'Em Auditoria', class: 'bg-indigo-100 text-indigo-700' };
-            case 'APPROVED': return { label: 'Aprovado', class: 'bg-emerald-100 text-emerald-700' };
-            case 'FINALIZED': return { label: 'Finalizado', class: 'bg-slate-100 text-slate-700' };
-            default: return { label: status, class: 'bg-gray-100 text-gray-700' };
-        }
-    };
+
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-20">
@@ -98,7 +90,7 @@ export default function PortalDashboard() {
                             <div className="grid md:grid-cols-2 gap-4">
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {pendingChecklists.map((c: any) => {
-                                    const status = getStatusInfo(c.status);
+                                    const status = getPortalStatusInfo(c.status);
                                     return (
                                         <Link
                                             key={c.id}
@@ -142,7 +134,7 @@ export default function PortalDashboard() {
                             <div className="grid md:grid-cols-3 gap-4">
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {finishedChecklists.map((c: any) => {
-                                    const status = getStatusInfo(c.status);
+                                    const status = getPortalStatusInfo(c.status);
                                     return (
                                         <Link
                                             key={c.id}

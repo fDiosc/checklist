@@ -162,7 +162,28 @@ export async function GET(req: Request) {
                     select: {
                         name: true,
                         cpf: true,
+                        phone: true,
                     },
+                },
+                parent: {
+                    select: {
+                        id: true,
+                        template: { select: { name: true } }
+                    }
+                },
+                children: {
+                    select: {
+                        id: true,
+                        status: true,
+                        type: true,
+                        responses: {
+                            select: { rejectionReason: true }
+                        },
+                        createdAt: true,
+                        publicToken: true,
+                        _count: { select: { responses: true } }
+                    },
+                    orderBy: { createdAt: 'desc' }
                 },
                 _count: {
                     select: { responses: true },

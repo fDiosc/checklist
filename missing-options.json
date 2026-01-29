@@ -1,0 +1,176 @@
+[
+  {
+    "uso": "Fertilizante Solo",
+    "produto": "Algen Lithothamnium",
+    "composicao": "Ca 34% Ma3% a.a.5%",
+    "source": "fertilizers_soil"
+  },
+  {
+    "uso": "Fertilizante Solo",
+    "produto": "Aspire",
+    "composicao": "N 00% - P 00% - K 58% - B 0,5",
+    "source": "fertilizers_soil"
+  },
+  {
+    "uso": "Fertilizante Solo",
+    "produto": "NPK 00-20-20",
+    "composicao": "N 00% - P 20% - K 20%",
+    "source": "fertilizers_soil"
+  },
+  {
+    "uso": "Fertilizante Solo",
+    "produto": "Sulfato de Amônio",
+    "composicao": "N 20%-P 00%-K 00% - S 22%",
+    "source": "fertilizers_soil"
+  },
+  {
+    "uso": "Fertilizante Solo",
+    "produto": "Novatec Solub 45",
+    "composicao": "N 45%",
+    "source": "fertilizers_soil"
+  },
+  {
+    "uso": "Fertilizante Solo",
+    "produto": "Athos Mosaic",
+    "composicao": "NPK 03 32 08 + 0,2 Zn + 0,1 B",
+    "source": "fertilizers_soil"
+  },
+  {
+    "uso": "Tratamento Sementes",
+    "produto": "Promov NiCoMo (TS)",
+    "composicao": "aa 6% - B 0,5% - Co 1% - K2O 1% - Mn 0,5% - Mg 1% - Mo 4,6% - Ni 0,4% - P2O5 2% - Zn 2%",
+    "source": "seed_treatment"
+  },
+  {
+    "uso": "Tratamento Sementes",
+    "produto": "Up Seeds",
+    "composicao": "Mo 9% - Ni 0,9% - Co 0,45% - K2O 2,3% - polimero",
+    "source": "seed_treatment"
+  },
+  {
+    "uso": "Dessecação Pré Plantio",
+    "produto": "Dual Gold 960 EC",
+    "composicao": "S Metolachlor 960 g/l",
+    "source": "desiccation_pre_planting"
+  },
+  {
+    "uso": "Dessecação Pré Plantio",
+    "produto": "S Metolachlor Genérico",
+    "composicao": "S Metolachlor 960 g/l",
+    "source": "desiccation_pre_planting"
+  },
+  {
+    "uso": "Pré Emergente Plante Aplique",
+    "produto": "Dual Gold 960 EC",
+    "composicao": "S Metolachlor 960 g/l",
+    "source": "pre_emergent_planting"
+  },
+  {
+    "uso": "Pré Emergente Plante Aplique",
+    "produto": "S Metolachlor Genérico",
+    "composicao": "S Metolachlor 960 g/l",
+    "source": "pre_emergent_planting"
+  },
+  {
+    "uso": "Manejo de Doenças",
+    "produto": "Avanço",
+    "composicao": "(Beauveria bassiana cepa66; Metarhizium anisopliae. cepa425). 1x10^7 + micotoxinas",
+    "source": "disease_management"
+  },
+  {
+    "uso": "Manejo de Doenças",
+    "produto": "Orbital",
+    "composicao": "(Mix de 5 Bacillus spp. 1x10^10)",
+    "source": "disease_management"
+  },
+  {
+    "uso": "Manejo de Doenças",
+    "produto": "Sfinge",
+    "composicao": "(Trichoderma harz. 1x10^7 + enzimas)",
+    "source": "disease_management"
+  },
+  {
+    "uso": "Manejo de Doenças",
+    "produto": "Defender",
+    "composicao": "Bacillus subtilis, Bacillus pumilus e Bacillus velezensis;(1x10^10+Pool enzimatico)",
+    "source": "disease_management"
+  },
+  {
+    "uso": "Manejo de Doenças",
+    "produto": "Mob Reforce",
+    "composicao": "Peróxidos orgânicos IP6%",
+    "source": "disease_management"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Esplendido",
+    "composicao": "B 0,2% - Co 0,3% - Mn 2% - Mg 4% - Mo 3% - N 5%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Detox Bor",
+    "composicao": "B 10%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Nitro Mag",
+    "composicao": "Mg 6% - N 6%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "BoroTop",
+    "composicao": "Octaborato Sódio 20,5%B",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Sublime",
+    "composicao": "K2O 25% - S 17%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Exnitro",
+    "composicao": "N 30%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Starter Mn Platinium",
+    "composicao": "5% N; 4% S; 0,3% B; 0,3% Cu; 5% Mn; 0,05% Mo; 3% Zn",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "ProfolExclusive",
+    "composicao": "N 10% -K2O 3% -  S  9,4% - Mg 1,0% - B 2% - Cu 0,1%  - Mn 6,5%-  Zn 9%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Profol Produtividade",
+    "composicao": "K2O 10% - S 12,3% - Mg 1,5% - B 1,5% - Cu 0,5% - Mn 14% - Zn 4,5%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Speed",
+    "composicao": "K2O 10% - S 12,4% - Mg 1,8% - B 1,5% - Cu 0,25% - Mn 14%- Zn 5%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Borotop",
+    "composicao": "B 20%",
+    "source": "foliar_nutrition"
+  },
+  {
+    "uso": "Nutrição Foliar",
+    "produto": "Hormonal Grão Forte",
+    "composicao": "",
+    "source": "foliar_nutrition"
+  }
+]

@@ -36,12 +36,12 @@ export async function POST(req: Request) {
 
                         Regras de Mapeamento:
                         1. Agrupe os itens em 'sections' baseadas nos cabeçalhos visuais do documento (ex: "Nível II - Registros", "Infraestrutura", "Manejo").
-                        2. Para cada item/pergunta, determine o 'type' ideal:
-                           - Se pede uma foto, evidência visual ou documento anexo -> type: 'file'
-                           - Se é uma pergunta de Sim/Não -> type: 'single_choice', options: ['Sim', 'Não', 'N/A']
-                           - Se é uma data -> type: 'date'
-                           - Se é texto livre -> type: 'text'
-                           - Se pede para desenhar ou selecionar talhão -> type: 'property_map'
+                        2. Para cada item/pergunta, determine o 'type' ideal (USE LETRAS MAIÚSCULAS):
+                           - Se pede uma foto, evidência visual ou documento anexo -> type: 'FILE'
+                           - Se é uma pergunta de Sim/Não -> type: 'SINGLE_CHOICE', options: ['Sim', 'Não', 'N/A']
+                           - Se é uma data -> type: 'DATE'
+                           - Se é texto livre -> type: 'TEXT'
+                           - Se pede para desenhar ou selecionar talhão -> type: 'PROPERTY_MAP'
                         3. Se for uma pergunta (single_choice) que implicitamente requer uma prova (ex: "Existe contrato?", "Possui outorga?"), defina 'requestArtifact': true.
                         4. O 'name' deve ser a pergunta completa.
 
@@ -54,8 +54,8 @@ export async function POST(req: Request) {
                                {
                                  "id": "item-1",
                                  "name": "Texto da pergunta",
-                                 "type": "single_choice" | "file" | "text" | "date" | "property_map",
-                                 "options": ["Sim", "Não"] (apenas se type for single_choice),
+                                 "type": "SINGLE_CHOICE" | "FILE" | "TEXT" | "DATE" | "PROPERTY_MAP",
+                                 "options": ["Sim", "Não"] (apenas se type for SINGLE_CHOICE),
                                  "required": true,
                                  "requestArtifact": true (se precisar de anexo na pergunta),
                                  "validityControl": false (true se for documento com validade ex: ASO, CNH)
@@ -93,10 +93,20 @@ export async function POST(req: Request) {
             });
 
             const responseText = result.text;
-
-            // Clean Markdown if strictly necessary (though responseMimeType usually handles it)
             const cleanJson = responseText?.replace(/```json/g, '').replace(/```/g, '').trim();
-            const sections = JSON.parse(cleanJson || '[]');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let sections = JSON.parse(cleanJson || '[]');
+
+            // Normalize types to Uppercase to match Enum/Zod
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            sections = sections.map((section: any) => ({
+                ...section,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                items: section.items.map((item: any) => ({
+                    ...item,
+                    type: (item.type?.toUpperCase() === 'SINGLE_CHOICE' || item.type?.toUpperCase() === 'single_choice') ? 'SINGLE_CHOICE' : (item.type?.toUpperCase() || 'TEXT')
+                }))
+            }));
 
             return NextResponse.json(sections);
 

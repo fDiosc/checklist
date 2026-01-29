@@ -121,11 +121,24 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
         }
     };
 
+    const getItemTypeLabel = (type: string) => {
+        switch (type) {
+            case 'SINGLE_CHOICE': return 'Múltipla Escolha';
+            case 'MULTIPLE_CHOICE': return 'Seleção Múltipla';
+            case 'DROPDOWN_SELECT': return 'Seleção';
+            case 'FILE': return 'Arquivo / Foto';
+            case 'PROPERTY_MAP': return 'Mapa da Propriedade';
+            case 'TEXT': return 'Texto';
+            case 'NUMBER': return 'Número';
+            default: return type.replace('_', ' ');
+        }
+    };
+
     return (
         <div className="w-full max-w-3xl mx-auto space-y-8 animate-fade-in my-auto">
             <div className="text-center space-y-2">
                 <span className="inline-block px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-2">
-                    {item.type.replace('_', ' ')}
+                    {getItemTypeLabel(item.type)}
                 </span>
                 {response?.isInternal && (
                     <div className="flex justify-center mb-2">

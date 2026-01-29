@@ -2,22 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save, X, Sparkles, ChevronDown, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, X, ChevronDown, GripVertical } from 'lucide-react';
 import Switch from '@/components/ui/Switch';
-import Checkbox from '@/components/ui/Checkbox';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableTemplateItem } from './SortableTemplateItem';
 
-const ITEM_TYPES = [
-    { value: 'TEXT', label: 'TEXTO CURTO' },
-    { value: 'LONG_TEXT', label: 'TEXTO LONGO' },
-    { value: 'FILE', label: 'DOCUMENTO (FOTO/UPLOAD)' },
-    { value: 'DATE', label: 'DATA' },
-    { value: 'SINGLE_CHOICE', label: 'ÚNICA ESCOLHA (SIM/NÃO)' },
-    { value: 'MULTIPLE_CHOICE', label: 'MÚLTIPLA ESCOLHA' },
-    { value: 'DROPDOWN_SELECT', label: 'SELEÇÃO (DROPDOWN)' },
-    { value: 'PROPERTY_MAP', label: 'DESENHAR MAPA/TALHÃO' },
-    { value: 'FIELD_SELECTOR', label: 'SELEÇÃO DE TALHÃO EXISTENTE' },
-];
 
 interface TemplateItem {
     id: string;
@@ -44,6 +48,8 @@ interface TemplateData {
     name: string;
     folder: string;
     requiresProducerIdentification: boolean;
+    isContinuous: boolean;
+    actionPlanPromptId: string | null;
     sections: TemplateSection[];
 }
 
@@ -62,6 +68,8 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
             name: '',
             folder: '',
             requiresProducerIdentification: false,
+            isContinuous: false,
+            actionPlanPromptId: null,
             sections: [
                 {
                     id: `section-${crypto.randomUUID()}`,
@@ -78,6 +86,15 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
             setTemplate(initialData);
         }
     }, [initialData]);
+
+    const { data: prompts } = useQuery({
+        queryKey: ['ai-prompts'],
+        queryFn: async () => {
+            const res = await fetch('/api/ai/prompts');
+            if (!res.ok) throw new Error('Failed to fetch prompts');
+            return res.json();
+        }
+    });
 
     const mutation = useMutation({
         mutationFn: async (data: TemplateData) => {
@@ -159,6 +176,39 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
         }));
     };
 
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (active.id !== over?.id) {
+            setTemplate((prev) => {
+                const newSections = prev.sections.map((section) => {
+                    const oldIndex = section.items.findIndex((item) => item.id === active.id);
+                    const newIndex = section.items.findIndex((item) => item.id === over?.id);
+
+                    if (oldIndex !== -1 && newIndex !== -1) {
+                        return {
+                            ...section,
+                            items: arrayMove(section.items, oldIndex, newIndex),
+                        };
+                    }
+                    return section;
+                });
+
+                return {
+                    ...prev,
+                    sections: newSections,
+                };
+            });
+        }
+    };
+
     const handleSave = () => {
         if (!template.name || !template.folder) {
             alert('Preencha o nome e a pasta do template');
@@ -211,6 +261,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                 {/* Sidebar Configs */}
                 <div className="lg:col-span-4 overflow-y-auto pr-2 custom-scrollbar space-y-8 pb-10">
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/50 p-10">
+                        {/* Sidebar content remains same... */}
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                             Configurações Gerais
@@ -251,6 +302,41 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                     Obriga o preenchimento de CPF/Email antes do checklist iniciar.
                                 </p>
                             </div>
+
+                            <div className="pt-4 border-t border-slate-50">
+                                <Switch
+                                    checked={template.isContinuous}
+                                    onChange={val => !readOnly && setTemplate(prev => ({ ...prev, isContinuous: val }))}
+                                    label="Checklist Contínuo"
+                                />
+                                <p className="text-[9px] text-slate-400 font-medium mt-3 leading-relaxed">
+                                    Permite finalizações parciais e criação de checklists filhos.
+                                </p>
+                            </div>
+
+                            {template.isContinuous && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Prompt de Plano de Ação</label>
+                                    <div className="relative">
+                                        <select
+                                            disabled={readOnly}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50 appearance-none cursor-pointer text-sm"
+                                            value={template.actionPlanPromptId || ''}
+                                            onChange={e => setTemplate(prev => ({ ...prev, actionPlanPromptId: e.target.value || null }))}
+                                        >
+                                            <option value="">Selecione um prompt...</option>
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                            {prompts?.map((p: any) => (
+                                                <option key={p.id} value={p.id}>{p.slug} - {p.description}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 font-medium px-1">
+                                        Selecione o prompt que a IA usará para gerar o Plano de Ação.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {readOnly && (
@@ -265,263 +351,84 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
 
                 {/* Main Editor */}
                 <div className="lg:col-span-8 overflow-y-auto pr-2 custom-scrollbar space-y-8 pb-10 px-1">
-                    {template.sections.map((section, sIdx) => (
-                        <div
-                            key={section.id}
-                            className="bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-100/50 overflow-hidden animate-slide-up"
-                            style={{ animationDelay: `${sIdx * 0.1}s` }}
-                        >
-                            {/* Section Header */}
-                            <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                                <div className="flex items-center gap-6 flex-1">
-                                    <GripVertical className="text-slate-200" />
-                                    <input
-                                        type="text"
-                                        disabled={readOnly}
-                                        value={section.name}
-                                        onChange={e => setTemplate(prev => ({
-                                            ...prev,
-                                            sections: prev.sections.map(s => s.id === section.id ? { ...s, name: e.target.value } : s)
-                                        }))}
-                                        className="bg-transparent border-none text-xl font-black text-slate-900 outline-none focus:text-primary transition-colors flex-1 disabled:opacity-70"
-                                    />
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        {template.sections.map((section, sIdx) => (
+                            <div
+                                key={section.id}
+                                className="bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-100/50 overflow-hidden animate-slide-up"
+                                style={{ animationDelay: `${sIdx * 0.1}s` }}
+                            >
+                                {/* Section Header */}
+                                <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                                    <div className="flex items-center gap-6 flex-1">
+                                        {/* Drag handle for SECTIONS could be here in future */}
+                                        <GripVertical className="text-slate-200" />
+                                        <input
+                                            type="text"
+                                            disabled={readOnly}
+                                            value={section.name}
+                                            onChange={e => setTemplate(prev => ({
+                                                ...prev,
+                                                sections: prev.sections.map(s => s.id === section.id ? { ...s, name: e.target.value } : s)
+                                            }))}
+                                            className="bg-transparent border-none text-xl font-black text-slate-900 outline-none focus:text-primary transition-colors flex-1 disabled:opacity-70"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <Switch
+                                            checked={section.iterateOverFields}
+                                            onChange={val => !readOnly && setTemplate(prev => ({
+                                                ...prev,
+                                                sections: prev.sections.map(s => s.id === section.id ? { ...s, iterateOverFields: val } : s)
+                                            }))}
+                                            label="Repetir por Talhão"
+                                        />
+                                        {!readOnly && (
+                                            <button
+                                                onClick={() => removeSection(section.id)}
+                                                className="text-slate-300 hover:text-red-500 transition-colors p-2"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-6">
-                                    <Switch
-                                        checked={section.iterateOverFields}
-                                        onChange={val => !readOnly && setTemplate(prev => ({
-                                            ...prev,
-                                            sections: prev.sections.map(s => s.id === section.id ? { ...s, iterateOverFields: val } : s)
-                                        }))}
-                                        label="Repetir por Talhão"
-                                    />
+
+                                {/* Section Items */}
+                                <div className="p-8 space-y-6">
+                                    <SortableContext
+                                        items={section.items}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        {section.items.map((item) => (
+                                            <SortableTemplateItem
+                                                key={item.id}
+                                                item={item}
+                                                sectionId={section.id}
+                                                readOnly={readOnly}
+                                                onUpdate={updateItem}
+                                                onRemove={removeItem}
+                                            />
+                                        ))}
+                                    </SortableContext>
+
                                     {!readOnly && (
                                         <button
-                                            onClick={() => removeSection(section.id)}
-                                            className="text-slate-300 hover:text-red-500 transition-colors p-2"
+                                            onClick={() => addItem(section.id)}
+                                            className="w-full py-6 border-2 border-dashed border-slate-100 rounded-[2rem] text-slate-300 hover:text-primary hover:border-primary/20 hover:bg-primary/[0.02] transition-all flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest group"
                                         >
-                                            <Trash2 size={18} />
+                                            <Plus size={18} className="group-hover:scale-110 transition-transform" />
+                                            Novo Item
                                         </button>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Section Items */}
-                            <div className="p-8 space-y-6">
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {section.items.map((item: any) => (
-                                    <div key={item.id} className="bg-slate-50/30 rounded-3xl p-6 border border-slate-50 group hover:border-primary/20 transition-all">
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex-1 space-y-6">
-                                                <div className="flex flex-col md:flex-row gap-4">
-                                                    <input
-                                                        type="text"
-                                                        disabled={readOnly}
-                                                        placeholder="Pergunta ou Título do Item..."
-                                                        className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
-                                                        value={item.name}
-                                                        onChange={e => updateItem(section.id, item.id, { name: e.target.value })}
-                                                    />
-                                                    <select
-                                                        disabled={readOnly}
-                                                        className="md:w-64 p-4 bg-white border border-slate-100 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
-                                                        value={item.type}
-                                                        onChange={e => updateItem(section.id, item.id, { type: e.target.value })}
-                                                    >
-                                                        {ITEM_TYPES.map(t => (
-                                                            <option key={t.value} value={t.value}>{t.label}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-
-                                                <div className="flex flex-wrap items-center gap-6">
-                                                    <div className="flex items-center gap-6 w-full">
-                                                        <Checkbox
-                                                            checked={item.required}
-                                                            onChange={val => !readOnly && updateItem(section.id, item.id, { required: val })}
-                                                            label="OBRIGATÓRIO"
-                                                        />
-                                                        {item.type === 'SINGLE_CHOICE' && (
-                                                            <Checkbox
-                                                                checked={item.requestArtifact}
-                                                                onChange={val => !readOnly && updateItem(section.id, item.id, { requestArtifact: val })}
-                                                                label="SOLICITAR ANEXO"
-                                                            />
-                                                        )}
-                                                        <Checkbox
-                                                            checked={item.observationEnabled}
-                                                            onChange={val => !readOnly && updateItem(section.id, item.id, { observationEnabled: val })}
-                                                            label="CAMPO OBSERVAÇÃO"
-                                                        />
-                                                        <Checkbox
-                                                            checked={item.validityControl}
-                                                            onChange={val => !readOnly && updateItem(section.id, item.id, { validityControl: val })}
-                                                            label="VALIDADE"
-                                                        />
-                                                    </div>
-
-                                                    {(item.type === 'SINGLE_CHOICE' || item.type === 'MULTIPLE_CHOICE' || (item.type === 'DROPDOWN_SELECT' && !item.databaseSource)) && (
-                                                        <div className="w-full animate-fade-in pt-4">
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                                    {item.type === 'DROPDOWN_SELECT' ? 'OPÇÕES DO DROPDOWN' : 'OPÇÕES DE RESPOSTA'}
-                                                                </label>
-                                                                {!readOnly && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const currentOptions = item.options || [];
-                                                                            updateItem(section.id, item.id, { options: [...currentOptions, 'Nova Opção'] });
-                                                                        }}
-                                                                        className="text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-600 transition-colors"
-                                                                    >
-                                                                        ADICIONAR OPÇÃO
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                            <div className="space-y-3">
-                                                                {(item.options || []).map((opt: string, optIdx: number) => (
-                                                                    <div key={optIdx} className="flex items-center gap-3 animate-fade-in group/opt">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                                                                        <input
-                                                                            type="text"
-                                                                            disabled={readOnly}
-                                                                            value={opt}
-                                                                            onChange={e => {
-                                                                                const newOptions = [...item.options];
-                                                                                newOptions[optIdx] = e.target.value;
-                                                                                updateItem(section.id, item.id, { options: newOptions });
-                                                                            }}
-                                                                            className="flex-1 p-3 bg-white border border-slate-100 rounded-xl font-bold text-slate-800 outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm"
-                                                                        />
-                                                                        {!readOnly && (
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                                                    const newOptions = item.options.filter((_: any, idx: number) => idx !== optIdx);
-                                                                                    updateItem(section.id, item.id, { options: newOptions });
-                                                                                }}
-                                                                                className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/opt:opacity-100"
-                                                                            >
-                                                                                <X size={16} />
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
-                                                                {(!item.options || item.options.length === 0) && (
-                                                                    <p className="text-[10px] text-slate-400 italic">Nenhuma opção adicionada.</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {item.type === 'DROPDOWN_SELECT' && (
-                                                        <div className="w-full space-y-6 pt-4 border-t border-slate-100 mt-4 px-1">
-                                                            <div className="flex items-center gap-8">
-                                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${!item.databaseSource ? 'border-primary bg-primary' : 'border-slate-200 group-hover:border-primary/30'}`}>
-                                                                        {!item.databaseSource && <div className="w-2 h-2 rounded-full bg-white" />}
-                                                                    </div>
-                                                                    <input
-                                                                        type="radio"
-                                                                        disabled={readOnly}
-                                                                        checked={!item.databaseSource}
-                                                                        onChange={() => updateItem(section.id, item.id, { databaseSource: null })}
-                                                                        className="hidden"
-                                                                    />
-                                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Manual</span>
-                                                                </label>
-                                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${!!item.databaseSource ? 'border-primary bg-primary' : 'border-slate-200 group-hover:border-primary/30'}`}>
-                                                                        {!!item.databaseSource && <div className="w-2 h-2 rounded-full bg-white" />}
-                                                                    </div>
-                                                                    <input
-                                                                        type="radio"
-                                                                        disabled={readOnly}
-                                                                        checked={!!item.databaseSource}
-                                                                        onChange={() => updateItem(section.id, item.id, { databaseSource: 'fertilizers_soil' })}
-                                                                        className="hidden"
-                                                                    />
-                                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Banco de Dados</span>
-                                                                </label>
-                                                            </div>
-
-                                                            {item.databaseSource && (
-                                                                <div className="flex flex-col gap-3 animate-fade-in">
-                                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Fonte de Dados</label>
-                                                                    <div className="relative">
-                                                                        <select
-                                                                            disabled={readOnly}
-                                                                            value={item.databaseSource}
-                                                                            onChange={e => updateItem(section.id, item.id, { databaseSource: e.target.value })}
-                                                                            className="w-full p-4 bg-white border border-slate-100 rounded-2xl font-bold text-slate-800 outline-none appearance-none focus:ring-4 focus:ring-primary/5 transition-all text-sm"
-                                                                        >
-                                                                            <option value="fertilizers_soil">Fertilizante Solo</option>
-                                                                            <option value="seed_treatment">Tratamento Sementes</option>
-                                                                            <option value="seed_variety">Variedade Semente</option>
-                                                                            <option value="desiccation_pre_planting">Dessecação Pré Plantio</option>
-                                                                            <option value="pre_emergent_planting">Pré Emergente Plante Aplique</option>
-                                                                            <option value="post_emergent_narrow_leaves">Pós Emergente Folhas Estreitas</option>
-                                                                            <option value="post_emergent_broad_leaves">Pós Emergente Folhas Largas</option>
-                                                                            <option value="insect_control">Controle de Insetos</option>
-                                                                            <option value="disease_management">Manejo de Doenças</option>
-                                                                            <option value="foliar_nutrition">Nutrição Foliar</option>
-                                                                            <option value="desiccation_pre_harvest">Dessecação Pré Colheita</option>
-                                                                        </select>
-                                                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            <Checkbox
-                                                                checked={item.askForQuantity}
-                                                                onChange={val => !readOnly && updateItem(section.id, item.id, { askForQuantity: val })}
-                                                                label="EXIGIR QUANTIDADE"
-                                                            />
-                                                        </div>
-                                                    )}
-
-                                                    {item.type === 'PROPERTY_MAP' && (
-                                                        <div className="w-full pt-4 animate-fade-in">
-                                                            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 flex items-start gap-4">
-                                                                <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-                                                                    < Sparkles size={18} />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-amber-900 font-bold text-sm">Informação importante</p>
-                                                                    <p className="text-amber-700/80 text-xs font-medium mt-1 leading-relaxed">
-                                                                        O produtor poderá desenhar a propriedade e talhões no mapa.
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {!readOnly && (
-                                                <button
-                                                    onClick={() => removeItem(section.id, item.id)}
-                                                    className="text-slate-300 hover:text-red-500 transition-colors p-2 mt-2"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {!readOnly && (
-                                    <button
-                                        onClick={() => addItem(section.id)}
-                                        className="w-full py-6 border-2 border-dashed border-slate-100 rounded-[2rem] text-slate-300 hover:text-primary hover:border-primary/20 hover:bg-primary/[0.02] transition-all flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest group"
-                                    >
-                                        <Plus size={18} className="group-hover:scale-110 transition-transform" />
-                                        Novo Item
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                        ))}
+                    </DndContext>
 
                     {!readOnly && (
                         <button

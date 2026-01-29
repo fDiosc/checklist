@@ -6,7 +6,8 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import ChangelogModal from '@/components/modals/ChangelogModal';
 
 export default function DashboardLayout({
     children,
@@ -17,6 +18,7 @@ export default function DashboardLayout({
     const router = useRouter();
     const { user: clerkUser } = useUser();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 
     // Persist collapsed state in localStorage
     useEffect(() => {
@@ -141,7 +143,31 @@ export default function DashboardLayout({
                             </div>
                         )}
                     </div>
-                    {!isCollapsed && <p className="text-center text-[10px] text-slate-600 font-medium mt-4">Powered by Merx</p>}
+                    {!isCollapsed && (
+                        <div className="flex flex-col items-center mt-4">
+                            <button
+                                onClick={() => setIsChangelogOpen(true)}
+                                className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all mb-4"
+                            >
+                                <span className="text-[10px] font-black text-slate-500 group-hover:text-white uppercase tracking-widest transition-colors">v 0.0.8</span>
+                                <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center animate-pulse group-hover:animate-none">
+                                    <Info size={10} className="text-white" />
+                                </div>
+                            </button>
+                            <p className="text-[10px] text-slate-600 font-medium">Powered by Merx</p>
+                        </div>
+                    )}
+                    {isCollapsed && (
+                        <div className="flex justify-center mt-4">
+                            <button
+                                onClick={() => setIsChangelogOpen(true)}
+                                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
+                                title="Versão V 0.0.8"
+                            >
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </aside>
 
@@ -156,6 +182,8 @@ export default function DashboardLayout({
                 <div className="flex-1 overflow-y-auto p-8 lg:p-12 animate-fade-in custom-scrollbar">
                     {children}
                 </div>
+
+                <ChangelogModal isOpen={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
             </main>
         </div>
     );

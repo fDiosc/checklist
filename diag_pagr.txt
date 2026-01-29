@@ -1,0 +1,113 @@
+Template: PAGR
+Checklist ID: cmkwllp6z0001mitzf6ss8pm8
+Total Responses in DB: 9
+
+SECTION: Nível II - Registros
+    Item: Você possui os direitos de uso da terra? (Escritura, matrícula, contrato de arrendamento...) | Status: APPROVED
+    Item: Existe contrato de trabalho com os funcionários, os pagamento dos salários, horas extras, benefícios e os descontos realizados estão de acordo com a legislação vigente/acordos coletivos? | Status: APPROVED
+    Item: Você possui código de conduta na propriedade? | Status: APPROVED
+    Item: Os colaboradores conhecem e cumprem o que está descrito no código de conduta? | Status: APPROVED
+    Item: Você possui PGR-TR e PCMSO atualizados? | Status: APPROVED
+    Item: O(s) colaborador(es) recebem EPI de acordo com as suas atividades? Há o registro de entrega? | Status: APPROVED
+    Item: É realizado o registro de lavagem de EPI de aplicação? | Status: APPROVED
+    Item: O(s) colaborador(es) envolvidos no preparo da calda e aplicação de defensivos possuem treinamento em NR 31.7? | Status: MISSING (NO RECORD)
+    Item: Há registro da destinação de resíduos? (Recibos, declaração...) | Status: MISSING (NO RECORD)
+    Item: Há registro da destinação de resíduos contaminados? | Status: MISSING (NO RECORD)
+    Item: Você possui o comprovante da devolução de embalagens vazias de defensivos? | Status: MISSING (NO RECORD)
+    Item: São realizados os registros de limpeza da caixa d'água? | Status: MISSING (NO RECORD)
+    Item: A análise de potabilidade da água é realizada anualmente? | Status: MISSING (NO RECORD)
+    Item: Você registra o plantio, a aplicação de defensivos e fertilizantes utilizados na cultura? (sigma/caderno de campo) | Status: MISSING (NO RECORD)
+    Item: Você leva em consideração as condições metereológicas antes da aplicação dos defensivos agrícolas? Faz o registro? | Status: MISSING (NO RECORD)
+    Item: A produção e o manuseio de transgênicos são realizados de acordo com a legislação e orientação técnica? | Status: MISSING (NO RECORD)
+    Item: Você tem conhecimento e participa dos eventos técnicos e aperfeiçoamentos realizados pela Cooperativa? | Status: MISSING (NO RECORD)
+
+SECTION: Nível II - In loco
+    Item: Você possui extintores na sua propriedade? | Status: APPROVED
+    Item: Há procedimento do que fazer em caso de emergência ou acidente? | Status: APPROVED
+    Item: Há placa de telefones úteis disponível na fazenda? | Status: MISSING (NO RECORD)
+    Item: Há caixa de primeiros socorros disponível na propriedade e colaboradores treinados em Primeiros Socorros? | Status: MISSING (NO RECORD)
+    Item: Você possui local para a guarda de EPI's dos colaboradores? | Status: MISSING (NO RECORD)
+    Item: Você armazena os fertilizantes de maneira segura? (Sobre pallets e respeitando o empilhamento máximo de acordo com orientações do fabricante) | Status: MISSING (NO RECORD)
+    Item: É realizada a coleta seletiva e há local para armazenamento de resíduos? | Status: MISSING (NO RECORD)
+    Item: Você possui recipiente para separação do lixo contaminado e faz a destinação correta? | Status: MISSING (NO RECORD)
+    Item: Existem funcionários morando na fazenda? As instalações são adequadas? | Status: MISSING (NO RECORD)
+    Item: A propriedade possui fossa septica ou outra forma de destinação de esgoto? | Status: MISSING (NO RECORD)
+
+SECTION: Nível III - Registros
+    Item: Você faz o controle de estoque de defensivos? | Status: MISSING (NO RECORD)
+    Item: Os defensivos utilizados na cultura estão de acordo com as legislações pertinentes, são adquiridos de fornecedores licenciados, e sua aplicação segue as recomendações agronômicas? | Status: MISSING (NO RECORD)
+    Item: Você registra manutenção do seu maquinário? Tanto preventivas, quanto corretivas | Status: MISSING (NO RECORD)
+    Item: Você faz a manutenção e calibragem dos equipamentos de aplicação? | Status: MISSING (NO RECORD)
+    Item: São realizados os exames médicos de acordo com o PCMSO e mantida a ASO na fazenda? | Status: MISSING (NO RECORD)
+    Item: Há colaboradores treinados em uso de extintores de incêndios? | Status: MISSING (NO RECORD)
+    Item: A propriedade possui o CAR (Cadastro Ambiental Rural)? | Status: MISSING (NO RECORD)
+    Item: A reserva legal e as áreas de preservação permanente estão de acordo com a legislação? | Status: MISSING (NO RECORD)
+
+SECTION: Nível III - In loco
+    Item: Há dispositivo lava-olhos ou ducha-oftálmica disponível na propriedade? | Status: MISSING (NO RECORD)
+    Item: Há placa de reentrada nos talhões? | Status: MISSING (NO RECORD)
+    Item: Você armazena produtos defensivos agrícolas de forma segura? | Status: MISSING (NO RECORD)
+    Item: Você possui local com vestiário, banheiro e chuveiro próximo a sala de defensivos? | Status: MISSING (NO RECORD)
+    Item: Você possui materiais para contenção de vazamentos e procedimento no caso de vazamentos exposto na sala de defensivos? (Sugestão: Serragem, balde com pá e vassoura) | Status: MISSING (NO RECORD)
+    Item: As FISPQ's (Fichas de Informação de Segurança de Produtos Químicos) estão disponíveis no local? | Status: MISSING (NO RECORD)
+    Item: Você armazena embalagens vazias de defensivos de maneira segura? | Status: MISSING (NO RECORD)
+    Item: Você limpa corretamente as embalagens vazias de defensivos? (Tríplice lavagem, furo na embalagem) | Status: MISSING (NO RECORD)
+    Item: Você armazena adequadamente óleos e lubrificantes? (Contenção) | Status: MISSING (NO RECORD)
+    Item: Você possui materiais para contenção de vazamentos e procedimento no caso de vazamentos exposto no local de armazenagem de óleos e lubrificantes? (Sugestão: Serragem, balde com pá e vassoura) | Status: MISSING (NO RECORD)
+    Item: O ferro velho está adequado? (Local coberto e materiais sobre pallets ou prateleiras) | Status: MISSING (NO RECORD)
+    Item: Você toma medidas para prevenir caça, pesca ou extração da flora e fauna ilegais nas suas terras? (Placas, manual de integração...) | Status: MISSING (NO RECORD)
+    Item: Não foram realizadas queimadas intencionais em qualquer parte da propriedade, seja de resíduos vegetais, dejetos ou para a limpeza da vegetação? | Status: MISSING (NO RECORD)
+
+SECTION: Nível IV - registro
+    Item: Você possui controle de abastecimento de combustível? | Status: MISSING (NO RECORD)
+    Item: Você possui colaboradores treinados em NR 20 (saúde e segurança no trabalho com inflamáveis e combustíveis)? | Status: MISSING (NO RECORD)
+    Item: Os funcionários registram o cartão ponto, o descanso semanal e de intrajornada é respeitado? | Status: MISSING (NO RECORD)
+    Item: Você acessa regularmente as informações disponíveis no portal do cooperado? (aplicativos, portal de rentabilidade, SIGMA) | Status: MISSING (NO RECORD)
+    Item: Você realiza a programação das culturas de acordo com as orientações da Cooperativa e de seu agrônomo? | Status: MISSING (NO RECORD)
+    Item: Foi realizado nos últimos anos desmatamento somente com autorização? | Status: MISSING (NO RECORD)
+
+SECTION: Nível IV - In loco
+    Item: Você armazena combustível de maneira segura para seres humanos e para o meio ambiente? | Status: MISSING (NO RECORD)
+    Item: Você possui local para lavagem de EPI's? | Status: MISSING (NO RECORD)
+    Item: Você possui local adequado para lavagem de maquinários? | Status: MISSING (NO RECORD)
+
+SECTION: Nível V - registros
+    Item: Você possui um plano de biodiversidade para a propriedade? | Status: MISSING (NO RECORD)
+    Item: Você possui controle de avistamento para avaliar a biodiversidade da fazenda? | Status: MISSING (NO RECORD)
+    Item: Existe um planejamento de treinamentos para os colaboradores de acordo com o PGR-TR? | Status: MISSING (NO RECORD)
+    Item: São realizadas as ordens de serviço por colaborador? | Status: MISSING (NO RECORD)
+    Item: Você possui canal de comunicação com a comunidade? | Status: MISSING (NO RECORD)
+    Item: Você realiza análise de solo periodicamente? | Status: MISSING (NO RECORD)
+    Item: Você possui um plano de gestão de nutrientes? | Status: MISSING (NO RECORD)
+    Item: Você utiliza dejetos ou adubo orgânico para adubação? Faz a análise do dejeto e registro de aplicação? | Status: MISSING (NO RECORD)
+    Item: Você possui a outorga de água? | Status: MISSING (NO RECORD)
+    Item: Você tem contratos em vigor para a comercialização de seus produtos? | Status: MISSING (NO RECORD)
+    Item: Você mede e monitora todas as suas fontes de emissão de gases de efeito estufa (GEE)? | Status: MISSING (NO RECORD)
+    Item: Você elaborou um documento mapeando todos os riscos e oportunidades do negócio? | Status: MISSING (NO RECORD)
+
+SECTION: Nível V - in loco
+    Item: Você possui caixa de sugestões na propriedade? | Status: MISSING (NO RECORD)
+    Item: Você implementou o 5S na propriedade? | Status: MISSING (NO RECORD)
+    Item: Você toma alguma medida para armazenar água da chuva excedente? Como coleta da água da chuva em cisternas? | Status: MISSING (NO RECORD)
+    Item: Você identificou e adquiriu alguma fonte limpa e sustentável de energia renovável para suas operações agrícolas? | Status: MISSING (NO RECORD)
+    Item: Existem indicadores de melhoria contínua na fazenda? | Status: MISSING (NO RECORD)
+    Item: Existe um plano de ação para a melhoria contínua? | Status: MISSING (NO RECORD)
+    Item: Você possui rastreabilidade e segurança alimentar dos seus produtos? | Status: MISSING (NO RECORD)
+
+SECTION: Manejo e Conservação do solo
+    Item: Não ocorre aplicação de pesticidas dentro de um raio de 30m de áreas povoadas ou corpos d'água. | Status: MISSING (NO RECORD)
+    Item: Você utiliza Plantio Direto a mais de 5 anos em mais de 80% da área? | Status: MISSING (NO RECORD)
+    Item: Você garante que o solo fica coberto por no mínimo 10 meses? | Status: MISSING (NO RECORD)
+    Item: Você faz rotação de culturas com milho em no mínimo 25% da área, a cada 4 anos no mesmo talhão? | Status: MISSING (NO RECORD)
+    Item: Existem práticas para eliminar/minimizar os efeitos da erosão na propriedade? (bacias de contenção, plantio em nível, cobertura ou outras práticas conservacionistas) | Status: MISSING (NO RECORD)
+    Item: Há revolvimento ou operações de preparo do solo na propriedade em até 10% da área? | Status: MISSING (NO RECORD)
+    Item: Você aplica corretamente o MIP (Manejo integrado de pragas)? Faz o registro? | Status: MISSING (NO RECORD)
+    Item: As fontes de água da sua propriedade estão protegidas? | Status: MISSING (NO RECORD)
+    Item: As máquinas da propriedade possuem inspeção e devida certificação atualizada? | Status: MISSING (NO RECORD)
+    Item: Utiliza agentes biológicos no manejo da propriedade? | Status: MISSING (NO RECORD)
+    Item: Você possui áreas de reflorestamento? | Status: MISSING (NO RECORD)
+
+--- SUMMARY ---
+Total Items Expected (Template + Fields): 87
+Total Items with Response Record: 9
+Total Items MISSING (No record): 78

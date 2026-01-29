@@ -24,6 +24,19 @@ export default async function PublicChecklistPage({
                 },
             },
             responses: true,
+            actionPlans: true,
+            parent: {
+                include: {
+                    actionPlans: true
+                }
+            },
+            children: {
+                select: {
+                    publicToken: true,
+                    status: true,
+                    createdAt: true
+                }
+            },
             producer: {
                 include: {
                     maps: true,

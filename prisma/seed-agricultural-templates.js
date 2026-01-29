@@ -1,153 +1,194 @@
-const { PrismaClient, ItemType } = require('@prisma/client');
+
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const ADMIN_ID = 'user_37ykQupXw5I82G2ndgZl5hpJlcp';
-
-const templatesData = [
+// Configuration for each new template
+const templatesToCreate = [
     {
-        name: 'Adubação',
-        folder: 'Produção',
-        sections: [
-            {
-                name: 'Dados da Adubação',
-                iterateOverFields: true,
-                items: [
-                    { name: 'Variedade', type: 'DROPDOWN_SELECT', databaseSource: 'seed_variety' },
-                    { name: 'Área (ha)', type: 'TEXT' },
-                    { name: 'Uso', type: 'TEXT' },
-                    { name: 'Produto', type: 'DROPDOWN_SELECT', databaseSource: 'fertilizers_soil' },
-                    { name: 'Composição', type: 'TEXT', observationEnabled: true }, // Using observation as info or just text
-                    { name: 'Dose', type: 'TEXT', askForQuantity: true },
-                    { name: 'Unidade de Dose', type: 'TEXT' },
-                    { name: 'Volume Calda l/ha', type: 'TEXT' },
-                    { name: 'Data de Uso', type: 'DATE' }
-                ]
-            }
+        name: 'Pré Emergente Plante Aplique',
+        folder: 'Pré Plantio',
+        products: [
+            { source: 'pre_emergent_planting', label: 'Pré Emergente 1' },
+            { source: 'pre_emergent_planting', label: 'Pré Emergente 2' },
+            { source: 'pre_emergent_planting', label: 'Pré Emergente 3' }
+        ]
+    },
+    {
+        name: 'Pós Emergente Folhas Estreitas',
+        folder: 'Pós Plantio',
+        products: [
+            { source: 'post_emergent_narrow_leaves', label: 'Herbicida 1' },
+            { source: 'post_emergent_narrow_leaves', label: 'Herbicida 2' },
+            { source: 'post_emergent_narrow_leaves', label: 'Herbicida 3' }
+        ]
+    },
+    {
+        name: 'Pós Emergente Folhas Largas',
+        folder: 'Pós Plantio',
+        products: [
+            { source: 'post_emergent_broad_leaves', label: 'Herbicida 1' },
+            { source: 'post_emergent_broad_leaves', label: 'Herbicida 2' },
+            { source: 'post_emergent_broad_leaves', label: 'Herbicida 3' }
+        ]
+    },
+    {
+        name: 'Controle de Insetos',
+        folder: 'Manejo',
+        products: [
+            { source: 'insect_control', label: 'Inseticida 1' },
+            { source: 'insect_control', label: 'Inseticida 2' },
+            { source: 'insect_control', label: 'Inseticida 3' }
+        ]
+    },
+    {
+        name: 'Manejo de Doenças 1',
+        folder: 'Manejo',
+        products: [
+            { source: 'disease_management', label: 'Fungicida 1' },
+            { source: 'disease_management', label: 'Fungicida 2' },
+            { source: 'disease_management', label: 'Fungicida 3' }
+        ]
+    },
+    {
+        name: 'Manejo de Doenças 2',
+        folder: 'Manejo',
+        products: [
+            { source: 'disease_management', label: 'Fungicida 1' },
+            { source: 'disease_management', label: 'Fungicida 2' },
+            { source: 'disease_management', label: 'Fungicida 3' }
+        ]
+    },
+    {
+        name: 'Nutrição Foliar',
+        folder: 'Nutrição',
+        products: [
+            { source: 'foliar_nutrition', label: 'Nutriente 1' },
+            { source: 'foliar_nutrition', label: 'Nutriente 2' },
+            { source: 'foliar_nutrition', label: 'Nutriente 3' }
+        ]
+    },
+    {
+        name: 'Dessecação Pré Colheita',
+        folder: 'Colheita',
+        products: [
+            { source: 'desiccation_pre_harvest', label: 'Dessecante 1' },
+            { source: 'desiccation_pre_harvest', label: 'Dessecante 2' },
+            { source: 'desiccation_pre_harvest', label: 'Dessecante 3' }
         ]
     },
     {
         name: 'Tratamento de Sementes',
-        folder: 'Sementes',
-        sections: [
-            {
-                name: 'Dados do Tratamento de Sementes',
-                iterateOverFields: true,
-                items: [
-                    { name: 'Variedade', type: 'DROPDOWN_SELECT', databaseSource: 'seed_variety' },
-                    { name: 'Área (ha)', type: 'TEXT' },
-                    { name: 'Uso', type: 'TEXT' },
-                    { name: 'Produto', type: 'DROPDOWN_SELECT', databaseSource: 'seed_treatment' },
-                    { name: 'Composição', type: 'TEXT' },
-                    { name: 'Dose', type: 'TEXT', askForQuantity: true },
-                    { name: 'Unidade de Dose', type: 'TEXT' },
-                    { name: 'Volume Calda l/ha', type: 'TEXT' },
-                    { name: 'Data de Uso', type: 'DATE' }
-                ]
-            }
-        ]
-    },
-    {
-        name: 'Operação de Plantio',
-        folder: 'Operação',
-        sections: [
-            {
-                name: 'Dados do Plantio',
-                iterateOverFields: true,
-                items: [
-                    { name: 'Variedade', type: 'DROPDOWN_SELECT', databaseSource: 'seed_variety' },
-                    { name: 'Área (ha)', type: 'TEXT' },
-                    { name: 'Data do plantio', type: 'DATE' },
-                    { name: 'Plantadeira a vácuo', type: 'SINGLE_CHOICE', options: ['Sim', 'Não'] },
-                    { name: 'Modelo Aprovado?', type: 'SINGLE_CHOICE', options: ['Sim', 'Não'] },
-                    { name: 'Disco de Plantio', type: 'SINGLE_CHOICE', options: ['0,8mm', '1,0mm', '2,0mm'] }
-                ]
-            }
-        ]
-    },
-    {
-        name: 'Dessecação Pré Plantio',
-        folder: 'Produção',
-        sections: [
-            {
-                name: 'Dados da Dessecação',
-                iterateOverFields: true,
-                items: [
-                    { name: 'Variedade', type: 'DROPDOWN_SELECT', databaseSource: 'seed_variety' },
-                    { name: 'Área (ha)', type: 'TEXT' },
-                    { name: 'Uso', type: 'TEXT' },
-                    { name: 'Produto', type: 'DROPDOWN_SELECT', databaseSource: 'desiccation_pre_planting' },
-                    { name: 'Composição', type: 'TEXT' },
-                    { name: 'Dose', type: 'TEXT', askForQuantity: true },
-                    { name: 'Unidade de Dose', type: 'TEXT' },
-                    { name: 'Volume Calda l/ha', type: 'TEXT' },
-                    { name: 'Data de Uso', type: 'DATE' }
-                ]
-            }
-        ]
-    },
-    {
-        name: 'Plante e Aplique',
-        folder: 'Produção',
-        sections: [
-            {
-                name: 'Dados Plante e Aplique',
-                iterateOverFields: true,
-                items: [
-                    { name: 'Variedade', type: 'DROPDOWN_SELECT', databaseSource: 'seed_variety' },
-                    { name: 'Área (ha)', type: 'TEXT' },
-                    { name: 'Uso', type: 'TEXT' },
-                    { name: 'Produto', type: 'DROPDOWN_SELECT', databaseSource: 'pre_emergent_planting' },
-                    { name: 'Composição', type: 'TEXT' },
-                    { name: 'Dose', type: 'TEXT', askForQuantity: true },
-                    { name: 'Unidade de Dose', type: 'TEXT' },
-                    { name: 'Volume Calda l/ha', type: 'TEXT' },
-                    { name: 'Data de Uso', type: 'DATE' }
-                ]
-            }
+        folder: 'Pré Plantio',
+        products: [
+            { source: 'seed_treatment', label: 'Tratamento 1' },
+            { source: 'seed_treatment', label: 'Tratamento 2' },
+            { source: 'seed_treatment', label: 'Tratamento 3' }
         ]
     }
 ];
 
-async function main() {
-    console.log('Creating templates...');
+const BASE_TEMPLATE_ID = 'cmkvmzz63006mdgzkmjdm4e7c';
 
-    for (const tData of templatesData) {
-        console.log(`- Creating template: ${tData.name}`);
-        const template = await prisma.template.create({
-            data: {
-                name: tData.name,
-                folder: tData.folder,
-                createdById: ADMIN_ID,
-                sections: {
-                    create: tData.sections.map((s, sIdx) => ({
-                        name: s.name,
-                        order: sIdx,
-                        iterateOverFields: s.iterateOverFields,
-                        items: {
-                            create: s.items.map((i, iIdx) => ({
-                                name: i.name,
-                                type: i.type,
-                                order: iIdx,
-                                databaseSource: i.databaseSource || null,
-                                options: i.options || [],
-                                askForQuantity: i.askForQuantity || false
-                            }))
-                        }
-                    }))
+async function main() {
+    console.log('Fetching base template...');
+    const baseTemplate = await prisma.template.findUnique({
+        where: { id: BASE_TEMPLATE_ID },
+        include: {
+            sections: {
+                orderBy: { order: 'asc' },
+                include: {
+                    items: {
+                        orderBy: { order: 'asc' }
+                    }
                 }
             }
-        });
-        console.log(`  Done: ${template.id}`);
+        }
+    });
+
+    if (!baseTemplate) {
+        console.error('Base template not found!');
+        return;
     }
 
-    console.log('All agricultural templates created successfully!');
+    const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    const creatorId = adminUser ? adminUser.id : baseTemplate.createdById;
+
+    for (const config of templatesToCreate) {
+        console.log(`Creating template: ${config.name}...`);
+
+        // Create Template
+        const newTemplate = await prisma.template.create({
+            data: {
+                name: config.name,
+                folder: config.folder,
+                requiresProducerIdentification: baseTemplate.requiresProducerIdentification,
+                isContinuous: baseTemplate.isContinuous,
+                actionPlanPromptId: baseTemplate.actionPlanPromptId,
+                createdById: creatorId,
+            }
+        });
+
+        // Replicate Sections
+        for (const section of baseTemplate.sections) {
+            const newSection = await prisma.section.create({
+                data: {
+                    templateId: newTemplate.id,
+                    name: section.name,
+                    order: section.order,
+                    iterateOverFields: section.iterateOverFields
+                }
+            });
+
+            // Replicate Items
+            // We need to verify if this section contains the "Product" items to replace
+            // Assumption: The base template has items where we need to inject the specific products.
+            // Let's assume the base template has 3 items for products (Produto 1, Produto 2, Produto 3)
+            // or we just blindly copy everything but replace specific item TYPES or NAMES if they match a pattern?
+            // "Preciso criar basicamente um checklist igual, mudando apenas os 3 campos produto"
+
+            // Getting index of items that look like "Produto"
+            let productCounter = 0;
+
+            for (const item of section.items) {
+                let newItemData = {
+                    sectionId: newSection.id,
+                    name: item.name,
+                    type: item.type,
+                    order: item.order,
+                    required: item.required,
+                    validityControl: item.validityControl,
+                    observationEnabled: item.observationEnabled,
+                    requestArtifact: item.requestArtifact,
+                    artifactRequired: item.artifactRequired,
+                    askForQuantity: item.askForQuantity,
+                    options: item.options,
+                    databaseSource: item.databaseSource
+                };
+
+                // Logic to replace Product fields
+                // If the item name contains "Produto" or "Defensivo" or uses a database source, 
+                // we might want to swap it with our config products.
+                // Or simpler: The user said "changing ONLY the 3 product fields". 
+                // Let's assume the items are ordered and we just replace the ones that are DB lookups?
+
+                if (item.type === 'DROPDOWN_SELECT' && item.databaseSource) {
+                    // This is likely a product field
+                    if (productCounter < config.products.length) {
+                        const productConfig = config.products[productCounter];
+                        newItemData.name = productConfig.label; // e.g., "Pré Emergente 1"
+                        newItemData.databaseSource = productConfig.source;
+                        productCounter++;
+                    }
+                }
+
+                await prisma.item.create({ data: newItemData });
+            }
+        }
+    }
+
+    console.log('All templates created successfully!');
 }
 
 main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+    .catch(e => console.error(e))
+    .finally(async () => await prisma.$disconnect());

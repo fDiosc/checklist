@@ -7,6 +7,8 @@ const updateTemplateSchema = z.object({
     name: z.string().min(1),
     folder: z.string().min(1),
     requiresProducerIdentification: z.boolean().optional(),
+    isContinuous: z.boolean().optional(),
+    actionPlanPromptId: z.string().nullable().optional(),
     sections: z.array(z.any()).optional(),
 });
 
@@ -92,6 +94,8 @@ export async function PATCH(
                     name: validatedData.name,
                     folder: validatedData.folder,
                     requiresProducerIdentification: validatedData.requiresProducerIdentification,
+                    isContinuous: validatedData.isContinuous,
+                    actionPlanPromptId: validatedData.actionPlanPromptId,
                 },
             });
 

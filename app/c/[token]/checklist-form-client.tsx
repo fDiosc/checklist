@@ -12,12 +12,28 @@ const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapCo
 const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
 const Polygon = dynamic(() => import('react-leaflet').then(mod => mod.Polygon), { ssr: false });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Sparkles, Info, XCircle, ClipboardList } from 'lucide-react';
+import ChangelogModal from '@/components/modals/ChangelogModal';
+import { cn } from '@/lib/utils';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ChecklistFormClient({ checklist }: { checklist: any }) {
+    const getChildTypeLabel = () => {
+        if (!checklist.parentId) return null;
+        if (checklist.type === 'CORRECTION') return 'Correção';
+        if (checklist.type === 'COMPLETION') return 'Complemento';
+        return 'Original';
+    };
+
+    const typeLabel = getChildTypeLabel();
+
     const [currentStep, setCurrentStep] = useState(0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [responses, setResponses] = useState<Record<string, any>>({});
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+    const [isActionPlanModalOpen, setIsActionPlanModalOpen] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
     const [showFieldSelection, setShowFieldSelection] = useState(false);
@@ -82,7 +98,13 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
         const initialSaved = new Set<string>();
         Object.keys(finalResponses).forEach((key: string) => {
-            if (finalResponses[key].answer) initialSaved.add(key);
+            const resp = finalResponses[key];
+            // Only consider an item "saved" if it has an answer AND is not in MISSING/REJECTED status
+            // MISSING = copied from parent rejection, needs new answer
+            // REJECTED = rejected by supervisor, needs correction
+            if (resp.answer && resp.status !== 'MISSING' && resp.status !== 'REJECTED') {
+                initialSaved.add(key);
+            }
         });
         setSavedItems(initialSaved);
         setIsLoaded(true);
@@ -100,6 +122,19 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
     const isReadOnly = checklist.status !== 'SENT' && checklist.status !== 'IN_PROGRESS';
 
+    // Check if this is a child checklist (has parentId)
+    const isChildChecklist = !!checklist.parentId;
+    // Build a set of itemIds that have responses (for child checklist filtering)
+    const responseItemIds = useMemo(() => {
+        return new Set(checklist.responses?.map((r: { itemId: string }) => r.itemId) || []);
+    }, [checklist.responses]);
+
+    // Get published action plans (from this checklist or parent)
+    const publishedActionPlans = useMemo(() => {
+        const plans = [...(checklist.actionPlans || []), ...(checklist.parent?.actionPlans || [])];
+        return plans.filter((p: { isPublished: boolean }) => p.isPublished);
+    }, [checklist.actionPlans, checklist.parent?.actionPlans]);
+
     const computedSections = useMemo(() => {
         const sections = checklist.template.sections;
 
@@ -116,27 +151,58 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                         const field = allFields.find((f: any) => f.id === fieldId);
                         const fieldName = field?.name || `Talhão ${fieldId}`;
 
-                        newSections.push({
-                            ...section,
-                            id: `${section.id}::${fieldId}`,
-                            name: `${section.name} - ${fieldName}`,
-                            fieldId,
+                        // Filter items for child checklists
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const filteredItems = section.items
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            items: section.items.map((item: any) => ({
+                            .filter((item: any) => !isChildChecklist || responseItemIds.has(item.id))
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            .map((item: any) => ({
                                 ...item,
                                 id: `${item.id}::${fieldId}`
-                            }))
-                        });
+                            }));
+
+                        if (filteredItems.length > 0) {
+                            newSections.push({
+                                ...section,
+                                id: `${section.id}::${fieldId}`,
+                                name: `${section.name} - ${fieldName}`,
+                                fieldId,
+                                items: filteredItems
+                            });
+                        }
                     });
                 } else {
-                    newSections.push(section);
+                    // For non-iterating sections, also filter items for child checklists
+                    if (isChildChecklist) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const filteredItems = section.items.filter((item: any) => responseItemIds.has(item.id));
+                        if (filteredItems.length > 0) {
+                            newSections.push({ ...section, items: filteredItems });
+                        }
+                    } else {
+                        newSections.push(section);
+                    }
                 }
             });
             return newSections;
         }
 
+        // If no field selection, still filter for child checklists
+        if (isChildChecklist) {
+            return sections
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((section: any) => ({
+                    ...section,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    items: section.items.filter((item: any) => responseItemIds.has(item.id))
+                }))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .filter((section: any) => section.items.length > 0);
+        }
+
         return sections;
-    }, [checklist.template.sections, selectedFieldIds, checklist.producer?.maps]);
+    }, [checklist.template.sections, selectedFieldIds, checklist.producer?.maps, isChildChecklist, responseItemIds]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allItems: any[] = useMemo(() =>
@@ -419,7 +485,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     }
 
     return (
-        <div className="min-h-screen bg-white flex flex-col md:flex-row overflow-hidden font-sans selection:bg-emerald-100 selection:text-emerald-900">
+        <div className="h-screen bg-white flex flex-col md:flex-row overflow-hidden font-sans selection:bg-emerald-100 selection:text-emerald-900">
             {/* Mobile Header */}
             <div className="md:hidden bg-slate-900 text-white sticky top-0 z-50 shadow-2xl">
                 <div className="p-4 flex items-center justify-between border-b border-white/5">
@@ -453,27 +519,128 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                 </div>
             </div>
 
+            {/* Child Checklist Notification */}
+            {checklist.children && checklist.children.length > 0 && (
+                <div className="fixed top-20 md:top-4 right-4 z-[100] animate-slide-left">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {checklist.children.map((child: { publicToken: string }) => (
+                        <a
+                            key={child.publicToken}
+                            href={`/c/${child.publicToken}`}
+                            className="block bg-indigo-600 text-white p-4 rounded-2xl shadow-2xl shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all mb-2"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 p-2 rounded-xl">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                        <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">Ação Necessária</p>
+                                    <p className="font-bold text-sm">Novo checklist de correção disponível</p>
+                                </div>
+                                <svg className="w-5 h-5 opacity-70" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </div>
+                        </a>
+                    ))}
+                </div>
+            )}
+
             {isReadOnly && (
                 <div className="fixed top-0 left-0 right-0 bg-amber-500 text-white p-4 text-center z-[100] font-black uppercase tracking-widest text-xs animate-slide-down">
                     Checklist Enviado e Bloqueado para Edição
                 </div>
             )}
 
+            {/* Action Plan Modal */}
+            {isActionPlanModalOpen && publishedActionPlans.length > 0 && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6 animate-fade-in" onClick={() => setIsActionPlanModalOpen(false)}>
+                    <div
+                        className="w-full md:max-w-2xl max-h-[85vh] md:max-h-[80vh] bg-white rounded-t-[2rem] md:rounded-[2rem] shadow-2xl overflow-hidden animate-slide-up flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 flex items-center justify-between flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/20 p-2 rounded-xl">
+                                    <Sparkles size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black">Plano de Ação</h2>
+                                    <p className="text-xs text-emerald-100 font-medium">Orientações para correção e melhoria</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsActionPlanModalOpen(false)}
+                                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Modal Content - Scrollable */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            {publishedActionPlans.map((plan: { id: string; title: string; description: string; summary?: string; createdAt?: string }) => (
+                                <div key={plan.id} className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                                    <h3 className="font-black text-lg text-slate-900 mb-2">{plan.title}</h3>
+                                    {plan.summary && (
+                                        <p className="text-sm text-emerald-600 font-medium italic mb-3">&ldquo;{plan.summary}&rdquo;</p>
+                                    )}
+                                    <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                        {plan.description}
+                                    </div>
+                                    {plan.createdAt && (
+                                        <p className="text-[10px] text-slate-400 mt-4 font-medium">
+                                            Gerado em {new Date(plan.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 border-t border-slate-100 flex-shrink-0">
+                            <button
+                                onClick={() => setIsActionPlanModalOpen(false)}
+                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                            >
+                                Entendi, Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Navigation Sidebar */}
             <aside className={`
-            fixed inset-0 z-40 md:relative md:flex md:w-[380px] bg-slate-900 transition-transform duration-500 ease-out
+            fixed inset-0 z-40 md:relative md:flex md:w-[380px] md:flex-shrink-0 bg-slate-900 transition-transform duration-500 ease-out h-screen
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}>
-                <div className="flex flex-col h-full w-full p-8">
+                <div className="flex flex-col h-full w-full p-8 overflow-hidden">
                     <div className="hidden md:flex items-center gap-4 mb-16 px-2">
                         <Image src="/MX_logo_formC_Green.png" alt="Maxsum" width={56} height={56} className="rounded-2xl shadow-2xl shadow-emerald-500/40 brightness-0 invert" />
                         <div>
-                            <h1 className="text-white font-black text-sm uppercase tracking-[0.25em] leading-tight">{checklist.template.name}</h1>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-white font-black text-sm uppercase tracking-[0.25em] leading-tight">{checklist.template.name}</h1>
+                                {typeLabel && (
+                                    <span className={cn(
+                                        "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex items-center gap-1",
+                                        typeLabel === 'Correção' ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                    )}>
+                                        {typeLabel === 'Correção' ? <XCircle size={8} /> : <ClipboardList size={8} />}
+                                        {typeLabel}
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 opacity-90">Portal do Produtor</p>
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-12 pr-4 custom-scrollbar pb-10">
+                    <div className="flex-1 overflow-y-auto space-y-12 pr-2 scrollbar-hidden pb-4">
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {computedSections.map((section: any, sIdx: number) => (
                             <div key={section.id} className="animate-fade-in group/section" style={{ animationDelay: `${sIdx * 0.1}s` }}>
@@ -491,6 +658,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         const isActive = currentStep === globalIdx;
                                         const response = responses[item.id];
                                         const isRejected = response?.status === 'REJECTED';
+                                        // savedItems already excludes MISSING and REJECTED status items
                                         const isCompleted = savedItems.has(item.id);
 
                                         return (
@@ -528,20 +696,22 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                         ))}
                     </div>
 
-                    <div className="mt-auto pt-10 border-t border-white/10">
-                        <div className="flex items-center justify-between mb-4 px-1">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso do Checklist</span>
-                            <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full uppercase tracking-widest">{Math.round(progress)}%</span>
+                    <div className="mt-auto pt-6 border-t border-white/10">
+                        <div className="flex items-center justify-between mb-3 px-1">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso</span>
+                            <span className="text-[11px] font-black text-emerald-400">{Math.round(progress)}%</span>
                         </div>
-                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5">
-                            <div className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all duration-1000 ease-out" style={{ width: `${progress}%` }} />
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                            <div className="h-full bg-emerald-500 transition-all duration-1000 ease-out" style={{ width: `${progress}%` }} />
                         </div>
+                        <p className="text-[10px] text-slate-600 font-medium text-center mt-4">Powered by Merx</p>
                     </div>
                 </div>
+                <ChangelogModal isOpen={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
             </aside>
 
             {/* Workspace Area */}
-            <main className="flex-1 overflow-y-auto bg-slate-50 relative pb-24">
+            <main className="flex-1 overflow-y-auto bg-slate-50 relative scrollbar-hidden">
                 {/* Top Bar for Desktop - Breadcrumbs/Header */}
                 <header className="hidden md:flex items-center justify-between px-10 py-8 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-20">
                     <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
@@ -558,7 +728,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                     </div>
                 </header>
 
-                <div className="min-h-full flex flex-col p-6 md:p-8 max-w-4xl mx-auto">
+                <div className="flex flex-col p-4 md:p-8 max-w-4xl mx-auto pb-32 md:pb-28">
                     <div className="flex-1 bg-white rounded-[2rem] p-6 md:p-12 shadow-xl shadow-slate-100 border border-slate-100">
                         {currentItem ? (
                             <div className="space-y-8">
@@ -605,6 +775,23 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         <p className="text-red-600/70 text-xs">
                                             Por favor, corrija as informações acima e salve novamente para nova análise.
                                         </p>
+                                    </div>
+                                )}
+
+                                {/* Action Plans Section - Only show published plans, now as reminder */}
+                                {publishedActionPlans.length > 0 && responses[currentItem.id]?.status === 'REJECTED' && (
+                                    <div className="space-y-4 pt-6 border-t border-slate-50">
+                                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                                            <Sparkles size={12} className="text-emerald-500" />
+                                            Orientações Disponíveis
+                                        </h3>
+                                        <button
+                                            onClick={() => setIsActionPlanModalOpen(true)}
+                                            className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 font-medium transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Sparkles size={16} />
+                                            Ver Plano de Ação com orientações
+                                        </button>
                                     </div>
                                 )}
 
@@ -679,23 +866,39 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
                 {/* Sticky Bottom Navigation Footer */}
                 {currentItem && (
-                    <div className="fixed bottom-0 left-0 md:left-[380px] right-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 p-5 md:px-12 z-40 flex items-center justify-between shadow-[0_-15px_50px_-15px_rgba(0,0,0,0.08)]">
+                    <div className="fixed bottom-0 left-0 md:left-[380px] right-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 p-4 md:px-8 z-40 flex items-center justify-between gap-2 shadow-[0_-15px_50px_-15px_rgba(0,0,0,0.08)]">
                         <button
                             onClick={handlePrevious}
                             disabled={currentStep === 0}
-                            className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-8 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed flex items-center gap-3 border border-slate-100"
+                            className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-4 md:px-8 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed flex items-center gap-2 border border-slate-100"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                 <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            Anterior
+                            <span className="hidden md:inline">Anterior</span>
                         </button>
+
+                        {/* Action Plan Button - Only show when plans exist */}
+                        {publishedActionPlans.length > 0 && (
+                            <button
+                                onClick={() => setIsActionPlanModalOpen(true)}
+                                className="relative bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 md:px-6 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.1em] md:tracking-[0.15em] transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
+                            >
+                                <Sparkles size={16} />
+                                <span className="hidden md:inline">Ver Plano de Ação</span>
+                                <span className="md:hidden">Plano</span>
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-black flex items-center justify-center animate-pulse border-2 border-white">
+                                    {publishedActionPlans.length}
+                                </span>
+                            </button>
+                        )}
 
                         <button
                             onClick={handleNext}
-                            className={`bg-slate-900 text-white hover:bg-slate-800 px-10 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-slate-900/10 flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] ${!responses[currentItem.id]?.answer ? 'opacity-90' : ''}`}
+                            className={`bg-slate-900 text-white hover:bg-slate-800 px-4 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] ${!responses[currentItem.id]?.answer ? 'opacity-90' : ''}`}
                         >
-                            Próximo Passo
+                            <span className="hidden md:inline">Próximo Passo</span>
+                            <span className="md:hidden">Próximo</span>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                 <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

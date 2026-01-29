@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { syncResponsesToParent } from "@/lib/services/sync.service";
 
 export async function POST(
     req: Request,
@@ -14,7 +15,25 @@ export async function POST(
 
         const { id } = await params;
 
-        const checklist = await db.checklist.update({
+        // Fetch the checklist with its responses and parent info
+        const checklist = await db.checklist.findUnique({
+            where: { id },
+            include: {
+                responses: true
+            }
+        });
+
+        if (!checklist) {
+            return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
+        }
+
+        // If this is a child checklist, sync responses to parent (AS IS)
+        if (checklist.parentId) {
+            await syncResponsesToParent(checklist.parentId, checklist.responses);
+        }
+
+        // Update checklist status to FINALIZED
+        const updatedChecklist = await db.checklist.update({
             where: { id },
             data: {
                 status: 'FINALIZED',
@@ -26,11 +45,14 @@ export async function POST(
             data: {
                 userId,
                 checklistId: id,
-                action: `CHECKLIST_FINALIZED`,
+                action: checklist.parentId
+                    ? `CHILD_CHECKLIST_FINALIZED_WITH_PARENT_SYNC`
+                    : `CHECKLIST_FINALIZED`,
+                details: checklist.parentId ? { parentId: checklist.parentId } : undefined
             }
         });
 
-        return NextResponse.json(checklist);
+        return NextResponse.json(updatedChecklist);
     } catch (error) {
         console.error("Error finalizing:", error);
         return NextResponse.json(
@@ -39,3 +61,4 @@ export async function POST(
         );
     }
 }
+

@@ -7,6 +7,8 @@ const createTemplateSchema = z.object({
     name: z.string().min(1),
     folder: z.string().min(1),
     requiresProducerIdentification: z.boolean().optional(),
+    isContinuous: z.boolean().optional(),
+    actionPlanPromptId: z.string().nullable().optional(),
     sections: z.array(
         z.object({
             name: z.string(),
@@ -73,6 +75,8 @@ export async function POST(req: Request) {
                 folder: validatedData.folder,
                 requiresProducerIdentification:
                     validatedData.requiresProducerIdentification ?? false,
+                isContinuous: validatedData.isContinuous ?? false,
+                actionPlanPromptId: validatedData.actionPlanPromptId,
                 createdById: userId,
                 sections: {
                     create: validatedData.sections.map((section, sIdx) => ({

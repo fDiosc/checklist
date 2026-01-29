@@ -26,7 +26,48 @@ export default async function ChecklistDetailPage({ params }: { params: Promise<
                     }
                 }
             },
-            responses: true
+            responses: true,
+            actionPlans: true,
+            parent: {
+                select: {
+                    id: true,
+                    publicToken: true,
+                    template: { select: { name: true } },
+                    actionPlans: true
+                }
+            },
+            children: {
+                select: {
+                    id: true,
+                    publicToken: true,
+                    status: true,
+                    type: true,
+                    createdAt: true,
+                    finalizedAt: true,
+                    responses: {
+                        select: {
+                            status: true,
+                            rejectionReason: true
+                        }
+                    },
+                    children: {
+                        select: {
+                            id: true,
+                            status: true,
+                            type: true,
+                            createdAt: true,
+                            finalizedAt: true,
+                            responses: {
+                                select: {
+                                    status: true,
+                                    rejectionReason: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            }
         }
     });
 

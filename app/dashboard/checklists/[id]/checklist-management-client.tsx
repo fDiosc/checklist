@@ -1,11 +1,99 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle, AlertCircle, Clock, XCircle, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Clock, XCircle, Search, Sparkles, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+
+// Action Plan Card Component with expandable text
+function ActionPlanCard({
+    plan,
+    isPublishing,
+    onPublish
+}: {
+    plan: { id: string; title: string; description: string; summary?: string; isPublished: boolean; createdAt?: string };
+    isPublishing: boolean;
+    onPublish: () => void;
+}) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Format the description preserving line breaks
+    const formattedDescription = plan.description || '';
+    const hasLongText = formattedDescription.length > 200;
+    const displayText = isExpanded ? formattedDescription : formattedDescription.substring(0, 200) + (hasLongText ? '...' : '');
+
+    return (
+        <div className="bg-white rounded-xl border border-indigo-100/50 shadow-sm">
+            {/* Header */}
+            <div className="p-4 pb-2">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-slate-900 text-sm">{plan.title}</h4>
+                        {plan.createdAt && (
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400">
+                                <Calendar size={10} />
+                                {new Date(plan.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        {plan.isPublished ? (
+                            <span className="text-xs font-bold bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full whitespace-nowrap">
+                                Publicado ✓
+                            </span>
+                        ) : (
+                            <button
+                                onClick={onPublish}
+                                disabled={isPublishing}
+                                className="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-full transition-colors disabled:opacity-50 whitespace-nowrap"
+                            >
+                                {isPublishing ? 'Publicando...' : 'Publicar para Produtor'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Description with expand/collapse */}
+            <div className="px-4 pb-3">
+                {plan.summary && (
+                    <p className="text-xs text-indigo-600 font-medium mb-2 italic">&ldquo;{plan.summary}&rdquo;</p>
+                )}
+                <div
+                    className={cn(
+                        "text-xs text-slate-600 whitespace-pre-wrap transition-all duration-200",
+                        isExpanded ? "max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200" : "overflow-hidden"
+                    )}
+                >
+                    {displayText}
+                </div>
+                {hasLongText && (
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="flex items-center gap-1 mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                    >
+                        {isExpanded ? (
+                            <>
+                                <ChevronUp size={14} />
+                                Ver menos
+                            </>
+                        ) : (
+                            <>
+                                <ChevronDown size={14} />
+                                Ver mais
+                            </>
+                        )}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { getStatusLabel } from '@/lib/utils/status';
 import ChecklistItemDetail from './checklist-item-detail';
 import AuditActionPanel from './audit-action-panel';
+import PartialFinalizeModal from '@/components/modals/PartialFinalizeModal';
+import ChildChecklistsAccordion from '@/components/checklists/ChildChecklistsAccordion';
 
 interface ChecklistManagementClientProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +115,11 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
         } : null
     })) || []);
 
+    // Check if this is a child checklist (has parentId)
+    const isChildChecklist = !!checklist.parentId;
+    // Build a set of itemIds that have responses (for child checklist filtering)
+    const responseItemIds = new Set(responses.map((r: { itemId: string }) => r.itemId));
+
     // Extract unique field IDs from responses to rebuild computed sections
     const selectedFieldIds = Array.from(new Set(
         responses
@@ -34,16 +127,42 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
             .map(r => r.fieldId)
     )) as string[];
 
+    // Action Plans state - show this checklist's action plans
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [actionPlans, setActionPlans] = useState<any[]>(
+        checklist.actionPlans || []
+    );
+    const [isPublishing, setIsPublishing] = useState<string | null>(null);
+
+    const handlePublishActionPlan = async (planId: string) => {
+        setIsPublishing(planId);
+        try {
+            const res = await fetch(`/api/action-plans/${planId}/publish`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to publish');
+            setActionPlans(prev => prev.map(p => p.id === planId ? { ...p, isPublished: true } : p));
+            alert('Plano de ação publicado com sucesso!');
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao publicar plano de ação.');
+        } finally {
+            setIsPublishing(null);
+        }
+    };
+
     // Replicate computedSections logic for Auditor view
     const computedSections = (() => {
         const sections = checklist.template.sections;
-        if (selectedFieldIds.length === 0) return sections;
+
+        // If no field-specific sections AND not a child checklist, return as-is
+        if (selectedFieldIds.length === 0 && !isChildChecklist) {
+            return sections;
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newSections: any[] = [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sections.forEach((section: any) => {
-            if (section.iterateOverFields) {
+            if (section.iterateOverFields && selectedFieldIds.length > 0) {
                 selectedFieldIds.forEach((fieldId: string) => {
                     // Try to find field name in producer maps
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,22 +171,37 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                     const field = allFields.find((f: any) => f.id === fieldId);
                     const fieldName = field?.name || `Talhão ${fieldId}`;
 
-                    newSections.push({
-                        ...section,
-                        id: `${section.id}::${fieldId}`,
-                        name: `${section.name} - ${fieldName}`,
-                        fieldId,
+                    const filteredItems = section.items
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        .filter((item: any) => !isChildChecklist || responseItemIds.has(item.id))
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        items: section.items.map((item: any) => ({
+                        .map((item: any) => ({
                             ...item,
                             id: `${item.id}::${fieldId}`,
                             originalId: item.id
-                        }))
-                    });
+                        }));
+
+                    if (filteredItems.length > 0) {
+                        newSections.push({
+                            ...section,
+                            id: `${section.id}::${fieldId}`,
+                            name: `${section.name} - ${fieldName}`,
+                            fieldId,
+                            items: filteredItems
+                        });
+                    }
                 });
             } else {
-                newSections.push(section);
+                // For non-iterating sections, filter items for child checklists
+                if (isChildChecklist) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const filteredItems = section.items.filter((item: any) => responseItemIds.has(item.id));
+                    if (filteredItems.length > 0) {
+                        newSections.push({ ...section, items: filteredItems });
+                    }
+                } else {
+                    newSections.push(section);
+                }
             }
         });
         return newSections;
@@ -76,6 +210,8 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
     const [selectedItem, setSelectedItem] = useState<{ item: any, response: any } | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isPartialModalOpen, setIsPartialModalOpen] = useState(false);
+    const [isFinalizingParcial, setIsFinalizingParcial] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isInternalFilling, setIsInternalFilling] = useState(false);
 
@@ -84,11 +220,15 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
         if (!selectedItem) return;
         const { item } = selectedItem;
 
+        // Parse ID and FieldID if composite
+        const realItemId = item.originalId || item.id;
+        const fieldId = item.id.includes('::') ? item.id.split('::')[1] : null;
+
         try {
-            const res = await fetch(`/api/checklists/${checklist.id}/responses/${item.id}`, {
+            const res = await fetch(`/api/checklists/${checklist.id}/responses/${realItemId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, isInternal: true })
+                body: JSON.stringify({ ...data, isInternal: true, fieldId })
             });
 
             if (!res.ok) throw new Error('Failed to save internal fill');
@@ -96,12 +236,14 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
 
             // Update local state
             setResponses(prev => {
-                const idx = prev.findIndex(r => r.itemId === item.id);
+                // Must match both itemId and fieldId
+                const idx = prev.findIndex(r => r.itemId === realItemId && r.fieldId === (fieldId || "__global__"));
                 if (idx !== -1) {
                     const updated = [...prev];
                     updated[idx] = savedResponse;
                     return updated;
                 }
+                // Determine snapshot behavior: if response didn't exist, we add it
                 return [...prev, savedResponse];
             });
 
@@ -230,7 +372,13 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
     };
 
     const handleFinalize = async () => {
-        if (!confirm("Tem certeza que deseja finalizar este checklist? A ação é irreversível e bloqueará edições.")) return;
+        const hasRejectedItems = responses.some(r => r.status === 'REJECTED');
+
+        const message = hasRejectedItems
+            ? "Este checklist contém itens REJEITADOS. Ao finalizar, esses itens serão levados como REJEITADOS para o checklist principal. Deseja prosseguir?"
+            : "Tem certeza que deseja finalizar este checklist? A ação é irreversível e bloqueará edições.";
+
+        if (!confirm(message)) return;
 
         try {
             const res = await fetch(`/api/checklists/${checklist.id}/finalize`, { method: 'POST' });
@@ -240,6 +388,49 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
         } catch (error) {
             console.error(error);
             alert("Erro ao finalizar checklist.");
+        }
+    };
+
+    const handlePartialFinalize = async (options: {
+        createCorrection: boolean;
+        createCompletion: boolean;
+        generateActionPlan: boolean
+    }) => {
+        setIsFinalizingParcial(true);
+        try {
+            const res = await fetch(`/api/checklists/${checklist.id}/partial-finalize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(options)
+            });
+
+            if (!res.ok) throw new Error('Failed to partially finalize');
+
+            const result = await res.json();
+
+            // Generate action plans for EACH child checklist created (not the parent)
+            if (options.generateActionPlan && result.childIds?.length > 0) {
+                for (const childId of result.childIds) {
+                    try {
+                        await fetch('/api/ai/generate-action-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ checklistId: childId })
+                        });
+                    } catch (error) {
+                        console.error(`Failed to generate action plan for child ${childId}:`, error);
+                    }
+                }
+            }
+
+            alert("Checklist finalizado parcialmente com sucesso!");
+            setIsPartialModalOpen(false);
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao realizar finalização parcial.");
+        } finally {
+            setIsFinalizingParcial(false);
         }
     };
 
@@ -268,8 +459,29 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                             </span>
                             <span className="text-slate-300">•</span>
                             <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                {checklist.status}
+                                {getStatusLabel(checklist.status)}
                             </span>
+                            {checklist.parentId && (
+                                <>
+                                    <span className="text-slate-300">•</span>
+                                    <Link
+                                        href={`/dashboard/checklists/${checklist.parentId}`}
+                                        className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors flex items-center gap-1"
+                                    >
+                                        <AlertCircle size={10} />
+                                        Filho de: {checklist.parent?.template?.name || 'Checklist Anterior'}
+                                    </Link>
+                                </>
+                            )}
+                            {/* Child checklists badge count (for non-continuous, show simple badge) */}
+                            {checklist.children?.length > 0 && !checklist.template.isContinuous && (
+                                <>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                                        {checklist.children.length} derivado{checklist.children.length !== 1 ? 's' : ''}
+                                    </span>
+                                </>
+                            )}
                             {/* EME Badge */}
                             {checklist.producer?.maps?.[0]?.emeCode && (
                                 <>
@@ -289,6 +501,52 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                                 </>
                             )}
                         </div>
+                        {/* Response Statistics */}
+                        {(() => {
+                            const approved = checklist.responses?.filter((r: { status: string }) => r.status === 'APPROVED').length || 0;
+                            const rejected = checklist.responses?.filter((r: { status: string }) => r.status === 'REJECTED').length || 0;
+                            // Total items from all sections in template
+                            const totalItems = checklist.template.sections?.reduce((acc: number, s: { items?: unknown[] }) => acc + (s.items?.length || 0), 0) || 0;
+                            const pending = totalItems - approved - rejected;
+                            const completionPercent = totalItems > 0 ? Math.round((approved / totalItems) * 100) : 0;
+
+                            return totalItems > 0 ? (
+                                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div
+                                                className={cn(
+                                                    "h-full rounded-full transition-all",
+                                                    completionPercent === 100
+                                                        ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                                                        : "bg-gradient-to-r from-blue-400 to-blue-500"
+                                                )}
+                                                style={{ width: `${completionPercent}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-600">
+                                            {completionPercent}%
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                                        ✓ {approved} aprovados
+                                    </span>
+                                    {rejected > 0 && (
+                                        <span className="text-xs text-red-500 font-medium flex items-center gap-1">
+                                            ✗ {rejected} rejeitados
+                                        </span>
+                                    )}
+                                    {pending > 0 && (
+                                        <span className="text-xs text-slate-400 font-medium">
+                                            ⏳ {pending} pendentes
+                                        </span>
+                                    )}
+                                    <span className="text-xs text-slate-400">
+                                        ({totalItems} itens)
+                                    </span>
+                                </div>
+                            ) : null;
+                        })()}
                     </div>
                 </div>
 
@@ -314,6 +572,20 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                             </>
                         )}
                     </button>
+                    {checklist.template.isContinuous && (
+                        <button
+                            onClick={() => setIsPartialModalOpen(true)}
+                            disabled={checklist.status === 'FINALIZED'}
+                            className={cn(
+                                "px-5 py-2.5 font-bold rounded-xl shadow-lg text-sm transition-all",
+                                checklist.status === 'FINALIZED'
+                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                            )}
+                        >
+                            Finalizar Parcialmente
+                        </button>
+                    )}
                     <button
                         onClick={handleFinalize}
                         disabled={checklist.status === 'FINALIZED'}
@@ -328,6 +600,40 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                     </button>
                 </div>
             </header>
+
+            <PartialFinalizeModal
+                isOpen={isPartialModalOpen}
+                onClose={() => setIsPartialModalOpen(false)}
+                onConfirm={handlePartialFinalize}
+                isPending={isFinalizingParcial}
+            />
+
+            {/* Child Checklists Accordion (only for isContinuous templates with children) */}
+            {checklist.template.isContinuous && checklist.children?.length > 0 && (
+                <ChildChecklistsAccordion childChecklists={checklist.children} />
+            )}
+
+            {/* Action Plans Management Section */}
+            {actionPlans.length > 0 && (
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-4 mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-black text-indigo-900 flex items-center gap-2">
+                            <Sparkles size={16} className="text-indigo-500" />
+                            Planos de Ação Gerados ({actionPlans.length})
+                        </h3>
+                    </div>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        {actionPlans.map((plan: { id: string; title: string; description: string; summary?: string; isPublished: boolean; createdAt?: string }) => (
+                            <ActionPlanCard
+                                key={plan.id}
+                                plan={plan}
+                                isPublishing={isPublishing === plan.id}
+                                onPublish={() => handlePublishActionPlan(plan.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Main Content (Split View) */}
             <div className="flex flex-1 gap-4 xl:gap-8 overflow-hidden min-h-0">
@@ -363,6 +669,7 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                                             r.fieldId === (section.fieldId || "__global__")
                                         );
                                         const isSelected = selectedItem?.item.id === item.id;
+                                        const hasAnswer = response?.answer && response.answer !== "null" && response.answer !== "";
 
                                         return (
                                             <button
@@ -377,13 +684,18 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                                             >
                                                 <div className={cn(
                                                     "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                                                    isSelected ? "bg-white/10" : "bg-slate-100"
+                                                    isSelected
+                                                        ? "bg-white/10"
+                                                        : response?.status === 'APPROVED' ? "bg-emerald-50"
+                                                            : response?.status === 'REJECTED' ? "bg-red-50"
+                                                                : hasAnswer ? "bg-amber-50"
+                                                                    : "bg-slate-100"
                                                 )}>
                                                     {response?.status === 'APPROVED' ? (
                                                         <CheckCircle size={16} className={isSelected ? "text-emerald-400" : "text-emerald-500"} />
                                                     ) : response?.status === 'REJECTED' ? (
                                                         <XCircle size={16} className={isSelected ? "text-red-400" : "text-red-500"} />
-                                                    ) : response?.answer ? (
+                                                    ) : hasAnswer ? (
                                                         <AlertCircle size={16} className={isSelected ? "text-amber-400" : "text-amber-500"} />
                                                     ) : (
                                                         <Clock size={16} className={isSelected ? "text-slate-400" : "text-slate-400"} />
@@ -404,7 +716,7 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                                                         )}
                                                     </div>
                                                     <p className={cn("text-[10px] truncate opacity-70", isSelected ? "text-white" : "text-slate-500")}>
-                                                        {response?.answer || 'Pendente'}
+                                                        {hasAnswer ? response.answer : 'Não respondido'}
                                                     </p>
                                                 </div>
                                             </button>
@@ -471,7 +783,6 @@ export default function ChecklistManagementClient({ checklist }: ChecklistManage
                         </div>
                     )}
                 </main>
-
             </div>
         </div>
     );
