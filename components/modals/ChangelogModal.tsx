@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
@@ -20,6 +20,13 @@ const releases = [
                 icon: Network,
                 color: "text-indigo-500",
                 bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Atribuição de Templates",
+                description: "Compartilhe templates do workspace pai com subworkspaces específicos (somente leitura).",
+                icon: Share2,
+                color: "text-purple-500",
+                bg: "bg-purple-50/50"
             },
             {
                 title: "Pré-preenchimento",

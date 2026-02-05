@@ -474,6 +474,72 @@ POST /api/templates/[id]/duplicate
 
 Cria uma cópia do template com novo nome.
 
+### 5.5 Atribuição de Templates a Subworkspaces
+
+Templates do workspace pai podem ser compartilhados com subworkspaces específicos.
+
+#### Listar Atribuições
+
+```http
+GET /api/templates/[id]/assignments
+```
+
+**Response:**
+
+```json
+{
+  "template": {
+    "id": "clx123...",
+    "name": "Checklist ESG",
+    "workspaceId": "clw456..."
+  },
+  "parentWorkspace": {
+    "id": "clw456...",
+    "name": "Empresa Pai",
+    "hasSubworkspaces": true
+  },
+  "availableSubworkspaces": [
+    {
+      "id": "clw789...",
+      "name": "Filial SP",
+      "slug": "filial-sp",
+      "logoUrl": null
+    }
+  ],
+  "assignments": [
+    {
+      "id": "cla123...",
+      "workspaceId": "clw789...",
+      "workspaceName": "Filial SP",
+      "workspaceSlug": "filial-sp",
+      "assignedAt": "2026-02-05T10:00:00Z"
+    }
+  ],
+  "assignedWorkspaceIds": ["clw789..."]
+}
+```
+
+#### Atualizar Atribuições
+
+```http
+POST /api/templates/[id]/assignments
+```
+
+**Request Body:**
+
+```json
+{
+  "subworkspaceIds": ["clw789...", "clw012..."]
+}
+```
+
+Substitui todas as atribuições existentes pelas novas.
+
+**Comportamento:**
+- Templates atribuídos ficam **somente leitura** nos subworkspaces
+- Subworkspaces podem **duplicar** templates atribuídos para ter versão editável
+- Checklists já criados não são afetados pela remoção de atribuição
+
 ---
 
 ## 6. Produtores

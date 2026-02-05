@@ -8,7 +8,7 @@ const createSubworkspaceSchema = z.object({
     name: z.string().min(1),
     slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
     cnpj: z.string().optional(),
-    logoUrl: z.string().url().optional(),
+    logoUrl: z.string().url().optional().or(z.literal('')).transform(val => val || undefined),
 });
 
 // GET - List all subworkspaces of a parent workspace

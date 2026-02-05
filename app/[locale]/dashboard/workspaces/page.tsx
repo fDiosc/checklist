@@ -505,6 +505,8 @@ function SubworkspaceModal({ workspace, onClose, onSuccess }: SubworkspaceModalP
     });
 
     const subworkspaces: Subworkspace[] = subworkspacesData?.subworkspaces || [];
+    // Use API response for hasSubworkspaces state (updates after toggle)
+    const hasSubworkspacesEnabled = subworkspacesData?.parentWorkspace?.hasSubworkspaces ?? workspace.hasSubworkspaces;
 
     // Toggle subworkspaces mutation
     const toggleMutation = useMutation({
@@ -599,7 +601,7 @@ function SubworkspaceModal({ workspace, onClose, onSuccess }: SubworkspaceModalP
                 {/* Content */}
                 <div className="p-6 overflow-y-auto flex-1">
                     {/* Toggle */}
-                    {!workspace.hasSubworkspaces ? (
+                    {!hasSubworkspacesEnabled ? (
                         <div className="bg-slate-50 rounded-2xl p-6 text-center">
                             <Network className="mx-auto text-slate-400 mb-4" size={48} />
                             <h3 className="font-bold text-slate-900 mb-2">Habilitar Subworkspaces</h3>
@@ -630,7 +632,19 @@ function SubworkspaceModal({ workspace, onClose, onSuccess }: SubworkspaceModalP
                             ) : subworkspaces.length === 0 && !isCreating ? (
                                 <div className="bg-slate-50 rounded-2xl p-6 text-center">
                                     <Network className="mx-auto text-slate-300 mb-3" size={40} />
-                                    <p className="text-slate-500">Nenhum subworkspace criado ainda</p>
+                                    <p className="text-slate-500 mb-4">Nenhum subworkspace criado ainda</p>
+                                    <button
+                                        onClick={() => toggleMutation.mutate(false)}
+                                        disabled={toggleMutation.isPending}
+                                        className="px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50 flex items-center gap-2 mx-auto"
+                                    >
+                                        {toggleMutation.isPending ? (
+                                            <Loader2 className="animate-spin" size={14} />
+                                        ) : (
+                                            <X size={14} />
+                                        )}
+                                        Desabilitar Subworkspaces
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="space-y-3">

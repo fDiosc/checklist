@@ -22,6 +22,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableTemplateItem } from './SortableTemplateItem';
+import TemplateSubworkspaceAssignment from './TemplateSubworkspaceAssignment';
 
 
 interface TemplateItem {
@@ -349,6 +350,13 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                             </div>
                         )}
                     </div>
+
+                    {/* Subworkspace Assignment - Only in EDIT mode */}
+                    {mode === 'EDIT' && initialData?.id && (
+                        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/50 p-10">
+                            <TemplateSubworkspaceAssignment templateId={initialData.id} />
+                        </div>
+                    )}
                 </div>
 
                 {/* Main Editor */}

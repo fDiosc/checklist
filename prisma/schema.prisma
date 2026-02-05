@@ -27,12 +27,13 @@ model Workspace {
   subworkspaces      Workspace[] @relation("WorkspaceHierarchy")
   hasSubworkspaces   Boolean    @default(false) @map("has_subworkspaces")
 
-  users      User[]
-  producers  Producer[]
-  templates  Template[]
-  checklists Checklist[]
-  auditLogs  AuditLog[]
-  aiPrompts  AiPrompt[]
+  users               User[]
+  producers           Producer[]
+  templates           Template[]
+  checklists          Checklist[]
+  auditLogs           AuditLog[]
+  aiPrompts           AiPrompt[]
+  templateAssignments TemplateAssignment[]
 
   @@index([parentWorkspaceId])
   @@map("workspaces")
@@ -61,12 +62,13 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  workspace         Workspace? @relation(fields: [workspaceId], references: [id])
-  templatesCreated  Template[]
-  checklistsCreated Checklist[]
-  auditLogs         AuditLog[]
-  internalResponses Response[] @relation("InternalResponses")
-  assignedProducers Producer[] @relation("SupervisorProducers")
+  workspace            Workspace? @relation(fields: [workspaceId], references: [id])
+  templatesCreated     Template[]
+  checklistsCreated    Checklist[]
+  auditLogs            AuditLog[]
+  internalResponses    Response[] @relation("InternalResponses")
+  assignedProducers    Producer[] @relation("SupervisorProducers")
+  templateAssignments  TemplateAssignment[]
   
   @@unique([cpf, workspaceId]) // CPF unique within workspace
   @@index([workspaceId])
@@ -192,11 +194,30 @@ model Template {
   createdBy  User       @relation(fields: [createdById], references: [id])
   sections   Section[]
   checklists Checklist[]
+  assignments TemplateAssignment[]
   
   @@index([workspaceId])
   @@index([status])
   @@index([createdById])
   @@map("templates")
+}
+
+// Template assignment to subworkspaces (many-to-many)
+model TemplateAssignment {
+  id            String   @id @default(cuid())
+  templateId    String   @map("template_id")
+  workspaceId   String   @map("workspace_id") // The subworkspace receiving the template
+  assignedAt    DateTime @default(now()) @map("assigned_at")
+  assignedById  String   @map("assigned_by_id")
+
+  template    Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedBy  User      @relation(fields: [assignedById], references: [id])
+
+  @@unique([templateId, workspaceId])
+  @@index([templateId])
+  @@index([workspaceId])
+  @@map("template_assignments")
 }
 
 model Section {

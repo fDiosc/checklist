@@ -101,6 +101,58 @@ getSubworkspaceFilter(session): Promise<{ workspaceId: string | { in: string[] }
 isSubworkspaceOf(workspaceId, parentId): Promise<boolean>
 ```
 
+### 1.6 Atribuição de Templates a Subworkspaces
+
+Templates criados no workspace pai podem ser atribuídos a subworkspaces específicos.
+
+#### Modelo de Dados:
+```prisma
+model TemplateAssignment {
+  id            String   @id @default(cuid())
+  templateId    String   @map("template_id")
+  workspaceId   String   @map("workspace_id") // O subworkspace que recebe o template
+  assignedAt    DateTime @default(now()) @map("assigned_at")
+  assignedById  String   @map("assigned_by_id")
+
+  template    Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedBy  User      @relation(fields: [assignedById], references: [id])
+
+  @@unique([templateId, workspaceId])
+  @@index([templateId])
+  @@index([workspaceId])
+  @@map("template_assignments")
+}
+```
+
+#### Características:
+- **Atribuição:** Feita na tela de edição do template (painel lateral)
+- **Visibilidade:** Subworkspace vê templates próprios + atribuídos pelo pai
+- **Permissões:** Templates atribuídos são **somente leitura** no subworkspace
+- **Cópia:** Subworkspace pode duplicar template atribuído para ter versão editável própria
+- **Remoção:** Remoção da atribuição não afeta checklists já criados
+
+#### APIs:
+```
+GET  /api/templates/[id]/assignments  - Lista subworkspaces atribuídos e disponíveis
+POST /api/templates/[id]/assignments  - Atualiza lista de atribuições
+```
+
+#### Fluxo de Listagem de Templates:
+1. **Workspace pai:** Vê apenas templates próprios (e de subworkspaces se aplicável)
+2. **Subworkspace:** 
+   - Templates próprios (`workspaceId = meuId`) → editáveis
+   - Templates atribuídos (`assignments.workspaceId = meuId`) → somente leitura
+
+```typescript
+// API retorna flag para controle de UI
+{
+  ...templateData,
+  isAssigned: true,  // Veio de atribuição
+  isReadOnly: true   // Não pode editar estrutura
+}
+```
+
 ---
 
 ## 2. Autenticação e Autorização

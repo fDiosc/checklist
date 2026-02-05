@@ -4,37 +4,48 @@ Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
 ## [V 0.4.0] - 2026-02-05
 
-### 🚀 Subworkspaces, Pré-preenchimento e Correções
+### 🚀 Subworkspaces, Atribuição de Templates e Pré-preenchimento
 
-Esta versão introduz o sistema de subworkspaces para segmentação organizacional, pré-preenchimento de checklists e correções importantes de bugs.
+Esta versão introduz o sistema de subworkspaces para segmentação organizacional, atribuição de templates, pré-preenchimento de checklists e correções importantes de bugs.
 
 ### ✨ Novas Funcionalidades
 - **Subworkspaces:** Workspaces podem ter subworkspaces vinculados. Cada subworkspace tem logo, nome, CNPJ próprios e controla seus usuários.
+- **Atribuição de Templates:** Templates do workspace pai podem ser atribuídos a subworkspaces específicos. Templates atribuídos ficam disponíveis como somente leitura nos subworkspaces (podem ser copiados mas não editados).
+- **Painel de Atribuição:** Nova seção na edição de templates para selecionar quais subworkspaces terão acesso ao template.
 - **Hierarquia de Dados:** Workspace pai visualiza dados de todos os subworkspaces em tempo real. Subworkspaces não se veem entre si.
 - **Pré-preenchimento de Checklist:** Ao criar novo checklist, opção de carregar respostas aprovadas de um checklist anterior (mesmo template, finalizado).
 - **Coluna de Origem:** Grid de checklists exibe coluna "Origem" com nome do workspace quando há subworkspaces ativos.
 - **Filtro por Subworkspace:** Dropdown para filtrar checklists por workspace específico.
 - **Hierarquia Recursiva de Checklists:** Grid exibe até 4 níveis de profundidade (pai → filho → neto → bisneto).
+- **Drill-down de Usuários:** SuperAdmin pode criar usuários diretamente em subworkspaces com seleção hierárquica (Workspace → Subworkspace).
 
 ### 🔧 Melhorias Técnicas
+- **Modelo TemplateAssignment:** Nova tabela de junção many-to-many para atribuição de templates a subworkspaces.
 - **Modelo Workspace Expandido:** Novos campos `cnpj`, `parentWorkspaceId`, `hasSubworkspaces`.
 - **APIs de Subworkspaces:**
   - `GET/POST /api/workspaces/[id]/subworkspaces` - Listar/criar subworkspaces
   - `POST /api/workspaces/[id]/toggle-subworkspaces` - Ativar/desativar funcionalidade
+- **APIs de Atribuição de Templates:**
+  - `GET /api/templates/[id]/assignments` - Listar subworkspaces atribuídos
+  - `POST /api/templates/[id]/assignments` - Atualizar atribuições
 - **APIs de Pré-preenchimento:**
   - `GET /api/checklists/available-for-prefill` - Lista checklists finalizados para pré-preencher
   - `GET /api/checklists/[id]/responses-for-copy` - Busca respostas aprovadas para cópia
+- **Componente `TemplateSubworkspaceAssignment`:** Painel UI para gerenciar atribuições de templates.
 - **Função `getSubworkspaceFilter()`:** Filtro automático que inclui dados do workspace pai e seus subworkspaces.
 - **Função `getVisibleWorkspaceIds()`:** Retorna IDs de workspaces visíveis para o usuário.
-- **Função `renderChildRows()`:** Renderização recursiva de checklists filhos no grid.
+- **API GET Templates Expandida:** Retorna templates próprios + atribuídos para subworkspaces, com flag `isReadOnly`.
 
 ### 🗃️ Migrações de Banco de Dados
 - `20260202220000_add_subworkspaces` - Adiciona campos de subworkspace à tabela workspaces
+- `template_assignments` - Nova tabela para atribuições de templates a subworkspaces
 
 ### 🐛 Correções (Bugfixes)
 - **CAR não obrigatório para Brasil:** Corrigido cadastro de produtor BR que exigia CAR incorretamente. Agora apenas CPF é obrigatório.
 - **Checklists netos não apareciam no grid:** Correção da query e UI para exibir toda a hierarquia de checklists.
 - **Indentação visual de níveis:** Cada nível de filho tem indentação progressiva para clareza visual.
+- **Estado de subworkspaces no modal:** Modal agora usa estado da API para exibir botão correto (Habilitar/Desabilitar).
+- **Validação de logoUrl vazia:** Corrigido erro Zod ao criar subworkspace sem logo.
 
 ---
 
