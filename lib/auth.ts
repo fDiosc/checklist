@@ -39,6 +39,7 @@ declare module "next-auth" {
 export const { handlers, signIn, signOut, auth } = NextAuth({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     adapter: PrismaAdapter(db) as any,
+    trustHost: true, // Required for production behind reverse proxy (CapRover/Docker)
     session: {
         strategy: "jwt",
     },
