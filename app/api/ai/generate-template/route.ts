@@ -10,8 +10,6 @@ export async function POST(req: Request) {
     try {
         const { fileBase64, mimeType } = await req.json();
 
-        console.log("[AI Template] Request received:", { mimeType, fileSize: fileBase64?.length || 0 });
-
         if (!fileBase64 || !mimeType) {
             return NextResponse.json({ error: "File content and mimeType are required" }, { status: 400 });
         }
@@ -81,7 +79,6 @@ export async function POST(req: Request) {
         const modelName = promptConfig.model || 'gemini-2.5-flash';
 
         try {
-            console.log("[AI Template] Calling Gemini with model:", modelName);
             const result = await ai.models.generateContent({
                 model: modelName,
                 contents: [
@@ -99,13 +96,10 @@ export async function POST(req: Request) {
                 }
             });
 
-            console.log("[AI Template] Gemini response received");
             const responseText = result.text;
-            console.log("[AI Template] Response length:", responseText?.length || 0);
             const cleanJson = responseText?.replace(/```json/g, '').replace(/```/g, '').trim();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let sections = JSON.parse(cleanJson || '[]');
-            console.log("[AI Template] Parsed sections count:", sections.length);
 
             // Normalize types to Uppercase to match Enum/Zod
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,7 +112,6 @@ export async function POST(req: Request) {
                 }))
             }));
 
-            console.log("[AI Template] Returning normalized sections");
             return NextResponse.json(sections);
 
         } catch (error) {
