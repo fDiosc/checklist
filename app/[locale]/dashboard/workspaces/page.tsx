@@ -28,7 +28,7 @@ export default function WorkspacesPage() {
     const t = useTranslations();
     const locale = useLocale();
     const router = useRouter();
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,9 +61,20 @@ export default function WorkspacesPage() {
         },
     });
 
-    // Redirect if not SuperAdmin
-    if (!isSuperAdmin) {
-        router.push(`/${locale}/dashboard`);
+    // Show loading while checking session
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin text-slate-400" size={32} />
+            </div>
+        );
+    }
+
+    // Redirect if not SuperAdmin (only on client side)
+    if (status === 'authenticated' && !isSuperAdmin) {
+        if (typeof window !== 'undefined') {
+            router.push(`/${locale}/dashboard`);
+        }
         return null;
     }
 

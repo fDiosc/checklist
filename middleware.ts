@@ -16,9 +16,11 @@ const publicPatterns = [
     /^\/[a-z]{2}(-[A-Z]{2})?\/c(\/.*)?$/,          // /:locale/c/*
     /^\/[a-z]{2}(-[A-Z]{2})?\/portal(\/.*)?$/,     // /:locale/portal/*
     /^\/[a-z]{2}(-[A-Z]{2})?\/sign-in(\/.*)?$/,    // /:locale/sign-in/*
+    /^\/[a-z]{2}(-[A-Z]{2})?\/sign-up(\/.*)?$/,    // /:locale/sign-up/*
     /^\/c(\/.*)?$/,                                 // /c/*
     /^\/portal(\/.*)?$/,                            // /portal/*
     /^\/sign-in(\/.*)?$/,                           // /sign-in/*
+    /^\/sign-up(\/.*)?$/,                           // /sign-up/*
     /^\/api\/auth(\/.*)?$/,                         // /api/auth/* (NextAuth routes)
     /^\/api\/c(\/.*)?$/,                            // /api/c/* (public checklist API)
     /^\/api\/portal(\/.*)?$/,                       // /api/portal/* (public portal API)
@@ -59,12 +61,10 @@ export default auth(async (req) => {
         return NextResponse.next();
     }
 
-    // Apply i18n middleware first
-    const response = intlMiddleware(req as unknown as NextRequest);
-
-    // Public routes - allow access
+    // Check if it's a public route FIRST (before any redirects)
     if (isPublicRoute(pathname)) {
-        return response;
+        // Apply i18n middleware for public routes
+        return intlMiddleware(req as unknown as NextRequest);
     }
 
     // Get locale from path
@@ -86,7 +86,8 @@ export default auth(async (req) => {
         }
     }
 
-    return response;
+    // Apply i18n middleware for authenticated routes
+    return intlMiddleware(req as unknown as NextRequest);
 });
 
 export const config = {
