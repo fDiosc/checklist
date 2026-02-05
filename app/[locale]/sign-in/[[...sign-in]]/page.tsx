@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Loader2, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -25,7 +25,6 @@ function getErrorMessage(error: string | null): string {
 export default function SignInPage() {
     const t = useTranslations('auth');
     const locale = useLocale();
-    const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl') || `/${locale}/dashboard`;
     const urlError = searchParams.get('error');
