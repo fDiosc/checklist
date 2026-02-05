@@ -47,8 +47,6 @@ export default function SignInPage() {
         setError('');
         setIsLoading(true);
 
-        console.log('[SIGNIN] Submit:', { email, callbackUrl, locale });
-
         try {
             const result = await signIn('credentials', {
                 email,
@@ -56,10 +54,7 @@ export default function SignInPage() {
                 redirect: false,
             });
 
-            console.log('[SIGNIN] Result:', JSON.stringify(result));
-
             if (result?.error) {
-                console.log('[SIGNIN] Error:', result.error);
                 setError(getErrorMessage(result.error));
                 setIsLoading(false);
                 return;
@@ -78,11 +73,9 @@ export default function SignInPage() {
                         : `/${locale}/dashboard`;
                 }
                 
-                console.log('[SIGNIN] Redirecting to:', targetUrl, '(original:', callbackUrl, ')');
                 window.location.href = targetUrl;
                 // Don't reset isLoading - let the page navigate
             } else {
-                console.log('[SIGNIN] Unexpected:', result);
                 setError('Erro inesperado ao fazer login');
                 setIsLoading(false);
             }

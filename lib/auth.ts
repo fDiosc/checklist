@@ -56,14 +56,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                console.log("[AUTH] Authorize called");
-                
                 if (!credentials?.email || !credentials?.password) {
-                    console.log("[AUTH] Missing credentials");
                     return null;
                 }
-
-                console.log("[AUTH] Email:", credentials.email);
 
                 try {
                     const user = await db.user.findUnique({
@@ -71,25 +66,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     });
 
                     if (!user) {
-                        console.log("[AUTH] User not found");
                         return null;
                     }
-
-                    console.log("[AUTH] User found:", user.email, "Role:", user.role);
 
                     const isPasswordValid = await bcrypt.compare(
                         credentials.password as string,
                         user.passwordHash
                     );
 
-                    console.log("[AUTH] Password valid:", isPasswordValid);
-
                     if (!isPasswordValid) {
-                        console.log("[AUTH] Invalid password");
                         return null;
                     }
-
-                    console.log("[AUTH] Login successful for:", user.email);
 
                     return {
                         id: user.id,
@@ -108,8 +95,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user, trigger, session }) {
-            console.log('[AUTH] JWT callback:', { hasUser: !!user, trigger, tokenEmail: token.email });
-            
             // Initial sign in
             if (user) {
                 token.id = user.id;
@@ -118,7 +103,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.role = user.role;
                 token.workspaceId = user.workspaceId;
                 token.mustChangePassword = user.mustChangePassword;
-                console.log('[AUTH] JWT: User data set in token:', user.email);
             }
 
             // Update session when triggered
@@ -130,7 +114,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return token;
         },
         async session({ session, token }) {
-            console.log('[AUTH] Session callback:', { tokenEmail: token.email });
             session.user = {
                 id: token.id as string,
                 email: token.email as string,

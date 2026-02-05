@@ -63,8 +63,6 @@ const changePasswordPath = '/change-password';
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
-    console.log('[MW] Request:', pathname);
-
     // 1. Skip all API routes - they handle auth internally
     if (isApiRoute(pathname)) {
         return NextResponse.next();
@@ -72,18 +70,11 @@ export async function middleware(req: NextRequest) {
 
     // 2. For public paths, just apply i18n middleware
     if (isPublicPath(pathname)) {
-        console.log('[MW] Public path:', pathname);
         return intlMiddleware(req);
     }
 
     // 3. Protected routes - check authentication via JWT
     const authSecret = process.env.AUTH_SECRET;
-    
-    // Debug: Check what cookies are being sent
-    const cookies = req.cookies.getAll();
-    const cookieNames = cookies.map(c => c.name);
-    console.log('[MW] Protected route:', pathname);
-    console.log('[MW] Cookies received:', cookieNames);
     
     // Determine the correct cookie name based on environment
     // In production with HTTPS (behind proxy), cookies use __Secure- prefix
@@ -92,33 +83,25 @@ export async function middleware(req: NextRequest) {
         ? '__Secure-authjs.session-token' 
         : 'authjs.session-token';
     
-    console.log('[MW] Looking for cookie:', cookieName, 'isSecure:', isSecure);
-    
     const token = await getToken({ 
         req, 
         secret: authSecret,
         cookieName: cookieName,
     });
 
-    console.log('[MW] Token check:', { hasToken: !!token, email: token?.email });
-
     const locale = getLocaleFromPath(pathname);
 
     if (!token) {
-        // Not authenticated - redirect to sign-in (always with locale prefix now)
+        // Not authenticated - redirect to sign-in
         const signInUrl = new URL(`/${locale}/sign-in`, req.url);
         signInUrl.searchParams.set('callbackUrl', pathname);
-        console.log('[MW] No token, redirecting to:', signInUrl.toString());
         return NextResponse.redirect(signInUrl);
     }
 
     // 4. Check if user must change password
     if (token.mustChangePassword && !pathname.includes(changePasswordPath)) {
-        console.log('[MW] Must change password, redirecting');
         return NextResponse.redirect(new URL(`/${locale}/dashboard/change-password`, req.url));
     }
-
-    console.log('[MW] Authenticated, proceeding:', pathname);
 
     // 5. Authenticated user - apply i18n middleware
     return intlMiddleware(req);
