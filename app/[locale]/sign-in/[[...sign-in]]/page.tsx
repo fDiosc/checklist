@@ -47,9 +47,9 @@ export default function SignInPage() {
         setError('');
         setIsLoading(true);
 
+        console.log('[SIGNIN] Submit:', { email, callbackUrl, locale });
+
         try {
-            console.log('[SIGNIN] Attempting login...');
-            
             const result = await signIn('credentials', {
                 email,
                 password,
@@ -66,18 +66,23 @@ export default function SignInPage() {
             }
 
             if (result?.ok) {
-                console.log('[SIGNIN] Login OK, redirecting...');
                 // Login successful - redirect to dashboard
                 // Decode the callbackUrl in case it's URL encoded
                 const decodedCallback = decodeURIComponent(callbackUrl);
-                const targetUrl = decodedCallback.startsWith('/') 
-                    ? decodedCallback 
-                    : `/${locale}/dashboard`;
-                console.log('[SIGNIN] Target URL:', targetUrl);
+                // Ensure callbackUrl has locale prefix
+                let targetUrl = decodedCallback;
+                if (!decodedCallback.startsWith(`/${locale}`)) {
+                    // Add locale prefix if missing
+                    targetUrl = decodedCallback.startsWith('/') 
+                        ? `/${locale}${decodedCallback}` 
+                        : `/${locale}/dashboard`;
+                }
+                
+                console.log('[SIGNIN] Redirecting to:', targetUrl, '(original:', callbackUrl, ')');
                 window.location.href = targetUrl;
                 // Don't reset isLoading - let the page navigate
             } else {
-                console.log('[SIGNIN] Unexpected result:', result);
+                console.log('[SIGNIN] Unexpected:', result);
                 setError('Erro inesperado ao fazer login');
                 setIsLoading(false);
             }
