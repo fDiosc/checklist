@@ -42,6 +42,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true, // Required for production behind reverse proxy (CapRover/Docker)
     session: {
         strategy: "jwt",
+        maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     pages: {
         signIn: "/sign-in",
