@@ -48,31 +48,41 @@ export default function SignInPage() {
         setIsLoading(true);
 
         try {
+            console.log('[SIGNIN] Attempting login...');
+            
             const result = await signIn('credentials', {
                 email,
                 password,
                 redirect: false,
             });
 
+            console.log('[SIGNIN] Result:', JSON.stringify(result));
+
             if (result?.error) {
+                console.log('[SIGNIN] Error:', result.error);
                 setError(getErrorMessage(result.error));
                 setIsLoading(false);
                 return;
             }
 
             if (result?.ok) {
+                console.log('[SIGNIN] Login OK, redirecting...');
                 // Login successful - redirect to dashboard
-                // Use window.location for a full page navigation to ensure cookies are sent
-                const targetUrl = callbackUrl.startsWith('/') 
-                    ? callbackUrl 
+                // Decode the callbackUrl in case it's URL encoded
+                const decodedCallback = decodeURIComponent(callbackUrl);
+                const targetUrl = decodedCallback.startsWith('/') 
+                    ? decodedCallback 
                     : `/${locale}/dashboard`;
+                console.log('[SIGNIN] Target URL:', targetUrl);
                 window.location.href = targetUrl;
                 // Don't reset isLoading - let the page navigate
             } else {
+                console.log('[SIGNIN] Unexpected result:', result);
                 setError('Erro inesperado ao fazer login');
                 setIsLoading(false);
             }
-        } catch {
+        } catch (err) {
+            console.error('[SIGNIN] Exception:', err);
             setError('Erro ao fazer login. Tente novamente.');
             setIsLoading(false);
         }
