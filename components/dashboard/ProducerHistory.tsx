@@ -9,10 +9,9 @@ import { useTranslations, useFormatter } from 'next-intl';
 
 interface ProducerHistoryProps {
     producerId: string;
-    readOnly?: boolean;
 }
 
-export default function ProducerHistory({ producerId, readOnly = false }: ProducerHistoryProps) {
+export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
     const t = useTranslations();
     const format = useFormatter();
     const [expandedMapId, setExpandedMapId] = useState<string | null>(null);

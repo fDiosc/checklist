@@ -348,7 +348,7 @@ export default function ProdutoresPage() {
                                         {expandedId === producer.id && (
                                             <tr>
                                                 <td colSpan={isReadOnly ? 8 : 8} className="p-0 border-none bg-slate-50/50">
-                                                    <ProducerHistory producerId={producer.id} readOnly={isReadOnly} />
+                                                    <ProducerHistory producerId={producer.id} />
                                                 </td>
                                             </tr>
                                         )}

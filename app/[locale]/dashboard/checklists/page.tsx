@@ -494,7 +494,7 @@ export default function ChecklistsPage() {
                 </div>
 
                 {/* Subworkspace Filter - only shown if in subworkspaces tab */}
-                {hasSubworkspacesEnabled && activeTab === 'subworkspaces' && subworkspacesData?.subworkspaces?.length > 0 && (
+                {hasSubworkspacesEnabled && activeTab === 'subworkspaces' && (subworkspacesData?.subworkspaces?.length || 0) > 0 && (
                     <div className="relative group">
                         <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors">
                             <Building2 size={18} />
