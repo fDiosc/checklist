@@ -22,6 +22,8 @@ export default function ProdutoresPage() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('own');
     const [subworkspaceFilter, setSubworkspaceFilter] = useState<string>('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [selectedViewProducer, setSelectedViewProducer] = useState<any>(null);
 
     // Fetch user data to check if workspace has subworkspaces
     const { data: userData } = useQuery({
@@ -210,11 +212,9 @@ export default function ProdutoresPage() {
                                     <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         {t('producer.table.createdAt')}
                                     </th>
-                                    {!isReadOnly && (
-                                        <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                            {t('common.actions')}
-                                        </th>
-                                    )}
+                                    <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                        {t('common.actions')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -290,60 +290,74 @@ export default function ProdutoresPage() {
                                             <td className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                                 {format.dateTime(new Date(producer.createdAt), { dateStyle: 'short' })}
                                             </td>
-                                            {!isReadOnly && (
-                                                <td className="px-8 py-6 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        {/* ESG Analysis button - only for Brazilian producers */}
-                                                        {(producer.countryCode === 'BR' || !producer.countryCode) && (
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {isReadOnly ? (
+                                                        /* View-only button for subworkspace producers */
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedViewProducer(producer);
+                                                            }}
+                                                            className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
+                                                            title={t('common.view') || 'Visualizar'}
+                                                        >
+                                                            <Eye size={16} />
+                                                        </button>
+                                                    ) : (
+                                                        <>
+                                                            {/* ESG Analysis button - only for Brazilian producers */}
+                                                            {(producer.countryCode === 'BR' || !producer.countryCode) && (
+                                                                <button
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        try {
+                                                                            const res = await fetch('/api/integration/esg/producer', {
+                                                                                method: 'POST',
+                                                                                headers: { 'Content-Type': 'application/json' },
+                                                                                body: JSON.stringify({ producerId: producer.id, cpf: producer.cpf })
+                                                                            });
+                                                                            if (!res.ok) throw new Error('Analysis failed');
+                                                                            queryClient.invalidateQueries({ queryKey: ['producers'] });
+                                                                        } catch {
+                                                                            alert(t('producer.reanalyzeError'));
+                                                                        }
+                                                                    }}
+                                                                    className="p-3 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                                                    title={t('producer.reanalyze')}
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                                        <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
                                                             <button
-                                                                onClick={async (e) => {
+                                                                onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    try {
-                                                                        const res = await fetch('/api/integration/esg/producer', {
-                                                                            method: 'POST',
-                                                                            headers: { 'Content-Type': 'application/json' },
-                                                                            body: JSON.stringify({ producerId: producer.id, cpf: producer.cpf })
-                                                                        });
-                                                                        if (!res.ok) throw new Error('Analysis failed');
-                                                                        queryClient.invalidateQueries({ queryKey: ['producers'] });
-                                                                    } catch {
-                                                                        alert(t('producer.reanalyzeError'));
-                                                                    }
+                                                                    router.push(`/dashboard/produtores/${producer.id}`);
                                                                 }}
-                                                                className="p-3 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
-                                                                title={t('producer.reanalyze')}
+                                                                className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                                title={t('producer.editProducer')}
                                                             >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
-                                                                </svg>
+                                                                <Edit size={16} />
                                                             </button>
-                                                        )}
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                router.push(`/dashboard/produtores/${producer.id}`);
-                                                            }}
-                                                            className="p-3 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
-                                                            title={t('producer.editProducer')}
-                                                        >
-                                                            <Edit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedProducerId(producer.id);
-                                                                setIsSendModalOpen(true);
-                                                            }}
-                                                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:shadow-2xl hover:shadow-emerald-200 transition-all group/btn"
-                                                        >
-                                                            <svg className="w-[12px] h-[12px] group-hover/btn:rotate-12 transition-transform" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                            {t('common.submit')}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            )}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedProducerId(producer.id);
+                                                                    setIsSendModalOpen(true);
+                                                                }}
+                                                                className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:shadow-2xl hover:shadow-emerald-200 transition-all group/btn"
+                                                            >
+                                                                <svg className="w-[12px] h-[12px] group-hover/btn:rotate-12 transition-transform" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                                {t('common.submit')}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
                                         {expandedId === producer.id && (
                                             <tr>
@@ -390,6 +404,72 @@ export default function ProdutoresPage() {
                 }}
                 initialProducerId={selectedProducerId}
             />
+
+            {/* View-only Producer Modal */}
+            {selectedViewProducer && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedViewProducer(null)}>
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-slate-50">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-100 rounded-2xl">
+                                    <Eye size={20} className="text-indigo-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">{selectedViewProducer.name}</h2>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            {selectedViewProducer.workspace?.name}
+                                        </span>
+                                        <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                                            {t('common.readOnly') || 'Somente Leitura'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedViewProducer(null)}
+                                className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-8 overflow-y-auto max-h-[calc(90vh-100px)]">
+                            {/* Producer Info */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                                <div className="bg-slate-50 rounded-2xl p-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('producer.table.identification')}</p>
+                                    <p className="font-bold text-slate-900">
+                                        {selectedViewProducer.cpf || selectedViewProducer.identifiers?.find((i: { category: string }) => i.category === 'personal')?.idValue || '-'}
+                                    </p>
+                                </div>
+                                <div className="bg-slate-50 rounded-2xl p-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('producer.table.email')}</p>
+                                    <p className="font-bold text-slate-900">{selectedViewProducer.email || '-'}</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-2xl p-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('producer.form.phone')}</p>
+                                    <p className="font-bold text-slate-900">{selectedViewProducer.phone || '-'}</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-2xl p-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('producer.table.createdAt')}</p>
+                                    <p className="font-bold text-slate-900">{format.dateTime(new Date(selectedViewProducer.createdAt), { dateStyle: 'short' })}</p>
+                                </div>
+                            </div>
+
+                            {/* Checklists Section */}
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{t('producer.checklistsAnswered')}</h3>
+                                <ProducerHistory producerId={selectedViewProducer.id} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

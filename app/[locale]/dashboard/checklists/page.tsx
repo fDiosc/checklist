@@ -548,11 +548,9 @@ export default function ChecklistsPage() {
                                     <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         {t('checklists.table.sentDate')}
                                     </th>
-                                    {!isReadOnly && (
-                                        <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                            {t('checklists.table.actions')}
-                                        </th>
-                                    )}
+                                    <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                        {t('checklists.table.actions')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -716,48 +714,59 @@ export default function ChecklistsPage() {
                                                         ? formatDate(checklist.sentAt)
                                                         : '-'}
                                                 </td>
-                                                {!isReadOnly && (
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center justify-center gap-2">
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {isReadOnly ? (
+                                                            /* View-only button for subworkspace checklists */
                                                             <button
-                                                                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}`; }}
+                                                                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}?readonly=true`; }}
                                                                 className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
-                                                                title={t('checklists.manage')}
+                                                                title={t('common.view') || 'Visualizar'}
                                                             >
-                                                                <ClipboardList size={16} />
+                                                                <Eye size={16} />
                                                             </button>
-                                                            <button
-                                                                onClick={copyLink}
-                                                                className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
-                                                                title={t('checklists.copyLink')}
-                                                            >
-                                                                <Copy size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={shareWhatsapp}
-                                                                disabled={sendingWhatsappId === checklist.id}
-                                                                className={cn(
-                                                                    "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
-                                                                    sendingWhatsappId === checklist.id && "animate-pulse cursor-wait"
-                                                                )}
-                                                                title={t('checklists.sendWhatsApp')}
-                                                            >
-                                                                {sendingWhatsappId === checklist.id ? (
-                                                                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                                                                ) : (
-                                                                    <MessageCircle size={16} />
-                                                                )}
-                                                            </button>
-                                                            <button
-                                                                onClick={openLink}
-                                                                className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
-                                                                title={t('checklists.viewAsProducer')}
-                                                            >
-                                                                <ExternalLink size={16} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                )}
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}`; }}
+                                                                    className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
+                                                                    title={t('checklists.manage')}
+                                                                >
+                                                                    <ClipboardList size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={copyLink}
+                                                                    className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                                                                    title={t('checklists.copyLink')}
+                                                                >
+                                                                    <Copy size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={shareWhatsapp}
+                                                                    disabled={sendingWhatsappId === checklist.id}
+                                                                    className={cn(
+                                                                        "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
+                                                                        sendingWhatsappId === checklist.id && "animate-pulse cursor-wait"
+                                                                    )}
+                                                                    title={t('checklists.sendWhatsApp')}
+                                                                >
+                                                                    {sendingWhatsappId === checklist.id ? (
+                                                                        <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                                                    ) : (
+                                                                        <MessageCircle size={16} />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    onClick={openLink}
+                                                                    className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
+                                                                    title={t('checklists.viewAsProducer')}
+                                                                >
+                                                                    <ExternalLink size={16} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
                                             </tr>
                                             {/* Child checklists (corrections/completions) - shown when expanded, recursive */}
                                             {hasChildren && isExpanded && renderChildRows(checklist.children, checklist.producer, 1)}

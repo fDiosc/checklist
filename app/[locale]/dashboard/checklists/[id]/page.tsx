@@ -4,11 +4,17 @@ import { notFound, redirect } from 'next/navigation';
 import ChecklistManagementClient from './checklist-management-client';
 import { hasWorkspaceAccess } from '@/lib/workspace-context';
 
-export default async function ChecklistDetailPage({ params }: { params: Promise<{ id: string }> }) {
+interface PageProps {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ readonly?: string }>;
+}
+
+export default async function ChecklistDetailPage({ params, searchParams }: PageProps) {
     const session = await auth();
     if (!session?.user) redirect('/');
 
     const { id } = await params;
+    const { readonly: readonlyParam } = await searchParams;
 
     const checklist = await db.checklist.findUnique({
         where: { id },
@@ -66,6 +72,10 @@ export default async function ChecklistDetailPage({ params }: { params: Promise<
         redirect('/dashboard');
     }
 
+    // Determine if this checklist should be read-only (from subworkspace)
+    const isFromSubworkspace = checklist.workspaceId !== session.user.workspaceId;
+    const isReadOnly = readonlyParam === 'true' || isFromSubworkspace;
+
     // Get property maps for this producer
     const producerMaps = checklist.producerId 
         ? await db.propertyMap.findMany({
@@ -76,5 +86,6 @@ export default async function ChecklistDetailPage({ params }: { params: Promise<
     return <ChecklistManagementClient 
         checklist={checklist} 
         producerMaps={producerMaps}
+        readOnly={isReadOnly}
     />;
 }

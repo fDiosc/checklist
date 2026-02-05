@@ -107,12 +107,13 @@ interface ChecklistManagementClientProps {
     checklist: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     producerMaps?: any[];
+    readOnly?: boolean;
 }
 
 import { useRouter } from 'next/navigation';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function ChecklistManagementClient({ checklist, producerMaps }: ChecklistManagementClientProps) {
+export default function ChecklistManagementClient({ checklist, producerMaps, readOnly = false }: ChecklistManagementClientProps) {
     const router = useRouter();
     const t = useTranslations();
     const format = useFormatter();
@@ -563,53 +564,62 @@ export default function ChecklistManagementClient({ checklist, producerMaps }: C
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleAnalyzeCurrentItem}
-                        // Disable if analyzing OR no item selected OR item has no answer
-                        disabled={isAnalyzing || !selectedItem || !selectedItem.response?.answer}
-                        className={cn(
-                            "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-indigo-200 text-sm transition-all flex items-center gap-2",
-                            (!selectedItem || !selectedItem.response?.answer) && "disabled:bg-indigo-600 disabled:shadow-none disabled:opacity-50"
-                        )}
-                    >
-                        {isAnalyzing ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                {t('checklistManagement.analyzing')}
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles size={16} />
-                                {t('checklistManagement.analyzeWithAI')}
-                            </>
-                        )}
-                    </button>
-                    {checklist.template.isContinuous && (
-                        <button
-                            onClick={() => setIsPartialModalOpen(true)}
-                            disabled={checklist.status === 'FINALIZED'}
-                            className={cn(
-                                "px-5 py-2.5 font-bold rounded-xl shadow-lg text-sm transition-all",
-                                checklist.status === 'FINALIZED'
-                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                    {readOnly ? (
+                        <span className="px-4 py-2 bg-amber-100 text-amber-800 rounded-xl text-sm font-bold flex items-center gap-2">
+                            <AlertCircle size={16} />
+                            {t('common.readOnly') || 'Somente Leitura'}
+                        </span>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleAnalyzeCurrentItem}
+                                // Disable if analyzing OR no item selected OR item has no answer
+                                disabled={isAnalyzing || !selectedItem || !selectedItem.response?.answer}
+                                className={cn(
+                                    "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-indigo-200 text-sm transition-all flex items-center gap-2",
+                                    (!selectedItem || !selectedItem.response?.answer) && "disabled:bg-indigo-600 disabled:shadow-none disabled:opacity-50"
+                                )}
+                            >
+                                {isAnalyzing ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        {t('checklistManagement.analyzing')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles size={16} />
+                                        {t('checklistManagement.analyzeWithAI')}
+                                    </>
+                                )}
+                            </button>
+                            {checklist.template.isContinuous && (
+                                <button
+                                    onClick={() => setIsPartialModalOpen(true)}
+                                    disabled={checklist.status === 'FINALIZED'}
+                                    className={cn(
+                                        "px-5 py-2.5 font-bold rounded-xl shadow-lg text-sm transition-all",
+                                        checklist.status === 'FINALIZED'
+                                            ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+                                    )}
+                                >
+                                    {t('checklistManagement.partialFinalize')}
+                                </button>
                             )}
-                        >
-                            {t('checklistManagement.partialFinalize')}
-                        </button>
+                            <button
+                                onClick={handleFinalize}
+                                disabled={checklist.status === 'FINALIZED'}
+                                className={cn(
+                                    "px-5 py-2.5 font-bold rounded-xl shadow-lg text-sm transition-all",
+                                    checklist.status === 'FINALIZED'
+                                        ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+                                )}
+                            >
+                                {checklist.status === 'FINALIZED' ? t('checklistManagement.checklistFinalized') : t('checklistManagement.finalize')}
+                            </button>
+                        </>
                     )}
-                    <button
-                        onClick={handleFinalize}
-                        disabled={checklist.status === 'FINALIZED'}
-                        className={cn(
-                            "px-5 py-2.5 font-bold rounded-xl shadow-lg text-sm transition-all",
-                            checklist.status === 'FINALIZED'
-                                ? "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
-                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
-                        )}
-                    >
-                        {checklist.status === 'FINALIZED' ? t('checklistManagement.checklistFinalized') : t('checklistManagement.finalize')}
-                    </button>
                 </div>
             </header>
 
@@ -758,6 +768,7 @@ export default function ChecklistManagementClient({ checklist, producerMaps }: C
                                 rejectionReason={selectedItem.response?.rejectionReason}
                                 aiSuggestion={selectedItem.response?.aiSuggestion /* Mock for now */}
                                 itemType={selectedItem.item.type}
+                                readOnly={readOnly}
                                 onApprove={() => {
                                     const nextStatus = selectedItem.response?.status === 'APPROVED' ? 'PENDING_VERIFICATION' : 'APPROVED';
                                     const itemId = selectedItem.item.originalId || selectedItem.item.id;
