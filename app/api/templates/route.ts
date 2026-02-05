@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getSubworkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
+import { getCreateWorkspaceId } from "@/lib/workspace-context";
 
 const createTemplateSchema = z.object({
     name: z.string().min(1),
