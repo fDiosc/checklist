@@ -19,12 +19,15 @@ import {
     ChevronDown,
     ChevronRight,
     GitBranch,
-    Building2
+    Building2,
+    Eye
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useTranslations, useFormatter } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { getStatusVariant, CHECKLIST_STATUSES, STATUS_TRANSLATION_KEYS, TYPE_TRANSLATION_KEYS, type ChecklistStatus, type ChecklistType } from '@/lib/utils/status';
+
+type TabType = 'own' | 'subworkspaces';
 
 export default function ChecklistsPage() {
     const t = useTranslations();
@@ -39,8 +42,22 @@ export default function ChecklistsPage() {
     const [sendingWhatsappId, setSendingWhatsappId] = useState<string | null>(null);
     const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
     const [subworkspaceFilter, setSubworkspaceFilter] = useState('');
+    const [activeTab, setActiveTab] = useState<TabType>('own');
     
     const { data: session } = useSession();
+
+    // Fetch user data to check if workspace has subworkspaces
+    const { data: userData } = useQuery({
+        queryKey: ['me'],
+        queryFn: async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) throw new Error('Failed to fetch user');
+            return res.json();
+        },
+    });
+
+    const hasSubworkspacesEnabled = userData?.workspace?.hasSubworkspaces && !userData?.workspace?.parentWorkspaceId;
+    const isReadOnly = activeTab === 'subworkspaces';
     
     // Helper functions for i18n
     const getStatusLabelI18n = (status: string) => {
@@ -300,11 +317,12 @@ export default function ChecklistsPage() {
         enabled: !!session?.user?.workspaceId
     });
 
-    const hasSubworkspaces = subworkspacesData?.parentWorkspace?.hasSubworkspaces && 
-        subworkspacesData?.subworkspaces && subworkspacesData.subworkspaces.length > 0;
+    // Check if we should show the origin column (either from tabs or from API data)
+    const hasSubworkspaces = hasSubworkspacesEnabled || (subworkspacesData?.parentWorkspace?.hasSubworkspaces && 
+        subworkspacesData?.subworkspaces && subworkspacesData.subworkspaces.length > 0);
 
     const { data: checklists, isLoading } = useQuery({
-        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo, subworkspaceFilter],
+        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo, subworkspaceFilter, activeTab],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
@@ -313,6 +331,10 @@ export default function ChecklistsPage() {
             if (dateFrom) params.append('dateFrom', dateFrom);
             if (dateTo) params.append('dateTo', dateTo);
             if (subworkspaceFilter) params.append('subworkspaceId', subworkspaceFilter);
+            // Add scope parameter when workspace has subworkspaces enabled
+            if (hasSubworkspacesEnabled) {
+                params.append('scope', activeTab);
+            }
             const res = await fetch(`/api/checklists?${params.toString()}`);
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
@@ -346,6 +368,52 @@ export default function ChecklistsPage() {
                     </p>
                 </div>
             </div>
+
+            {/* Tabs - Only show if workspace has subworkspaces */}
+            {hasSubworkspacesEnabled && (
+                <div className="mb-8 animate-slide-up" style={{ animationDelay: '0.05s' }}>
+                    <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+                        <button
+                            onClick={() => {
+                                setActiveTab('own');
+                                setSubworkspaceFilter('');
+                                setExpandedParents(new Set());
+                            }}
+                            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                activeTab === 'own'
+                                    ? 'bg-white text-slate-900 shadow-lg'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            {t('checklists.tabs.own')}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('subworkspaces');
+                                setExpandedParents(new Set());
+                            }}
+                            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                                activeTab === 'subworkspaces'
+                                    ? 'bg-white text-slate-900 shadow-lg'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            <Building2 size={14} />
+                            {t('checklists.tabs.subworkspaces')}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Read-only notice */}
+            {isReadOnly && (
+                <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center gap-3 animate-fade-in">
+                    <Eye className="text-amber-600" size={20} />
+                    <span className="text-sm font-medium text-amber-800">
+                        {t('checklists.readOnlyNotice')}
+                    </span>
+                </div>
+            )}
 
             {/* Filtros */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -425,8 +493,8 @@ export default function ChecklistsPage() {
                     />
                 </div>
 
-                {/* Subworkspace Filter - only shown if has subworkspaces */}
-                {hasSubworkspaces && (
+                {/* Subworkspace Filter - only shown if in subworkspaces tab */}
+                {hasSubworkspacesEnabled && activeTab === 'subworkspaces' && subworkspacesData?.subworkspaces?.length > 0 && (
                     <div className="relative group">
                         <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors">
                             <Building2 size={18} />
@@ -480,9 +548,11 @@ export default function ChecklistsPage() {
                                     <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         {t('checklists.table.sentDate')}
                                     </th>
-                                    <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                        {t('checklists.table.actions')}
-                                    </th>
+                                    {!isReadOnly && (
+                                        <th className="px-8 py-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            {t('checklists.table.actions')}
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -646,46 +716,48 @@ export default function ChecklistsPage() {
                                                         ? formatDate(checklist.sentAt)
                                                         : '-'}
                                                 </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}`; }}
-                                                            className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
-                                                            title={t('checklists.manage')}
-                                                        >
-                                                            <ClipboardList size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={copyLink}
-                                                            className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
-                                                            title={t('checklists.copyLink')}
-                                                        >
-                                                            <Copy size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={shareWhatsapp}
-                                                            disabled={sendingWhatsappId === checklist.id}
-                                                            className={cn(
-                                                                "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
-                                                                sendingWhatsappId === checklist.id && "animate-pulse cursor-wait"
-                                                            )}
-                                                            title={t('checklists.sendWhatsApp')}
-                                                        >
-                                                            {sendingWhatsappId === checklist.id ? (
-                                                                <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                                                            ) : (
-                                                                <MessageCircle size={16} />
-                                                            )}
-                                                        </button>
-                                                        <button
-                                                            onClick={openLink}
-                                                            className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
-                                                            title={t('checklists.viewAsProducer')}
-                                                        >
-                                                            <ExternalLink size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                                                {!isReadOnly && (
+                                                    <td className="px-8 py-6">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}`; }}
+                                                                className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
+                                                                title={t('checklists.manage')}
+                                                            >
+                                                                <ClipboardList size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={copyLink}
+                                                                className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                                                                title={t('checklists.copyLink')}
+                                                            >
+                                                                <Copy size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={shareWhatsapp}
+                                                                disabled={sendingWhatsappId === checklist.id}
+                                                                className={cn(
+                                                                    "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
+                                                                    sendingWhatsappId === checklist.id && "animate-pulse cursor-wait"
+                                                                )}
+                                                                title={t('checklists.sendWhatsApp')}
+                                                            >
+                                                                {sendingWhatsappId === checklist.id ? (
+                                                                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                                                ) : (
+                                                                    <MessageCircle size={16} />
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                onClick={openLink}
+                                                                className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
+                                                                title={t('checklists.viewAsProducer')}
+                                                            >
+                                                                <ExternalLink size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                             {/* Child checklists (corrections/completions) - shown when expanded, recursive */}
                                             {hasChildren && isExpanded && renderChildRows(checklist.children, checklist.producer, 1)}

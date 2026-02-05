@@ -131,6 +131,11 @@
     "sendError": "Erro ao enviar WhatsApp.",
     "noPhone": "Este produtor não possui telefone cadastrado.",
     "allWorkspaces": "Todos os workspaces",
+    "tabs": {
+      "own": "Meus Checklists",
+      "subworkspaces": "Subworkspaces"
+    },
+    "readOnlyNotice": "Você está visualizando checklists de subworkspaces. A edição não é permitida.",
     "table": {
       "template": "Template / Projeto",
       "producer": "Produtor Responsável",
@@ -205,6 +210,14 @@
     "searchPlaceholder": "Buscar por nome, CPF ou email...",
     "noProducers": "Nenhum Produtor",
     "noProducersDescription": "Comece cadastrando seu primeiro produtor para gerenciar checklists.",
+    "noSubworkspaceProducers": "Nenhum Produtor nos Subworkspaces",
+    "noSubworkspaceProducersDescription": "Ainda não existem produtores cadastrados nos subworkspaces.",
+    "allSubworkspaces": "Todos os subworkspaces",
+    "readOnlyNotice": "Você está visualizando produtores de subworkspaces. A edição não é permitida.",
+    "tabs": {
+      "own": "Meus Produtores",
+      "subworkspaces": "Subworkspaces"
+    },
     "reanalyzeESG": "Reanalisar Socioambiental",
     "reanalyzeError": "Erro ao reanalisar produtor",
     "reanalyze": "Reanalisar Socioambiental",
@@ -222,6 +235,7 @@
     "table": {
       "name": "Nome do Produtor",
       "identification": "Identificação",
+      "workspace": "Workspace",
       "esgStatus": "Status Socioambiental",
       "email": "E-mail de Contato",
       "checklists": "Checklists",
@@ -529,7 +543,17 @@
       "noPending": "Nenhum formulário pendente agora.",
       "createdAt": "Criado em {date}",
       "sentAt": "Enviado em {date}",
-      "loading": "Carregando Painel..."
+      "loading": "Carregando Painel...",
+      "viewingChecklists": "Visualizando checklists de"
+    },
+    "selectWorkspace": {
+      "title": "Selecione um Workspace",
+      "greeting": "Olá, {name}!",
+      "subtitle": "Você pertence a múltiplos workspaces",
+      "back": "Voltar ao Login"
+    },
+    "switchWorkspace": {
+      "title": "Alternar Workspace"
     }
   },
   "modals": {

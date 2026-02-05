@@ -131,6 +131,11 @@
     "sendError": "Error al enviar WhatsApp.",
     "noPhone": "Este productor no tiene teléfono registrado.",
     "allWorkspaces": "Todos los workspaces",
+    "tabs": {
+      "own": "Mis Checklists",
+      "subworkspaces": "Subworkspaces"
+    },
+    "readOnlyNotice": "Estás viendo checklists de subworkspaces. No se permite la edición.",
     "table": {
       "template": "Plantilla / Proyecto",
       "producer": "Productor Responsable",
@@ -205,6 +210,14 @@
     "searchPlaceholder": "Buscar por nombre, CPF o email...",
     "noProducers": "Sin Productores",
     "noProducersDescription": "Comienza registrando tu primer productor para gestionar checklists.",
+    "noSubworkspaceProducers": "Sin Productores en Subworkspaces",
+    "noSubworkspaceProducersDescription": "Todavía no hay productores registrados en los subworkspaces.",
+    "allSubworkspaces": "Todos los subworkspaces",
+    "readOnlyNotice": "Estás viendo productores de subworkspaces. No se permite la edición.",
+    "tabs": {
+      "own": "Mis Productores",
+      "subworkspaces": "Subworkspaces"
+    },
     "reanalyzeESG": "Reanalizar Estado Ambiental",
     "reanalyzeError": "Error al reanalizar productor",
     "reanalyze": "Reanalizar Estado Ambiental",
@@ -222,6 +235,7 @@
     "table": {
       "name": "Nombre del Productor",
       "identification": "Identificación",
+      "workspace": "Workspace",
       "esgStatus": "Estado Ambiental",
       "email": "Email de Contacto",
       "checklists": "Checklists",
@@ -529,7 +543,17 @@
       "noPending": "No hay formularios pendientes ahora.",
       "createdAt": "Creado el {date}",
       "sentAt": "Enviado el {date}",
-      "loading": "Cargando Panel..."
+      "loading": "Cargando Panel...",
+      "viewingChecklists": "Viendo checklists de"
+    },
+    "selectWorkspace": {
+      "title": "Selecciona un Workspace",
+      "greeting": "¡Hola, {name}!",
+      "subtitle": "Perteneces a múltiples workspaces",
+      "back": "Volver al Login"
+    },
+    "switchWorkspace": {
+      "title": "Cambiar Workspace"
     }
   },
   "modals": {

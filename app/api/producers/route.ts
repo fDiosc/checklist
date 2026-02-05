@@ -125,12 +125,36 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const workspaceFilter = await getSubworkspaceFilter(session);
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
+        const scope = searchParams.get("scope"); // 'own' | 'subworkspaces' | null (default: all)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const where: any = { ...workspaceFilter };
+        let where: any = {};
+
+        // Handle scope-based filtering
+        if (scope === 'own') {
+            // Only producers from user's own workspace
+            where.workspaceId = session.user.workspaceId;
+        } else if (scope === 'subworkspaces') {
+            // Only producers from subworkspaces (not the parent)
+            if (!session.user.workspaceId) {
+                return NextResponse.json({ error: "No workspace assigned" }, { status: 400 });
+            }
+            const parentWorkspace = await db.workspace.findUnique({
+                where: { id: session.user.workspaceId },
+                include: { subworkspaces: { select: { id: true } } }
+            });
+            if (!parentWorkspace?.hasSubworkspaces || parentWorkspace.subworkspaces.length === 0) {
+                return NextResponse.json([]);
+            }
+            const subworkspaceIds = parentWorkspace.subworkspaces.map(sw => sw.id);
+            where.workspaceId = { in: subworkspaceIds };
+        } else {
+            // Default: use existing subworkspace filter (all accessible)
+            const workspaceFilter = await getSubworkspaceFilter(session);
+            where = { ...workspaceFilter };
+        }
 
         if (search) {
             where.OR = [
@@ -154,6 +178,12 @@ export async function GET(req: Request) {
                     select: { checklists: true },
                 },
                 identifiers: true, // Include identifiers for international producers
+                workspace: {
+                    select: { id: true, name: true }
+                },
+                maps: {
+                    select: { emeCode: true, ruralRegionCode: true }
+                }
             },
             orderBy: { name: "asc" },
         });

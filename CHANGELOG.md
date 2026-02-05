@@ -21,6 +21,10 @@ Esta versão introduz o sistema de subworkspaces para segmentação organizacion
 - **Filtro por Subworkspace:** Dropdown para filtrar checklists por workspace específico.
 - **Hierarquia Recursiva de Checklists:** Grid exibe até 4 níveis de profundidade (pai → filho → neto → bisneto).
 - **Drill-down de Usuários:** SuperAdmin pode criar usuários diretamente em subworkspaces com seleção hierárquica (Workspace → Subworkspace).
+- **Abas de Produtores (Workspace Pai):** Nova interface com abas "Meus Produtores" e "Subworkspaces" para visualizar produtores de subworkspaces em modo somente leitura.
+- **Abas de Checklists (Workspace Pai):** Nova interface com abas "Meus Checklists" e "Subworkspaces" para visualizar checklists de subworkspaces em modo somente leitura.
+- **Seletor de Workspace no Portal:** Produtores que pertencem a múltiplos workspaces/subworkspaces agora veem um seletor após login para escolher qual ambiente acessar.
+- **Alternador de Workspace no Portal:** Dropdown no cabeçalho do portal permite alternar entre workspaces sem fazer logout.
 
 ### 🔧 Melhorias Técnicas
 - **Modelo TemplateAssignment:** Nova tabela de junção many-to-many para atribuição de templates a subworkspaces.
@@ -34,10 +38,16 @@ Esta versão introduz o sistema de subworkspaces para segmentação organizacion
 - **APIs de Pré-preenchimento:**
   - `GET /api/checklists/available-for-prefill` - Lista checklists finalizados para pré-preencher
   - `GET /api/checklists/[id]/responses-for-copy` - Busca respostas aprovadas para cópia
+- **APIs de Scope para Multi-tenancy:**
+  - `GET /api/producers?scope=own|subworkspaces` - Filtra produtores por escopo (próprios ou de subworkspaces)
+  - `GET /api/checklists?scope=own|subworkspaces` - Filtra checklists por escopo
+  - `GET /api/portal/checklists?workspaceId=xxx` - Filtra checklists do portal por workspace selecionado
+  - `GET /api/me` - Retorna `hasSubworkspaces` e `parentWorkspaceId` do workspace do usuário
 - **Componente `TemplateSubworkspaceAssignment`:** Painel UI para gerenciar atribuições de templates.
 - **Função `getSubworkspaceFilter()`:** Filtro automático que inclui dados do workspace pai e seus subworkspaces.
 - **Função `getVisibleWorkspaceIds()`:** Retorna IDs de workspaces visíveis para o usuário.
 - **API GET Templates Expandida:** Retorna templates próprios + atribuídos para subworkspaces, com flag `isReadOnly`.
+- **Portal Multi-workspace:** Portal do produtor agora suporta seleção e alternância entre múltiplos workspaces.
 
 ### 🗃️ Migrações de Banco de Dados
 - `20260202220000_add_subworkspaces` - Adiciona campos de subworkspace à tabela workspaces

@@ -18,6 +18,8 @@ export async function GET() {
                         name: true,
                         slug: true,
                         logoUrl: true,
+                        hasSubworkspaces: true,
+                        parentWorkspaceId: true,
                     }
                 }
             }

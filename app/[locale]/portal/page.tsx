@@ -4,11 +4,22 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { Building2, ChevronRight } from 'lucide-react';
+
+interface Workspace {
+    id: string;
+    name: string;
+    logoUrl: string | null;
+    isSubworkspace: boolean;
+}
 
 export default function PortalLogin() {
     const [cpf, setCpf] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showWorkspaceSelector, setShowWorkspaceSelector] = useState(false);
+    const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>([]);
+    const [producerName, setProducerName] = useState('');
     const router = useRouter();
     const t = useTranslations('portal');
 
@@ -22,8 +33,21 @@ export default function PortalLogin() {
         try {
             const res = await fetch(`/api/portal/checklists?cpf=${cpf}`);
             if (res.ok) {
+                const data = await res.json();
                 localStorage.setItem('merx_portal_cpf', cpf);
-                router.push('/portal/checklists');
+                setProducerName(data.producer.name);
+                
+                // Check if producer has multiple workspaces
+                if (data.hasMultipleWorkspaces && data.availableWorkspaces.length > 1) {
+                    setAvailableWorkspaces(data.availableWorkspaces);
+                    setShowWorkspaceSelector(true);
+                } else {
+                    // Single workspace - go directly to dashboard
+                    if (data.availableWorkspaces.length === 1) {
+                        localStorage.setItem('merx_portal_workspace', data.availableWorkspaces[0].id);
+                    }
+                    router.push('/portal/checklists');
+                }
             } else {
                 const data = await res.json();
                 setError(data.error || t('login.cpfNotFound'));
@@ -34,6 +58,79 @@ export default function PortalLogin() {
             setLoading(false);
         }
     };
+
+    const handleWorkspaceSelect = (workspaceId: string) => {
+        localStorage.setItem('merx_portal_workspace', workspaceId);
+        router.push('/portal/checklists');
+    };
+
+    // Workspace selector screen
+    if (showWorkspaceSelector) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 font-sans">
+                <div className="w-full max-w-lg animate-fade-in">
+                    <div className="flex flex-col items-center mb-12">
+                        <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-6">
+                            <Building2 className="w-8 h-8 text-emerald-400" />
+                        </div>
+                        <h1 className="text-white text-xl font-black text-center">{t('selectWorkspace.title')}</h1>
+                        <p className="text-slate-400 text-sm mt-2 text-center">
+                            {t('selectWorkspace.greeting', { name: producerName })}
+                        </p>
+                        <p className="text-emerald-400 font-bold uppercase tracking-widest text-xs mt-4">
+                            {t('selectWorkspace.subtitle')}
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {availableWorkspaces.map((workspace) => (
+                            <button
+                                key={workspace.id}
+                                onClick={() => handleWorkspaceSelect(workspace.id)}
+                                className="w-full bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-xl hover:bg-white/10 hover:border-emerald-500/30 transition-all group flex items-center gap-4"
+                            >
+                                <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {workspace.logoUrl ? (
+                                        <Image
+                                            src={workspace.logoUrl}
+                                            alt={workspace.name}
+                                            width={56}
+                                            height={56}
+                                            className="object-cover"
+                                        />
+                                    ) : (
+                                        <Building2 className="w-6 h-6 text-slate-400" />
+                                    )}
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <h3 className="text-white font-bold text-lg group-hover:text-emerald-400 transition-colors">
+                                        {workspace.name}
+                                    </h3>
+                                    {workspace.isSubworkspace && (
+                                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
+                                            Subworkspace
+                                        </span>
+                                    )}
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
+                            </button>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            setShowWorkspaceSelector(false);
+                            setAvailableWorkspaces([]);
+                            setCpf('');
+                        }}
+                        className="w-full mt-8 py-4 text-slate-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors"
+                    >
+                        {t('selectWorkspace.back')}
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 font-sans">

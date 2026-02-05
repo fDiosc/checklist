@@ -431,3 +431,105 @@ O campo `type` em `PropertyField` distingue:
 - **`CountrySelector`**: Dropdown de seleção de país com bandeiras
 - **`GeoFileUpload`**: Upload de KML/GeoJSON com parsing e cálculo de área
 - **`PropertyMapInput`**: Comportamento dinâmico baseado em `countryCode`
+
+---
+
+## 8. Visibilidade de Dados para Workspace Pai
+
+### 8.1 Conceito
+Workspaces pai podem visualizar dados dos subworkspaces em modo somente leitura. A interface apresenta abas separadas para distinguir dados próprios e dados de subworkspaces.
+
+### 8.2 Abas de Produtores
+
+```typescript
+// Página: app/[locale]/dashboard/produtores/page.tsx
+// Aba "Meus Produtores": GET /api/producers?scope=own
+// Aba "Subworkspaces": GET /api/producers?scope=subworkspaces
+```
+
+- **Meus Produtores**: Grid editável com todas as ações (editar, enviar checklist, reanalisar ESG)
+- **Subworkspaces**: Grid somente leitura com coluna "Workspace" e filtro por subworkspace
+
+### 8.3 Abas de Checklists
+
+```typescript
+// Página: app/[locale]/dashboard/checklists/page.tsx
+// Aba "Meus Checklists": GET /api/checklists?scope=own
+// Aba "Subworkspaces": GET /api/checklists?scope=subworkspaces
+```
+
+- **Meus Checklists**: Grid com todas as ações (gerenciar, copiar link, WhatsApp)
+- **Subworkspaces**: Grid somente leitura, apenas visualização
+
+### 8.4 Parâmetro `scope` nas APIs
+
+```typescript
+// Em /api/producers/route.ts e /api/checklists/route.ts
+const scope = searchParams.get("scope"); // 'own' | 'subworkspaces' | null
+
+if (scope === 'own') {
+    where.workspaceId = session.user.workspaceId;
+} else if (scope === 'subworkspaces') {
+    const subworkspaceIds = parentWorkspace.subworkspaces.map(sw => sw.id);
+    where.workspaceId = { in: subworkspaceIds };
+}
+```
+
+### 8.5 Condição de Exibição
+As abas só são exibidas se:
+1. Usuário está em um workspace pai (`parentWorkspaceId === null`)
+2. O workspace tem subworkspaces habilitados (`hasSubworkspaces === true`)
+
+---
+
+## 9. Portal do Produtor Multi-workspace
+
+### 9.1 Conceito
+Produtores podem pertencer a múltiplos workspaces/subworkspaces (mesmo CPF). O portal permite selecionar e alternar entre workspaces.
+
+### 9.2 Fluxo de Login
+
+```mermaid
+sequenceDiagram
+    participant P as Produtor
+    participant Login as /portal
+    participant API as /api/portal/checklists
+    participant Dashboard as /portal/checklists
+
+    P->>Login: Digita CPF
+    Login->>API: GET ?cpf=xxx
+    API-->>Login: Lista de workspaces disponíveis
+    alt Múltiplos workspaces
+        Login->>P: Exibe seletor de workspace
+        P->>Login: Seleciona workspace
+        Login->>Dashboard: Redireciona com workspaceId
+    else Único workspace
+        Login->>Dashboard: Redireciona direto
+    end
+```
+
+### 9.3 API do Portal
+
+```typescript
+// GET /api/portal/checklists?cpf=xxx&workspaceId=yyy
+{
+    producer: { name: "...", cpf: "..." },
+    checklists: [...],
+    availableWorkspaces: [
+        { id: "...", name: "...", logoUrl: "...", isSubworkspace: false },
+        { id: "...", name: "...", logoUrl: "...", isSubworkspace: true }
+    ],
+    selectedWorkspace: { ... },
+    hasMultipleWorkspaces: true
+}
+```
+
+### 9.4 Alternador de Workspace
+No dashboard do portal, um dropdown no cabeçalho permite alternar entre workspaces:
+
+```typescript
+// Salvo em localStorage
+localStorage.setItem('merx_portal_workspace', workspaceId);
+// Refaz a busca com novo workspace
+await fetchData(cpf, workspaceId);
+```

@@ -131,6 +131,11 @@
     "sendError": "Error sending WhatsApp.",
     "noPhone": "This producer does not have a registered phone number.",
     "allWorkspaces": "All workspaces",
+    "tabs": {
+      "own": "My Checklists",
+      "subworkspaces": "Subworkspaces"
+    },
+    "readOnlyNotice": "You are viewing checklists from subworkspaces. Editing is not allowed.",
     "table": {
       "template": "Template / Project",
       "producer": "Responsible Producer",
@@ -205,6 +210,14 @@
     "searchPlaceholder": "Search by name, CPF or email...",
     "noProducers": "No Producers",
     "noProducersDescription": "Start by registering your first producer to manage checklists.",
+    "noSubworkspaceProducers": "No Producers in Subworkspaces",
+    "noSubworkspaceProducersDescription": "There are no producers registered in the subworkspaces yet.",
+    "allSubworkspaces": "All subworkspaces",
+    "readOnlyNotice": "You are viewing producers from subworkspaces. Editing is not allowed.",
+    "tabs": {
+      "own": "My Producers",
+      "subworkspaces": "Subworkspaces"
+    },
     "reanalyzeESG": "Reanalyze Environmental Status",
     "reanalyzeError": "Error reanalyzing producer",
     "reanalyze": "Reanalyze Environmental Status",
@@ -222,6 +235,7 @@
     "table": {
       "name": "Producer Name",
       "identification": "Identification",
+      "workspace": "Workspace",
       "esgStatus": "Environmental Status",
       "email": "Contact Email",
       "checklists": "Checklists",
@@ -529,7 +543,17 @@
       "noPending": "No pending forms now.",
       "createdAt": "Created on {date}",
       "sentAt": "Sent on {date}",
-      "loading": "Loading Panel..."
+      "loading": "Loading Panel...",
+      "viewingChecklists": "Viewing checklists from"
+    },
+    "selectWorkspace": {
+      "title": "Select a Workspace",
+      "greeting": "Hello, {name}!",
+      "subtitle": "You belong to multiple workspaces",
+      "back": "Back to Login"
+    },
+    "switchWorkspace": {
+      "title": "Switch Workspace"
     }
   },
   "modals": {
