@@ -2,6 +2,40 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.4.1] - 2026-02-05
+
+### 🔐 Configuração ESG por Workspace
+
+Esta versão introduz a configuração individual de integração ESG/CAR por workspace, removendo tokens globais do sistema.
+
+### ✨ Novas Funcionalidades
+- **Configuração ESG por Workspace:** Cada workspace agora configura seus próprios tokens de API para integração ESG/CAR.
+- **Modal de Configuração ESG:** SuperAdmins podem acessar configuração de integração socioambiental diretamente na página de workspaces.
+- **Herança de Configuração:** Subworkspaces podem usar a integração ESG do workspace pai (quando habilitado).
+- **Controle Granular:** Workspaces pais podem habilitar/desabilitar acesso ESG para seus subworkspaces.
+- **Validação de País:** Análise ESG só é disponibilizada para produtores brasileiros (CPF) e propriedades no Brasil (CAR).
+- **Botões Condicionais:** Botões de análise ESG só aparecem quando a integração está habilitada e configurada.
+
+### 🔧 Melhorias Técnicas
+- **Novos campos no Workspace:**
+  - `carApiKey` - Token da API CAR
+  - `carCooperativeId` - ID da Cooperativa
+  - `esgApiEnabled` - Habilita integração ESG
+  - `esgEnabledForSubworkspaces` - Permite subworkspaces usarem a integração
+- **Novas APIs:**
+  - `GET/PUT /api/workspaces/[id]/esg-config` - Configurar integração ESG (SuperAdmin)
+  - `GET /api/workspaces/esg-status` - Verificar status de ESG para o workspace atual
+- **Refatoração de APIs:**
+  - `/api/integration/esg/producer` - Agora busca tokens do workspace
+  - `/api/integration/esg/property` - Agora busca tokens do workspace
+  - `/api/integration/car` - Agora busca tokens do workspace
+
+### 🐛 Correções
+- **ESG não funcionava em subworkspaces:** Corrigido erro de configuração que impedia análise socioambiental.
+- **Tokens globais removidos:** Migrado de SystemConfig global para configuração por workspace.
+
+---
+
 ## [V 0.4.0] - 2026-02-05
 
 ### 🚀 Subworkspaces, Atribuição de Templates e Pré-preenchimento

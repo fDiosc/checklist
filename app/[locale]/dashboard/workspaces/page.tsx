@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import {
     Plus, Search, Edit2, Trash2, Loader2, AlertCircle,
-    Building2, Users, FileText, ClipboardList, X, Check, Network, ChevronRight
+    Building2, Users, FileText, ClipboardList, X, Check, Network, ChevronRight, Shield, Key, Eye, EyeOff
 } from 'lucide-react';
 
 interface Workspace {
@@ -53,6 +53,7 @@ export default function WorkspacesPage() {
     const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [subworkspaceModal, setSubworkspaceModal] = useState<Workspace | null>(null);
+    const [esgConfigModal, setEsgConfigModal] = useState<Workspace | null>(null);
 
     const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
 
@@ -224,7 +225,7 @@ export default function WorkspacesPage() {
                                 </div>
                             </div>
 
-                            {/* Subworkspaces indicator */}
+                                {/* Subworkspaces indicator */}
                                 {!workspace.parentWorkspaceId && (
                                     <button
                                         onClick={() => setSubworkspaceModal(workspace)}
@@ -244,6 +245,38 @@ export default function WorkspacesPage() {
                                             </span>
                                         </div>
                                         <ChevronRight size={16} className={workspace.hasSubworkspaces ? 'text-indigo-400' : 'text-slate-400'} />
+                                    </button>
+                                )}
+
+                                {/* ESG/CAR Integration Config - only for parent workspaces */}
+                                {!workspace.parentWorkspaceId && (
+                                    <button
+                                        onClick={() => setEsgConfigModal(workspace)}
+                                        className="w-full flex items-center justify-between p-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-all mb-3"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Shield size={16} className="text-emerald-500" />
+                                            <span className="text-sm font-medium text-emerald-700">
+                                                Integração Socioambiental
+                                            </span>
+                                        </div>
+                                        <ChevronRight size={16} className="text-emerald-400" />
+                                    </button>
+                                )}
+
+                            {/* ESG/CAR Configuration - only for parent workspaces */}
+                                {!workspace.parentWorkspaceId && (
+                                    <button
+                                        onClick={() => setEsgConfigModal(workspace)}
+                                        className="w-full flex items-center justify-between p-3 rounded-xl border bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-all mb-3"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Shield size={16} className="text-emerald-500" />
+                                            <span className="text-sm font-medium text-emerald-700">
+                                                Integração ESG/CAR
+                                            </span>
+                                        </div>
+                                        <ChevronRight size={16} className="text-emerald-400" />
                                     </button>
                                 )}
 
@@ -280,6 +313,17 @@ export default function WorkspacesPage() {
                 <SubworkspaceModal
                     workspace={subworkspaceModal}
                     onClose={() => setSubworkspaceModal(null)}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+                    }}
+                />
+            )}
+
+            {/* ESG Config Modal */}
+            {esgConfigModal && (
+                <EsgConfigModal
+                    workspace={esgConfigModal}
+                    onClose={() => setEsgConfigModal(null)}
                     onSuccess={() => {
                         queryClient.invalidateQueries({ queryKey: ['workspaces'] });
                     }}
@@ -811,6 +855,246 @@ function SubworkspaceModal({ workspace, onClose, onSuccess }: SubworkspaceModalP
                     >
                         Fechar
                     </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ESG Configuration Modal
+interface EsgConfigModalProps {
+    workspace: Workspace;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+function EsgConfigModal({ workspace, onClose, onSuccess }: EsgConfigModalProps) {
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [formData, setFormData] = useState({
+        carApiKey: '',
+        carCooperativeId: '',
+        esgApiEnabled: false,
+        esgEnabledForSubworkspaces: false,
+    });
+    const [hasExistingKey, setHasExistingKey] = useState(false);
+
+    // Fetch current configuration
+    React.useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const res = await fetch(`/api/workspaces/${workspace.id}/esg-config`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFormData({
+                        carApiKey: '', // Never show actual key
+                        carCooperativeId: data.carCooperativeId || '',
+                        esgApiEnabled: data.esgApiEnabled || false,
+                        esgEnabledForSubworkspaces: data.esgEnabledForSubworkspaces || false,
+                    });
+                    setHasExistingKey(data.hasApiKey || false);
+                }
+            } catch (err) {
+                console.error('Error fetching ESG config:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchConfig();
+    }, [workspace.id]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsSaving(true);
+
+        try {
+            // Build update payload - only include fields that should change
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const payload: any = {
+                esgApiEnabled: formData.esgApiEnabled,
+                esgEnabledForSubworkspaces: formData.esgEnabledForSubworkspaces,
+            };
+
+            // Only include credentials if they're being updated
+            if (formData.carApiKey) {
+                payload.carApiKey = formData.carApiKey;
+            }
+            if (formData.carCooperativeId) {
+                payload.carCooperativeId = formData.carCooperativeId;
+            }
+
+            const res = await fetch(`/api/workspaces/${workspace.id}/esg-config`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Erro ao salvar configuração');
+            }
+
+            onSuccess();
+            onClose();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Erro ao salvar');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="p-6 border-b border-slate-200 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-100 rounded-xl">
+                            <Shield className="text-emerald-600" size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900">Integração ESG/CAR</h2>
+                            <p className="text-sm text-slate-500">{workspace.name}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X size={20} className="text-slate-500" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto">
+                    {isLoading ? (
+                        <div className="flex justify-center py-8">
+                            <Loader2 className="animate-spin text-slate-400" size={32} />
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {error && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
+                                    <AlertCircle size={20} />
+                                    <span className="text-sm font-medium">{error}</span>
+                                </div>
+                            )}
+
+                            {/* API Key */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <Key size={14} />
+                                        API Key
+                                    </div>
+                                </label>
+                                {hasExistingKey && !formData.carApiKey && (
+                                    <p className="text-xs text-emerald-600 mb-2 flex items-center gap-1">
+                                        <Check size={12} />
+                                        Chave configurada. Deixe em branco para manter.
+                                    </p>
+                                )}
+                                <div className="relative">
+                                    <input
+                                        type={showApiKey ? 'text' : 'password'}
+                                        value={formData.carApiKey}
+                                        onChange={(e) => setFormData({ ...formData, carApiKey: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 pr-12"
+                                        placeholder={hasExistingKey ? '••••••••' : 'Insira a API Key'}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                    >
+                                        {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Cooperative ID */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    Cooperative ID
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.carCooperativeId}
+                                    onChange={(e) => setFormData({ ...formData, carCooperativeId: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                    placeholder="ID da Cooperativa"
+                                />
+                            </div>
+
+                            {/* Enable ESG */}
+                            <div className="p-4 bg-slate-50 rounded-xl space-y-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.esgApiEnabled}
+                                        onChange={(e) => setFormData({ ...formData, esgApiEnabled: e.target.checked })}
+                                        className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                    <div>
+                                        <span className="font-bold text-slate-900">Habilitar Análise ESG</span>
+                                        <p className="text-xs text-slate-500">Permite análise socioambiental de produtores e propriedades</p>
+                                    </div>
+                                </label>
+
+                                {workspace.hasSubworkspaces && (
+                                    <label className="flex items-center gap-3 cursor-pointer pl-8">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.esgEnabledForSubworkspaces}
+                                            onChange={(e) => setFormData({ ...formData, esgEnabledForSubworkspaces: e.target.checked })}
+                                            disabled={!formData.esgApiEnabled}
+                                            className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50"
+                                        />
+                                        <div className={!formData.esgApiEnabled ? 'opacity-50' : ''}>
+                                            <span className="font-bold text-slate-900">Permitir para Subworkspaces</span>
+                                            <p className="text-xs text-slate-500">Subworkspaces poderão usar esta integração</p>
+                                        </div>
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                <p className="text-xs text-blue-700">
+                                    <strong>Nota:</strong> A integração ESG/CAR permite consultar status socioambiental de produtores (via CPF) e propriedades (via código CAR).
+                                    Disponível apenas para produtores brasileiros e propriedades no Brasil.
+                                </p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 className="animate-spin" size={18} />
+                                            Salvando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check size={18} />
+                                            Salvar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>

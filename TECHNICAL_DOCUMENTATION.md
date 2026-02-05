@@ -173,6 +173,72 @@ Quando o usuário está em um subworkspace, o grid de templates exibe funcionali
 - **Enviar Checklist**: Sempre disponível
 - **Indicador 🔒**: Exibido para templates somente leitura
 
+### 1.8 Integração ESG/CAR por Workspace
+
+Cada workspace pode configurar sua própria integração com APIs socioambientais (ESG/CAR).
+
+#### Campos do Workspace:
+```prisma
+model Workspace {
+  // ... outros campos ...
+  
+  // Integração ESG/CAR
+  carApiKey                  String?  @map("car_api_key")
+  carCooperativeId           String?  @map("car_cooperative_id")
+  esgApiEnabled              Boolean  @default(false) @map("esg_api_enabled")
+  esgEnabledForSubworkspaces Boolean  @default(false) @map("esg_enabled_for_subworkspaces")
+}
+```
+
+#### Hierarquia de Configuração:
+1. **Workspace Pai**: Configura `carApiKey`, `carCooperativeId` e `esgApiEnabled`
+2. **Subworkspaces**: Herdam configuração do pai quando `esgEnabledForSubworkspaces = true`
+3. **Subworkspaces sem acesso**: Se pai não habilita, botões ESG ficam inativos
+
+#### Lógica de Resolução de Credenciais:
+```typescript
+// Em um subworkspace
+if (workspace.parentWorkspaceId) {
+    const parent = workspace.parentWorkspace;
+    if (parent.esgApiEnabled && parent.esgEnabledForSubworkspaces) {
+        apiKey = parent.carApiKey;
+        cooperativeId = parent.carCooperativeId;
+    } else {
+        // ESG não disponível para este subworkspace
+    }
+} else {
+    // Workspace pai - usa próprias credenciais
+    if (workspace.esgApiEnabled) {
+        apiKey = workspace.carApiKey;
+        cooperativeId = workspace.carCooperativeId;
+    }
+}
+```
+
+#### APIs de Configuração ESG:
+```
+GET  /api/workspaces/[id]/esg-config  - Obtém configuração ESG (SuperAdmin)
+PUT  /api/workspaces/[id]/esg-config  - Atualiza configuração ESG (SuperAdmin)
+GET  /api/workspaces/esg-status       - Verifica status ESG do workspace atual
+```
+
+#### Resposta do `/api/workspaces/esg-status`:
+```json
+{
+  "esgEnabled": true,
+  "reason": "ENABLED"  // ou "ESG_DISABLED", "PARENT_ESG_DISABLED", "MISSING_CREDENTIALS"
+}
+```
+
+#### Restrições de País:
+- **Produtores**: ESG disponível apenas para `countryCode = 'BR'` (CPF brasileiro)
+- **Propriedades**: ESG disponível apenas para propriedades com código CAR válido (Brasil)
+
+#### Interface do SuperAdmin:
+- Botão "Integração Socioambiental" no card do workspace
+- Modal com campos para API Key, Cooperative ID
+- Toggles para habilitar ESG e permitir subworkspaces
+
 ---
 
 ## 2. Autenticação e Autorização

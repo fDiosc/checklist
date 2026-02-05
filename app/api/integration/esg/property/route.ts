@@ -1,29 +1,101 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
 
 export async function POST(request: Request) {
     try {
-        const { propertyMapId, carCode } = await request.json();
-
-        if (!carCode) {
-            return NextResponse.json({ error: 'CAR Code is required' }, { status: 400 });
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
-        // Get API Token
-        const systemConfig = await db.systemConfig.findUnique({
-            where: { key: 'CAR_API_TOKEN' }
+        const { propertyMapId, carCode, countryCode, workspaceId } = await request.json();
+
+        // ESG analysis only works for Brazilian properties (CAR is a Brazilian registry)
+        if (countryCode && countryCode !== 'BR') {
+            return NextResponse.json({ 
+                error: 'Análise socioambiental disponível apenas para propriedades brasileiras',
+                code: 'NON_BRAZILIAN_PROPERTY'
+            }, { status: 400 });
+        }
+
+        if (!carCode) {
+            return NextResponse.json({ 
+                error: 'Código CAR é obrigatório para análise socioambiental',
+                code: 'MISSING_CAR_CODE'
+            }, { status: 400 });
+        }
+
+        // Validate CAR code format (should be alphanumeric with specific pattern)
+        const cleanCarCode = carCode.trim();
+        if (cleanCarCode.length < 10) {
+            return NextResponse.json({ 
+                error: 'Código CAR inválido',
+                code: 'INVALID_CAR_CODE'
+            }, { status: 400 });
+        }
+
+        // Determine workspace ID from session or request
+        const targetWorkspaceId = workspaceId || session.user.workspaceId;
+        if (!targetWorkspaceId) {
+            return NextResponse.json({ error: 'Workspace não identificado' }, { status: 400 });
+        }
+
+        // Get workspace and check ESG configuration
+        const workspace = await db.workspace.findUnique({
+            where: { id: targetWorkspaceId },
+            include: {
+                parentWorkspace: {
+                    select: { 
+                        id: true, 
+                        carApiKey: true, 
+                        carCooperativeId: true,
+                        esgApiEnabled: true,
+                        esgEnabledForSubworkspaces: true 
+                    }
+                }
+            }
         });
 
-        if (!systemConfig?.value) {
-            console.error('Missing CAR_API_TOKEN in system_config');
-            return NextResponse.json({ error: 'System Configuration Error: CAR_API_TOKEN is missing.' }, { status: 500 });
+        if (!workspace) {
+            return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 });
+        }
+
+        // Determine API credentials based on workspace hierarchy
+        let apiKey: string | null = null;
+
+        if (workspace.parentWorkspaceId) {
+            // This is a subworkspace - check if parent allows ESG access
+            if (!workspace.parentWorkspace?.esgApiEnabled || !workspace.parentWorkspace?.esgEnabledForSubworkspaces) {
+                return NextResponse.json({ 
+                    error: 'Análise socioambiental não está habilitada para este workspace',
+                    code: 'ESG_NOT_ENABLED'
+                }, { status: 403 });
+            }
+            apiKey = workspace.parentWorkspace.carApiKey;
+        } else {
+            // This is a parent workspace
+            if (!workspace.esgApiEnabled) {
+                return NextResponse.json({ 
+                    error: 'Análise socioambiental não está habilitada para este workspace',
+                    code: 'ESG_NOT_ENABLED'
+                }, { status: 403 });
+            }
+            apiKey = workspace.carApiKey;
+        }
+
+        if (!apiKey) {
+            return NextResponse.json({ 
+                error: 'Token de API não configurado. Entre em contato com o administrador.',
+                code: 'MISSING_API_TOKEN'
+            }, { status: 500 });
         }
 
         // Call External API
-        const response = await fetch(`https://api.merx.tech/api/v1/integration/esg/cars/${carCode}:resume`, {
+        const response = await fetch(`https://api.merx.tech/api/v1/integration/esg/cars/${cleanCarCode}:resume`, {
             method: 'GET',
             headers: {
-                'Authorization': systemConfig.value,
+                'Authorization': apiKey,
                 'Content-Type': 'application/json'
             }
         });
@@ -31,8 +103,23 @@ export async function POST(request: Request) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('ESG Property API Error:', response.status, errorText);
+            
+            if (response.status === 401 || response.status === 403) {
+                return NextResponse.json({ 
+                    error: 'Token de API inválido ou expirado',
+                    code: 'INVALID_TOKEN'
+                }, { status: 500 });
+            }
+            
+            if (response.status === 404) {
+                return NextResponse.json({ 
+                    error: 'CAR não encontrado nos registros ambientais',
+                    code: 'CAR_NOT_FOUND'
+                }, { status: 404 });
+            }
+
             return NextResponse.json({
-                error: 'External API Error',
+                error: 'Falha ao consultar dados socioambientais',
                 details: errorText,
                 status: response.status
             }, { status: response.status });
@@ -86,6 +173,6 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('Error in ESG Property API:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
     }
 }

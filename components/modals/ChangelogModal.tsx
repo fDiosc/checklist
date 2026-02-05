@@ -11,6 +11,38 @@ interface ChangelogModalProps {
 
 const releases = [
     {
+        version: "V 0.4.1",
+        date: "05 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Configuração ESG por Workspace",
+                description: "Cada workspace configura seus próprios tokens para integração socioambiental ESG/CAR.",
+                icon: Shield,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Herança de Configuração",
+                description: "Subworkspaces podem herdar configuração ESG do workspace pai quando habilitado.",
+                icon: Network,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Controle Granular",
+                description: "SuperAdmins controlam quais workspaces e subworkspaces têm acesso à análise ESG.",
+                icon: Settings,
+                color: "text-purple-500",
+                bg: "bg-purple-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "ESG agora funciona corretamente em subworkspaces." },
+            { text: "Tokens de API migrados de configuração global para por workspace." },
+            { text: "Validação de país para análise ESG (apenas Brasil)." }
+        ]
+    },
+    {
         version: "V 0.4.0",
         date: "05 de Fevereiro, 2026",
         features: [

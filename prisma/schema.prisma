@@ -27,6 +27,12 @@ model Workspace {
   subworkspaces      Workspace[] @relation("WorkspaceHierarchy")
   hasSubworkspaces   Boolean    @default(false) @map("has_subworkspaces")
 
+  // API Integration Tokens (only set by SuperAdmin on parent workspaces)
+  carApiKey                String?  @map("car_api_key")           // CAR API Key
+  carCooperativeId         String?  @map("car_cooperative_id")    // Cooperative ID for CAR API
+  esgApiEnabled            Boolean  @default(false) @map("esg_api_enabled")  // Is ESG/CAR analysis enabled for this workspace
+  esgEnabledForSubworkspaces Boolean @default(false) @map("esg_enabled_for_subworkspaces") // Allow subworkspaces to use parent's token
+
   users               User[]
   producers           Producer[]
   templates           Template[]

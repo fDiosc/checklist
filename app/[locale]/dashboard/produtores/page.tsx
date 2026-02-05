@@ -48,6 +48,18 @@ export default function ProdutoresPage() {
         enabled: hasSubworkspaces && activeTab === 'subworkspaces',
     });
 
+    // Fetch ESG status to know if we should show ESG buttons
+    const { data: esgStatus } = useQuery({
+        queryKey: ['esg-status'],
+        queryFn: async () => {
+            const res = await fetch('/api/workspaces/esg-status');
+            if (!res.ok) return { esgEnabled: false };
+            return res.json();
+        },
+    });
+
+    const isEsgEnabled = esgStatus?.esgEnabled === true;
+
     const { data: producers, isLoading } = useQuery({
         queryKey: ['producers', searchTerm, activeTab, subworkspaceFilter],
         queryFn: async () => {
@@ -197,9 +209,11 @@ export default function ProdutoresPage() {
                                             {t('producer.table.workspace')}
                                         </th>
                                     )}
-                                    <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                        {t('producer.table.esgStatus')}
-                                    </th>
+                                    {isEsgEnabled && (
+                                        <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            {t('producer.table.esgStatus')}
+                                        </th>
+                                    )}
                                     <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         {t('producer.table.email')}
                                     </th>
@@ -248,20 +262,22 @@ export default function ProdutoresPage() {
                                                     </span>
                                                 </td>
                                             )}
-                                            <td className="px-8 py-6">
-                                                {/* ESG Status - only applicable for Brazilian producers */}
-                                                {(producer.countryCode === 'BR' || !producer.countryCode) ? (
-                                                    producer.esgStatus ? (
-                                                        <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${producer.esgStatus === 'CONFORME' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                                            {producer.esgStatus === 'CONFORME' ? t('producer.esgStatus.noIssues') : t('producer.esgStatus.withIssues')}
-                                                        </span>
+                                            {isEsgEnabled && (
+                                                <td className="px-8 py-6">
+                                                    {/* ESG Status - only applicable for Brazilian producers */}
+                                                    {(producer.countryCode === 'BR' || !producer.countryCode) ? (
+                                                        producer.esgStatus ? (
+                                                            <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${producer.esgStatus === 'CONFORME' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                                                {producer.esgStatus === 'CONFORME' ? t('producer.esgStatus.noIssues') : t('producer.esgStatus.withIssues')}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{t('producer.esgStatus.notAnalyzed')}</span>
+                                                        )
                                                     ) : (
-                                                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{t('producer.esgStatus.notAnalyzed')}</span>
-                                                    )
-                                                ) : (
-                                                    <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">-</span>
-                                                )}
-                                            </td>
+                                                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">-</span>
+                                                    )}
+                                                </td>
+                                            )}
                                             <td className="px-8 py-6 text-xs font-medium text-slate-400">
                                                 {producer.email || '-'}
                                             </td>
@@ -306,8 +322,8 @@ export default function ProdutoresPage() {
                                                         </button>
                                                     ) : (
                                                         <>
-                                                            {/* ESG Analysis button - only for Brazilian producers */}
-                                                            {(producer.countryCode === 'BR' || !producer.countryCode) && (
+                                                            {/* ESG Analysis button - only for Brazilian producers and if ESG is enabled */}
+                                                            {isEsgEnabled && (producer.countryCode === 'BR' || !producer.countryCode) && (
                                                                 <button
                                                                     onClick={async (e) => {
                                                                         e.stopPropagation();
