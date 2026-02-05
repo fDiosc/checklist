@@ -23,7 +23,7 @@ import {
     Eye
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useTranslations, useFormatter } from 'next-intl';
+import { useTranslations, useFormatter, useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { getStatusVariant, CHECKLIST_STATUSES, STATUS_TRANSLATION_KEYS, TYPE_TRANSLATION_KEYS, type ChecklistStatus, type ChecklistType } from '@/lib/utils/status';
 
@@ -32,6 +32,7 @@ type TabType = 'own' | 'subworkspaces';
 export default function ChecklistsPage() {
     const t = useTranslations();
     const format = useFormatter();
+    const locale = useLocale();
     
     // Filtros
     const [statusFilter, setStatusFilter] = useState('');
@@ -88,7 +89,7 @@ export default function ChecklistsPage() {
 
     // Recursive function to render child checklists at any depth
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const renderChildRows = (children: any[], parentProducer: any, depth: number = 1): React.ReactNode[] => {
+    const renderChildRows = (children: any[], parentProducer: any, depth: number = 1, isReadOnlyMode: boolean = false): React.ReactNode[] => {
         if (!children || children.length === 0) return [];
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,7 +150,7 @@ export default function ChecklistsPage() {
                         "transition-colors cursor-pointer",
                         isCorrection ? "bg-red-50/20 hover:bg-red-50/40" : "bg-indigo-50/20 hover:bg-indigo-50/40"
                     )}
-                    onClick={() => window.location.href = `/dashboard/checklists/${child.id}`}
+                    onClick={() => window.location.href = `/${locale}/dashboard/checklists/${child.id}`}
                 >
                     <td className="px-8 py-4">
                         <div className="flex items-center gap-3" style={{ paddingLeft: `${indentPadding * 4}px` }}>
@@ -241,45 +242,58 @@ export default function ChecklistsPage() {
                     </td>
                     <td className="px-8 py-4">
                         <div className="flex items-center justify-center gap-2">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${child.id}`; }}
-                                className={cn(
-                                    "p-3 rounded-xl transition-all shadow-sm",
-                                    isCorrection ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-                                )}
-                                title={`Gerenciar ${typeLabel}`}
-                            >
-                                <ClipboardList size={16} />
-                            </button>
-                            <button
-                                onClick={copyChildLink}
-                                className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
-                                title={t('checklists.copyLink')}
-                            >
-                                <Copy size={16} />
-                            </button>
-                            <button
-                                onClick={shareChildWhatsapp}
-                                disabled={sendingWhatsappId === child.id}
-                                className={cn(
-                                    "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
-                                    sendingWhatsappId === child.id && "animate-pulse cursor-wait"
-                                )}
-                                title={t('checklists.sendWhatsApp')}
-                            >
-                                {sendingWhatsappId === child.id ? (
-                                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <MessageCircle size={16} />
-                                )}
-                            </button>
-                            <button
-                                onClick={openChildLink}
-                                className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
-                                title={t('checklists.viewAsProducer')}
-                            >
-                                <ExternalLink size={16} />
-                            </button>
+                            {isReadOnlyMode ? (
+                                /* View-only button for subworkspace child checklists */
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); window.location.href = `/${locale}/dashboard/checklists/${child.id}?readonly=true`; }}
+                                    className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
+                                    title={t('common.view') || 'Visualizar'}
+                                >
+                                    <Eye size={16} />
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); window.location.href = `/${locale}/dashboard/checklists/${child.id}`; }}
+                                        className={cn(
+                                            "p-3 rounded-xl transition-all shadow-sm",
+                                            isCorrection ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                                        )}
+                                        title={`Gerenciar ${typeLabel}`}
+                                    >
+                                        <ClipboardList size={16} />
+                                    </button>
+                                    <button
+                                        onClick={copyChildLink}
+                                        className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                                        title={t('checklists.copyLink')}
+                                    >
+                                        <Copy size={16} />
+                                    </button>
+                                    <button
+                                        onClick={shareChildWhatsapp}
+                                        disabled={sendingWhatsappId === child.id}
+                                        className={cn(
+                                            "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
+                                            sendingWhatsappId === child.id && "animate-pulse cursor-wait"
+                                        )}
+                                        title={t('checklists.sendWhatsApp')}
+                                    >
+                                        {sendingWhatsappId === child.id ? (
+                                            <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <MessageCircle size={16} />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={openChildLink}
+                                        className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
+                                        title={t('checklists.viewAsProducer')}
+                                    >
+                                        <ExternalLink size={16} />
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </td>
                 </tr>
@@ -287,7 +301,7 @@ export default function ChecklistsPage() {
 
             // Recursively render grandchildren if expanded
             if (hasGrandchildren && isChildExpanded) {
-                rows.push(...renderChildRows(child.children, parentProducer, depth + 1));
+                rows.push(...renderChildRows(child.children, parentProducer, depth + 1, isReadOnlyMode));
             }
 
             return rows;
@@ -604,7 +618,7 @@ export default function ChecklistsPage() {
                                     };
 
                                     const handleRowClick = () => {
-                                        window.location.href = `/dashboard/checklists/${checklist.id}`;
+                                        window.location.href = `/${locale}/dashboard/checklists/${checklist.id}`;
                                     };
 
                                     return (
@@ -719,7 +733,7 @@ export default function ChecklistsPage() {
                                                         {isReadOnly ? (
                                                             /* View-only button for subworkspace checklists */
                                                             <button
-                                                                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}?readonly=true`; }}
+                                                                onClick={(e) => { e.stopPropagation(); window.location.href = `/${locale}/dashboard/checklists/${checklist.id}?readonly=true`; }}
                                                                 className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
                                                                 title={t('common.view') || 'Visualizar'}
                                                             >
@@ -728,7 +742,7 @@ export default function ChecklistsPage() {
                                                         ) : (
                                                             <>
                                                                 <button
-                                                                    onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${checklist.id}`; }}
+                                                                    onClick={(e) => { e.stopPropagation(); window.location.href = `/${locale}/dashboard/checklists/${checklist.id}`; }}
                                                                     className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm"
                                                                     title={t('checklists.manage')}
                                                                 >
@@ -769,7 +783,7 @@ export default function ChecklistsPage() {
                                                 </td>
                                             </tr>
                                             {/* Child checklists (corrections/completions) - shown when expanded, recursive */}
-                                            {hasChildren && isExpanded && renderChildRows(checklist.children, checklist.producer, 1)}
+                                            {hasChildren && isExpanded && renderChildRows(checklist.children, checklist.producer, 1, isReadOnly)}
                                         </React.Fragment>
                                     );
                                 })}

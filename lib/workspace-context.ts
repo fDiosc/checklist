@@ -25,7 +25,7 @@ export function getWorkspaceFilter(session: Session | null): { workspaceId?: str
 }
 
 /**
- * Check if user has access to a specific workspace
+ * Check if user has access to a specific workspace (sync version - does not check hierarchy)
  */
 export function hasWorkspaceAccess(session: Session | null, workspaceId: string): boolean {
     if (!session?.user) {
@@ -38,6 +38,47 @@ export function hasWorkspaceAccess(session: Session | null, workspaceId: string)
     }
 
     return session.user.workspaceId === workspaceId;
+}
+
+/**
+ * Check if user has access to a specific workspace (async version - checks hierarchy)
+ * Parent workspaces can access their subworkspaces' data
+ */
+export async function hasWorkspaceAccessWithHierarchy(session: Session | null, targetWorkspaceId: string): Promise<boolean> {
+    if (!session?.user) {
+        return false;
+    }
+
+    // SuperAdmin can access any workspace
+    if (session.user.role === "SUPERADMIN") {
+        return true;
+    }
+
+    if (!session.user.workspaceId) {
+        return false;
+    }
+
+    // Direct match
+    if (session.user.workspaceId === targetWorkspaceId) {
+        return true;
+    }
+
+    // Check if target is a subworkspace of user's workspace
+    const userWorkspace = await db.workspace.findUnique({
+        where: { id: session.user.workspaceId },
+        select: {
+            hasSubworkspaces: true,
+            subworkspaces: {
+                select: { id: true }
+            }
+        }
+    });
+
+    if (userWorkspace?.hasSubworkspaces) {
+        return userWorkspace.subworkspaces.some(sw => sw.id === targetWorkspaceId);
+    }
+
+    return false;
 }
 
 /**

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { hasWorkspaceAccess } from "@/lib/workspace-context";
+import { hasWorkspaceAccess, hasWorkspaceAccessWithHierarchy } from "@/lib/workspace-context";
 
 export async function GET(
     req: Request,
@@ -51,8 +51,9 @@ export async function GET(
             return NextResponse.json({ error: "Producer not found" }, { status: 404 });
         }
 
-        // Check workspace access
-        if (!hasWorkspaceAccess(session, producer.workspaceId)) {
+        // Check workspace access (including hierarchy for parent workspaces)
+        const hasAccess = await hasWorkspaceAccessWithHierarchy(session, producer.workspaceId);
+        if (!hasAccess) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

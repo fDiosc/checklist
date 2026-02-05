@@ -5,7 +5,7 @@ import { Calendar, MapPin, ClipboardList, ExternalLink, Loader2, ChevronDown, Ch
 import Link from 'next/link';
 import React, { useState } from 'react';
 import PropertyMapInput from '@/components/PropertyMapInput';
-import { useTranslations, useFormatter } from 'next-intl';
+import { useTranslations, useFormatter, useLocale } from 'next-intl';
 
 interface ProducerHistoryProps {
     producerId: string;
@@ -14,6 +14,7 @@ interface ProducerHistoryProps {
 export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
     const t = useTranslations();
     const format = useFormatter();
+    const locale = useLocale();
     const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
 
     const { data: producer, isLoading } = useQuery({
@@ -57,7 +58,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                             producer.checklists.map((checklist: any) => (
                                 <Link
                                     key={checklist.id}
-                                    href={`/dashboard/checklists/${checklist.id}`}
+                                    href={`/${locale}/dashboard/checklists/${checklist.id}`}
                                     className="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-3xl hover:border-primary/20 hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
                                 >
                                     <div className="space-y-2">
