@@ -130,9 +130,11 @@
     "sentSuccess": "¡Checklist enviado con éxito!",
     "sendError": "Error al enviar WhatsApp.",
     "noPhone": "Este productor no tiene teléfono registrado.",
+    "allWorkspaces": "Todos los workspaces",
     "table": {
       "template": "Plantilla / Proyecto",
       "producer": "Productor Responsable",
+      "origin": "Origen",
       "status": "Estado Actual",
       "responses": "Respuestas",
       "sentDate": "Fecha de Envío",
@@ -543,7 +545,9 @@
       "closeModal": "Cerrar Modal",
       "selectBoth": "Por favor, selecciona una plantilla y un productor.",
       "generateError": "Error al generar checklist",
-      "whatsappMessage": "¡Hola! Sigue el enlace para completar tu checklist"
+      "whatsappMessage": "¡Hola! Sigue el enlace para completar tu checklist",
+      "prefillFromPrevious": "Pre-llenar con checklist anterior",
+      "noPreviousChecklists": "No hay checklists anteriores disponibles para esta plantilla"
     },
     "partialFinalize": {
       "title": "Finalización Parcial",

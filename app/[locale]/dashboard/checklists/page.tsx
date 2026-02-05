@@ -18,8 +18,10 @@ import {
     Filter,
     ChevronDown,
     ChevronRight,
-    GitBranch
+    GitBranch,
+    Building2
 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useTranslations, useFormatter } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { getStatusVariant, CHECKLIST_STATUSES, STATUS_TRANSLATION_KEYS, TYPE_TRANSLATION_KEYS, type ChecklistStatus, type ChecklistType } from '@/lib/utils/status';
@@ -36,6 +38,9 @@ export default function ChecklistsPage() {
     const [dateTo, setDateTo] = useState('');
     const [sendingWhatsappId, setSendingWhatsappId] = useState<string | null>(null);
     const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
+    const [subworkspaceFilter, setSubworkspaceFilter] = useState('');
+    
+    const { data: session } = useSession();
     
     // Helper functions for i18n
     const getStatusLabelI18n = (status: string) => {
@@ -64,6 +69,214 @@ export default function ChecklistsPage() {
         });
     };
 
+    // Recursive function to render child checklists at any depth
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const renderChildRows = (children: any[], parentProducer: any, depth: number = 1): React.ReactNode[] => {
+        if (!children || children.length === 0) return [];
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return children.flatMap((child: any) => {
+            const childPublicLink = `${window.location.origin}/c/${child.publicToken}`;
+            const typeLabel = child.type ? getTypeLabelI18n(child.type) : t('checklistType.original');
+            const isCorrection = child.type === 'CORRECTION';
+            const hasGrandchildren = child.children && child.children.length > 0;
+            const isChildExpanded = expandedParents.has(child.id);
+            const indentPadding = 6 + (depth * 6); // Increase indentation per level
+
+            const copyChildLink = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(childPublicLink);
+                alert('Link copiado!');
+            };
+
+            const openChildLink = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                window.open(childPublicLink, '_blank');
+            };
+
+            const shareChildWhatsapp = async (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (sendingWhatsappId) return;
+
+                if (!parentProducer?.phone) {
+                    alert("Este produtor não possui telefone cadastrado.");
+                    return;
+                }
+
+                if (!confirm(`Enviar checklist de correção via WhatsApp para ${parentProducer.name} (${parentProducer.phone})?`)) return;
+
+                setSendingWhatsappId(child.id);
+                try {
+                    const res = await fetch(`/api/checklists/${child.id}/send-whatsapp`, {
+                        method: 'POST',
+                    });
+
+                    if (!res.ok) {
+                        const data = await res.json();
+                        throw new Error(data.error || 'Falha ao enviar');
+                    }
+
+                    alert('Checklist enviado com sucesso!');
+                } catch (error: unknown) {
+                    console.error(error);
+                    alert(error instanceof Error ? error.message : t('checklists.sendError'));
+                } finally {
+                    setSendingWhatsappId(null);
+                }
+            };
+
+            const rows: React.ReactNode[] = [
+                <tr
+                    key={child.id}
+                    className={cn(
+                        "transition-colors cursor-pointer",
+                        isCorrection ? "bg-red-50/20 hover:bg-red-50/40" : "bg-indigo-50/20 hover:bg-indigo-50/40"
+                    )}
+                    onClick={() => window.location.href = `/dashboard/checklists/${child.id}`}
+                >
+                    <td className="px-8 py-4">
+                        <div className="flex items-center gap-3" style={{ paddingLeft: `${indentPadding * 4}px` }}>
+                            {/* Expand/Collapse for grandchildren */}
+                            {hasGrandchildren ? (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); toggleExpand(child.id); }}
+                                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                                    title={isChildExpanded ? 'Recolher' : 'Expandir'}
+                                >
+                                    {isChildExpanded ? (
+                                        <ChevronDown size={14} className={isCorrection ? "text-red-500" : "text-indigo-500"} />
+                                    ) : (
+                                        <ChevronRight size={14} className="text-slate-400" />
+                                    )}
+                                </button>
+                            ) : (
+                                <div className="w-5" />
+                            )}
+                            <div className={cn(
+                                "w-6 h-6 rounded-lg flex items-center justify-center",
+                                isCorrection ? "bg-red-100" : "bg-indigo-100"
+                            )}>
+                                {isCorrection ? <GitBranch size={12} className="text-red-500" /> : <ClipboardList size={12} className="text-indigo-500" />}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                        "font-bold tracking-tight text-sm",
+                                        isCorrection ? "text-red-900" : "text-indigo-900"
+                                    )}>
+                                        {typeLabel}
+                                    </span>
+                                    {hasGrandchildren && (
+                                        <span className={cn(
+                                            "text-[8px] font-black uppercase px-1.5 py-0.5 rounded",
+                                            isCorrection ? "bg-red-100 text-red-500" : "bg-indigo-100 text-indigo-500"
+                                        )}>
+                                            +{child.children.length}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className={cn(
+                                    "text-[9px] font-black uppercase tracking-widest",
+                                    isCorrection ? "text-red-400" : "text-indigo-400"
+                                )}>
+                                    {depth > 1 ? `Nível ${depth}` : `Checklist de ${typeLabel}`}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td className="px-8 py-4">
+                        <span className={cn(
+                            "text-[10px] font-bold",
+                            isCorrection ? "text-red-400" : "text-indigo-400"
+                        )}>
+                            {t('checklistManagement.sameProducer')}
+                        </span>
+                    </td>
+                    {hasSubworkspaces && (
+                        <td className="px-8 py-4">
+                            <span className="text-[10px] font-bold text-slate-300">—</span>
+                        </td>
+                    )}
+                    <td className="px-8 py-4">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusVariant(child.status)}`}>
+                            {getStatusIcon(child.status)}
+                            {getStatusLabelI18n(child.status)}
+                        </div>
+                    </td>
+                    <td className="px-8 py-4 text-center">
+                        <div className="flex flex-col items-center">
+                            <span className={cn(
+                                "text-sm font-black",
+                                isCorrection ? "text-red-900" : "text-indigo-900"
+                            )}>
+                                {child._count?.responses || 0}
+                            </span>
+                            <span className={cn(
+                                "text-[10px] font-bold uppercase",
+                                isCorrection ? "text-red-400" : "text-indigo-400"
+                            )}>Itens</span>
+                        </div>
+                    </td>
+                    <td className="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        {child.createdAt
+                            ? formatDate(child.createdAt)
+                            : '-'}
+                    </td>
+                    <td className="px-8 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${child.id}`; }}
+                                className={cn(
+                                    "p-3 rounded-xl transition-all shadow-sm",
+                                    isCorrection ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                                )}
+                                title={`Gerenciar ${typeLabel}`}
+                            >
+                                <ClipboardList size={16} />
+                            </button>
+                            <button
+                                onClick={copyChildLink}
+                                className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                                title={t('checklists.copyLink')}
+                            >
+                                <Copy size={16} />
+                            </button>
+                            <button
+                                onClick={shareChildWhatsapp}
+                                disabled={sendingWhatsappId === child.id}
+                                className={cn(
+                                    "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
+                                    sendingWhatsappId === child.id && "animate-pulse cursor-wait"
+                                )}
+                                title={t('checklists.sendWhatsApp')}
+                            >
+                                {sendingWhatsappId === child.id ? (
+                                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <MessageCircle size={16} />
+                                )}
+                            </button>
+                            <button
+                                onClick={openChildLink}
+                                className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
+                                title={t('checklists.viewAsProducer')}
+                            >
+                                <ExternalLink size={16} />
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            ];
+
+            // Recursively render grandchildren if expanded
+            if (hasGrandchildren && isChildExpanded) {
+                rows.push(...renderChildRows(child.children, parentProducer, depth + 1));
+            }
+
+            return rows;
+        });
+    };
+
     // Query de templates para o dropdown
     const { data: templates } = useQuery({
         queryKey: ['templates-list'],
@@ -74,8 +287,24 @@ export default function ChecklistsPage() {
         },
     });
 
+    // Query para buscar subworkspaces (se o workspace atual tiver subworkspaces)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: subworkspacesData } = useQuery<{ parentWorkspace: any; subworkspaces: any[] }>({
+        queryKey: ['my-subworkspaces', session?.user?.workspaceId],
+        queryFn: async () => {
+            if (!session?.user?.workspaceId) return { parentWorkspace: null, subworkspaces: [] };
+            const res = await fetch(`/api/workspaces/${session.user.workspaceId}/subworkspaces`);
+            if (!res.ok) return { parentWorkspace: null, subworkspaces: [] };
+            return res.json();
+        },
+        enabled: !!session?.user?.workspaceId
+    });
+
+    const hasSubworkspaces = subworkspacesData?.parentWorkspace?.hasSubworkspaces && 
+        subworkspacesData?.subworkspaces && subworkspacesData.subworkspaces.length > 0;
+
     const { data: checklists, isLoading } = useQuery({
-        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo],
+        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo, subworkspaceFilter],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
@@ -83,6 +312,7 @@ export default function ChecklistsPage() {
             if (producerSearch) params.append('producer', producerSearch);
             if (dateFrom) params.append('dateFrom', dateFrom);
             if (dateTo) params.append('dateTo', dateTo);
+            if (subworkspaceFilter) params.append('subworkspaceId', subworkspaceFilter);
             const res = await fetch(`/api/checklists?${params.toString()}`);
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
@@ -194,6 +424,29 @@ export default function ChecklistsPage() {
                         title="Data final"
                     />
                 </div>
+
+                {/* Subworkspace Filter - only shown if has subworkspaces */}
+                {hasSubworkspaces && (
+                    <div className="relative group">
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors">
+                            <Building2 size={18} />
+                        </div>
+                        <select
+                            className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-violet-500/5 transition-all appearance-none cursor-pointer"
+                            value={subworkspaceFilter}
+                            onChange={(e) => setSubworkspaceFilter(e.target.value)}
+                        >
+                            <option value="">{t('checklists.allWorkspaces') || 'Todos os workspaces'}</option>
+                            <option value={session?.user?.workspaceId || ''}>
+                                {subworkspacesData?.parentWorkspace?.name || 'Workspace Principal'}
+                            </option>
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            {subworkspacesData?.subworkspaces?.map((sw: any) => (
+                                <option key={sw.id} value={sw.id}>{sw.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {isLoading ? (
@@ -213,6 +466,11 @@ export default function ChecklistsPage() {
                                     <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         {t('checklists.table.producer')}
                                     </th>
+                                    {hasSubworkspaces && (
+                                        <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            {t('checklists.table.origin') || 'Origem'}
+                                        </th>
+                                    )}
                                     <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                         {t('checklists.table.status')}
                                     </th>
@@ -352,6 +610,21 @@ export default function ChecklistsPage() {
                                                         </div>
                                                     </div>
                                                 </td>
+                                                {hasSubworkspaces && (
+                                                    <td className="px-8 py-6">
+                                                        <div className="flex items-center gap-2">
+                                                            <Building2 size={14} className={checklist.workspace?.parentWorkspaceId ? 'text-indigo-500' : 'text-slate-400'} />
+                                                            <div>
+                                                                <div className="font-bold text-slate-700 text-xs">
+                                                                    {checklist.workspace?.name || '-'}
+                                                                </div>
+                                                                {checklist.workspace?.parentWorkspaceId && (
+                                                                    <div className="text-[9px] text-indigo-500 font-bold uppercase">Subworkspace</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className="px-8 py-6">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusVariant(checklist.status)}`}>
@@ -414,168 +687,8 @@ export default function ChecklistsPage() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                            {/* Child checklists (corrections) - shown when expanded */}
-                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                            {hasChildren && isExpanded && checklist.children.map((child: any) => {
-                                                const childPublicLink = `${window.location.origin}/c/${child.publicToken}`;
-                                                const typeLabel = child.type ? getTypeLabelI18n(child.type) : t('checklistType.original');
-                                                const isCorrection = child.type === 'CORRECTION';
-
-                                                const copyChildLink = (e: React.MouseEvent) => {
-                                                    e.stopPropagation();
-                                                    navigator.clipboard.writeText(childPublicLink);
-                                                    alert('Link copiado!');
-                                                };
-
-                                                const openChildLink = (e: React.MouseEvent) => {
-                                                    e.stopPropagation();
-                                                    window.open(childPublicLink, '_blank');
-                                                };
-
-                                                const shareChildWhatsapp = async (e: React.MouseEvent) => {
-                                                    e.stopPropagation();
-                                                    if (sendingWhatsappId) return;
-
-                                                    // Use parent's producer phone
-                                                    if (!checklist.producer?.phone) {
-                                                        alert("Este produtor não possui telefone cadastrado.");
-                                                        return;
-                                                    }
-
-                                                    if (!confirm(`Enviar checklist de correção via WhatsApp para ${checklist.producer.name} (${checklist.producer.phone})?`)) return;
-
-                                                    setSendingWhatsappId(child.id);
-                                                    try {
-                                                        const res = await fetch(`/api/checklists/${child.id}/send-whatsapp`, {
-                                                            method: 'POST',
-                                                        });
-
-                                                        if (!res.ok) {
-                                                            const data = await res.json();
-                                                            throw new Error(data.error || 'Falha ao enviar');
-                                                        }
-
-                                                        alert('Checklist de correção enviado com sucesso!');
-                                                    } catch (error: unknown) {
-                                                        console.error(error);
-                                                        alert(error instanceof Error ? error.message : t('checklists.sendError'));
-                                                    } finally {
-                                                        setSendingWhatsappId(null);
-                                                    }
-                                                };
-
-                                                return (
-                                                    <tr
-                                                        key={child.id}
-                                                        className={cn(
-                                                            "transition-colors cursor-pointer",
-                                                            isCorrection ? "bg-red-50/20 hover:bg-red-50/40" : "bg-indigo-50/20 hover:bg-indigo-50/40"
-                                                        )}
-                                                        onClick={() => window.location.href = `/dashboard/checklists/${child.id}`}
-                                                    >
-                                                        <td className="px-8 py-4">
-                                                            <div className="flex items-center gap-3 pl-6">
-                                                                <div className={cn(
-                                                                    "w-6 h-6 rounded-lg flex items-center justify-center",
-                                                                    isCorrection ? "bg-red-100" : "bg-indigo-100"
-                                                                )}>
-                                                                    {isCorrection ? <GitBranch size={12} className="text-red-500" /> : <ClipboardList size={12} className="text-indigo-500" />}
-                                                                </div>
-                                                                <div>
-                                                                    <div className={cn(
-                                                                        "font-bold tracking-tight text-sm",
-                                                                        isCorrection ? "text-red-900" : "text-indigo-900"
-                                                                    )}>
-                                                                        {typeLabel}
-                                                                    </div>
-                                                                    <div className={cn(
-                                                                        "text-[9px] font-black uppercase tracking-widest",
-                                                                        isCorrection ? "text-red-400" : "text-indigo-400"
-                                                                    )}>
-                                                                        Checklist de {typeLabel}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-4">
-                                                            <span className={cn(
-                                                                "text-[10px] font-bold",
-                                                                isCorrection ? "text-red-400" : "text-indigo-400"
-                                                            )}>
-                                                                {t('checklistManagement.sameProducer')}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-8 py-4">
-                                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusVariant(child.status)}`}>
-                                                                {getStatusIcon(child.status)}
-                                                                {getStatusLabelI18n(child.status)}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-4 text-center">
-                                                            <div className="flex flex-col items-center">
-                                                                <span className={cn(
-                                                                    "text-sm font-black",
-                                                                    isCorrection ? "text-red-900" : "text-indigo-900"
-                                                                )}>
-                                                                    {child._count?.responses || 0}
-                                                                </span>
-                                                                <span className={cn(
-                                                                    "text-[10px] font-bold uppercase",
-                                                                    isCorrection ? "text-red-400" : "text-indigo-400"
-                                                                )}>Itens</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                            {child.createdAt
-                                                                ? formatDate(child.createdAt)
-                                                                : '-'}
-                                                        </td>
-                                                        <td className="px-8 py-4">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/checklists/${child.id}`; }}
-                                                                    className={cn(
-                                                                        "p-3 rounded-xl transition-all shadow-sm",
-                                                                        isCorrection ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-                                                                    )}
-                                                                    title={`Gerenciar ${typeLabel}`}
-                                                                >
-                                                                    <ClipboardList size={16} />
-                                                                </button>
-                                                                <button
-                                                                    onClick={copyChildLink}
-                                                                    className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
-                                                                    title={t('checklists.copyLink')}
-                                                                >
-                                                                    <Copy size={16} />
-                                                                </button>
-                                                                <button
-                                                                    onClick={shareChildWhatsapp}
-                                                                    disabled={sendingWhatsappId === child.id}
-                                                                    className={cn(
-                                                                        "p-3 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm",
-                                                                        sendingWhatsappId === child.id && "animate-pulse cursor-wait"
-                                                                    )}
-                                                                    title={t('checklists.sendWhatsApp')}
-                                                                >
-                                                                    {sendingWhatsappId === child.id ? (
-                                                                        <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                                                                    ) : (
-                                                                        <MessageCircle size={16} />
-                                                                    )}
-                                                                </button>
-                                                                <button
-                                                                    onClick={openChildLink}
-                                                                    className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all shadow-sm"
-                                                                    title={t('checklists.viewAsProducer')}
-                                                                >
-                                                                    <ExternalLink size={16} />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
+                                            {/* Child checklists (corrections/completions) - shown when expanded, recursive */}
+                                            {hasChildren && isExpanded && renderChildRows(checklist.children, checklist.producer, 1)}
                                         </React.Fragment>
                                     );
                                 })}

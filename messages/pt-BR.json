@@ -130,9 +130,11 @@
     "sentSuccess": "Checklist enviado com sucesso!",
     "sendError": "Erro ao enviar WhatsApp.",
     "noPhone": "Este produtor não possui telefone cadastrado.",
+    "allWorkspaces": "Todos os workspaces",
     "table": {
       "template": "Template / Projeto",
       "producer": "Produtor Responsável",
+      "origin": "Origem",
       "status": "Estado Atual",
       "responses": "Respostas",
       "sentDate": "Data de Envio",
@@ -543,7 +545,9 @@
       "closeModal": "Fechar Modal",
       "selectBoth": "Por favor, selecione um template e um produtor.",
       "generateError": "Erro ao gerar checklist",
-      "whatsappMessage": "Olá! Siga o link para preencher seu checklist"
+      "whatsappMessage": "Olá! Siga o link para preencher seu checklist",
+      "prefillFromPrevious": "Pré-preencher com checklist anterior",
+      "noPreviousChecklists": "Nenhum checklist anterior disponível para este template"
     },
     "changelog": {
       "title": "Novidades",

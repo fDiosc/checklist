@@ -1,7 +1,7 @@
 # Documentação da API - MerX Platform
 
-> **Versão:** 3.0  
-> **Última atualização:** Fevereiro 2026  
+> **Versão:** 4.0  
+> **Última atualização:** 05 Fevereiro 2026  
 > **Base URL:** `/api`
 
 ## Índice
@@ -87,6 +87,52 @@ Content-Type: application/json
 PATCH /api/workspaces/[id]
 Authorization: SUPERADMIN
 ```
+
+### 2.4 Subworkspaces
+
+#### Listar Subworkspaces
+
+```http
+GET /api/workspaces/[id]/subworkspaces
+Authorization: SUPERADMIN ou ADMIN do workspace
+
+Response:
+{
+  "parentWorkspace": { "id": "...", "name": "...", "hasSubworkspaces": true },
+  "subworkspaces": [
+    { "id": "...", "name": "...", "slug": "...", "cnpj": "...", "logoUrl": "..." }
+  ]
+}
+```
+
+#### Criar Subworkspace
+
+```http
+POST /api/workspaces/[id]/subworkspaces
+Authorization: SUPERADMIN
+Content-Type: application/json
+
+{
+  "name": "Nome do Subworkspace",
+  "slug": "slug-unico",
+  "cnpj": "12.345.678/0001-90",  // opcional
+  "logoUrl": "https://..."       // opcional
+}
+```
+
+#### Ativar/Desativar Subworkspaces
+
+```http
+POST /api/workspaces/[id]/toggle-subworkspaces
+Authorization: SUPERADMIN
+Content-Type: application/json
+
+{
+  "enabled": true  // ou false
+}
+```
+
+**Nota:** Não é possível desativar se existirem subworkspaces. Delete todos primeiro.
 
 ---
 
@@ -285,6 +331,52 @@ Envia o link do checklist via WhatsApp (Evolution API).
   "message": "Mensagem personalizada"  // opcional
 }
 ```
+
+### 4.6 Pré-preenchimento
+
+#### Listar Checklists Disponíveis para Pré-preencher
+
+```http
+GET /api/checklists/available-for-prefill?templateId=xxx&producerId=yyy
+```
+
+**Query Parameters:**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `templateId` | string | Sim | ID do template |
+| `producerId` | string | Não | Filtrar por produtor específico |
+
+**Response:**
+
+```json
+[
+  {
+    "id": "clx123...",
+    "finalizedAt": "2026-01-20T15:00:00Z",
+    "createdAt": "2026-01-15T10:00:00Z",
+    "producer": { "id": "...", "name": "João Silva" },
+    "_count": { "responses": 25 }
+  }
+]
+```
+
+#### Criar Checklist com Pré-preenchimento
+
+```http
+POST /api/checklists
+Content-Type: application/json
+
+{
+  "templateId": "clx123...",
+  "producerId": "clx456...",
+  "sentVia": "whatsapp",
+  "sentTo": "5511999998888",
+  "prefillFromChecklistId": "clxOriginal..."  // opcional - copia respostas aprovadas
+}
+```
+
+**Nota:** Respostas copiadas recebem status `PENDING_VERIFICATION` para nova análise.
 
 ---
 

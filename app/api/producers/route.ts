@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getWorkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
+import { getSubworkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
 
 const identifierSchema = z.object({
     category: z.enum(['personal', 'fiscal']),
@@ -125,7 +125,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const workspaceFilter = getWorkspaceFilter(session);
+        const workspaceFilter = await getSubworkspaceFilter(session);
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
 

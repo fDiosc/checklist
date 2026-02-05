@@ -130,9 +130,11 @@
     "sentSuccess": "Checklist sent successfully!",
     "sendError": "Error sending WhatsApp.",
     "noPhone": "This producer does not have a registered phone number.",
+    "allWorkspaces": "All workspaces",
     "table": {
       "template": "Template / Project",
       "producer": "Responsible Producer",
+      "origin": "Origin",
       "status": "Current Status",
       "responses": "Responses",
       "sentDate": "Sent Date",
@@ -543,7 +545,9 @@
       "closeModal": "Close Modal",
       "selectBoth": "Please select a template and a producer.",
       "generateError": "Error generating checklist",
-      "whatsappMessage": "Hello! Follow the link to fill out your checklist"
+      "whatsappMessage": "Hello! Follow the link to fill out your checklist",
+      "prefillFromPrevious": "Pre-fill from previous checklist",
+      "noPreviousChecklists": "No previous checklists available for this template"
     },
     "partialFinalize": {
       "title": "Partial Finalization",

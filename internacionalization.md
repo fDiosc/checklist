@@ -2,18 +2,21 @@
 ## Cadastro Internacional de Produtores e Propriedades
 
 > **Status:** ✅ IMPLEMENTADO (Fase 1 Completa)
-> **Última atualização:** 2026-02-02
+> **Última atualização:** 2026-02-05
 
 ---
 
-## Integração com Multi-tenancy
+## Integração com Multi-tenancy e Subworkspaces
 
-A partir da versão 0.3.0, o cadastro de produtores está integrado ao sistema de multi-tenancy:
+A partir da versão 0.3.0, o cadastro de produtores está integrado ao sistema de multi-tenancy.
+A versão 0.4.0 adiciona suporte a subworkspaces:
 
 - **Segregação por Workspace:** Cada produtor pertence a um workspace específico
 - **CPF/DNI por Workspace:** O mesmo documento pode existir em workspaces diferentes
 - **Configuração por País:** Regras de país são globais, mas dados são por workspace
 - **ESG por País:** Análise ESG disponível apenas para BR, independente do workspace
+- **Subworkspaces:** Produtores de subworkspaces são visíveis pelo workspace pai
+- **Filtro por Origem:** Grids permitem filtrar por subworkspace específico
 
 ---
 
@@ -217,7 +220,7 @@ RENSPA (opcional)
 
 Exemplo: Brasil
 CPF (obrigatório)
-CAR (obrigatório)
+CAR (opcional)
 
 Etapa 3 – Propriedades
 

@@ -56,7 +56,7 @@ export const COUNTRIES: Record<string, CountryConfig> = {
       type: 'car',
       label: 'CAR',
       placeholder: 'Buscar pelo CAR...',
-      required: true,
+      required: false,
       useIntegration: true
     },
     propertySource: 'car',

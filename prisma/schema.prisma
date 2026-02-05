@@ -17,8 +17,15 @@ model Workspace {
   name      String
   slug      String   @unique
   logoUrl   String?  @map("logo_url")
+  cnpj      String?  // CNPJ for subworkspaces
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Subworkspace hierarchy
+  parentWorkspaceId  String?    @map("parent_workspace_id")
+  parentWorkspace    Workspace? @relation("WorkspaceHierarchy", fields: [parentWorkspaceId], references: [id])
+  subworkspaces      Workspace[] @relation("WorkspaceHierarchy")
+  hasSubworkspaces   Boolean    @default(false) @map("has_subworkspaces")
 
   users      User[]
   producers  Producer[]
@@ -27,6 +34,7 @@ model Workspace {
   auditLogs  AuditLog[]
   aiPrompts  AiPrompt[]
 
+  @@index([parentWorkspaceId])
   @@map("workspaces")
 }
 

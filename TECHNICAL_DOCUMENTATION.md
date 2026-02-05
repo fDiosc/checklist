@@ -1,7 +1,7 @@
 # Documentação Técnica: MerX Platform
 
-> **Versão:** 3.0  
-> **Última atualização:** Fevereiro 2026  
+> **Versão:** 4.0  
+> **Última atualização:** 05 Fevereiro 2026  
 > **Documentação completa:** [docs/](./docs/)
 
 Este documento descreve a implementação técnica do MerX Platform, incluindo multi-tenancy, autenticação, hierarquia de checklists e internacionalização.
@@ -28,8 +28,15 @@ model Workspace {
   name      String
   slug      String   @unique
   logoUrl   String?  @map("logo_url")
+  cnpj      String?  // CNPJ para subworkspaces
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Hierarquia de Subworkspaces
+  parentWorkspaceId  String?    @map("parent_workspace_id")
+  parentWorkspace    Workspace? @relation("WorkspaceHierarchy", fields: [parentWorkspaceId], references: [id])
+  subworkspaces      Workspace[] @relation("WorkspaceHierarchy")
+  hasSubworkspaces   Boolean    @default(false) @map("has_subworkspaces")
 
   users      User[]
   producers  Producer[]
@@ -38,6 +45,7 @@ model Workspace {
   auditLogs  AuditLog[]
   aiPrompts  AiPrompt[]
 
+  @@index([parentWorkspaceId])
   @@map("workspaces")
 }
 ```
@@ -60,6 +68,37 @@ if (session.user.role === "SUPERADMIN") return {};
 
 // Outros usuários veem apenas seu workspace
 return { workspaceId: session.user.workspaceId };
+```
+
+### 1.5 Subworkspaces
+
+O sistema suporta hierarquia de workspaces com até 2 níveis (workspace pai → subworkspaces).
+
+#### Características:
+- **Ativação:** SuperAdmin ativa `hasSubworkspaces` para um workspace
+- **Criação:** Apenas SuperAdmin pode criar subworkspaces
+- **Isolamento:** Subworkspaces não veem dados uns dos outros
+- **Visibilidade:** Workspace pai vê todos os dados de seus subworkspaces
+- **Propriedades:** Cada subworkspace tem nome, slug, logo e CNPJ próprios
+- **Restrição:** Subworkspaces não podem ter seus próprios subworkspaces
+
+#### APIs de Subworkspaces:
+```
+GET  /api/workspaces/[id]/subworkspaces       - Lista subworkspaces
+POST /api/workspaces/[id]/subworkspaces       - Cria subworkspace
+POST /api/workspaces/[id]/toggle-subworkspaces - Ativa/desativa funcionalidade
+```
+
+#### Funções de Filtro:
+```typescript
+// Retorna IDs de todos os workspaces visíveis (incluindo subworkspaces)
+getVisibleWorkspaceIds(session): Promise<string[]>
+
+// Filtro Prisma que inclui workspace + subworkspaces
+getSubworkspaceFilter(session): Promise<{ workspaceId: string | { in: string[] } }>
+
+// Verifica se workspace é subworkspace de outro
+isSubworkspaceOf(workspaceId, parentId): Promise<boolean>
 ```
 
 ---
@@ -209,6 +248,46 @@ A barra lateral de itens (`ChecklistManagementClient`) utiliza um sistema de có
 ### 3.5 Segurança e Confirmação
 Implementamos um guard rails no `handleFinalize` para evitar sincronizações acidentais de erros:
 - Se existirem itens `REJECTED`, um `window.confirm` solicita autorização explícita do supervisor informando que esses itens serão marcados como falhas no checklist master.
+
+### 3.6 Pré-preenchimento de Checklists
+
+Permite criar um novo checklist carregando respostas aprovadas de um checklist anterior.
+
+#### Regras:
+- Apenas checklists finalizados (`APPROVED`, `FINALIZED`, `PARTIALLY_FINALIZED`) podem ser usados como fonte
+- O checklist fonte deve ser do mesmo template
+- Apenas respostas com status `APPROVED` são copiadas
+- Respostas copiadas recebem status `PENDING_VERIFICATION` para nova análise
+
+#### APIs:
+```
+GET /api/checklists/available-for-prefill?templateId=xxx
+    - Retorna lista de checklists finalizados do mesmo template
+    - Ordena por data de finalização (mais recente primeiro)
+    - Limite de 20 resultados
+
+POST /api/checklists
+    - Novo parâmetro: prefillFromChecklistId (opcional)
+    - Se fornecido, copia respostas aprovadas para o novo checklist
+```
+
+#### Fluxo UI:
+1. Usuário abre modal de enviar checklist
+2. Seleciona template e produtor
+3. Marca checkbox "Pré-preencher com checklist anterior"
+4. Seleciona checklist da lista (mostra produtor, data, nº de itens)
+5. Ao criar, respostas são copiadas automaticamente
+
+### 3.7 Hierarquia Recursiva no Grid
+
+O grid de checklists suporta até 4 níveis de profundidade:
+- **Nível 0:** Checklist original (pai)
+- **Nível 1:** Correção/Complemento (filho)
+- **Nível 2:** Neto
+- **Nível 3:** Bisneto
+- **Nível 4:** Tataraneto
+
+Cada nível tem indentação progressiva e pode ser expandido/recolhido individualmente.
 
 ## 4. Internacionalização de Produtores
 

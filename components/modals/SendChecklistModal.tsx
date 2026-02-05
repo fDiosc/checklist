@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useFormatter } from 'next-intl';
+import { ClipboardCopy, History } from 'lucide-react';
 
 interface SendChecklistModalProps {
     isOpen: boolean;
@@ -18,12 +19,17 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
     initialProducerId
 }) => {
     const t = useTranslations();
+    const format = useFormatter();
     // Internal selection state (used when not provided via props)
     const [templateId, setTemplateId] = useState('');
     const [producerId, setProducerId] = useState('');
     const [sentVia, setSentVia] = useState<'EMAIL' | 'WHATSAPP' | 'LINK'>('LINK');
     const [generatedLink, setGeneratedLink] = useState('');
     const [isCopied, setIsCopied] = useState(false);
+    
+    // Pre-fill state
+    const [enablePrefill, setEnablePrefill] = useState(false);
+    const [prefillChecklistId, setPrefillChecklistId] = useState('');
 
     // Final IDs to use (prioritizing props)
     const activeTemplateId = initialTemplateId || templateId;
@@ -34,6 +40,8 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
         if (isOpen) {
             setGeneratedLink('');
             setIsCopied(false);
+            setEnablePrefill(false);
+            setPrefillChecklistId('');
             if (!initialTemplateId) setTemplateId('');
             if (!initialProducerId) setProducerId('');
         }
@@ -49,6 +57,20 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
         queryKey: ['producers-simple'],
         queryFn: () => fetch('/api/producers').then(res => res.json()),
         enabled: isOpen && !initialProducerId
+    });
+
+    // Query for available checklists to prefill from
+    const { data: availableForPrefill, isLoading: loadingPrefill } = useQuery({
+        queryKey: ['checklists-prefill', activeTemplateId, activeProducerId],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            params.append('templateId', activeTemplateId);
+            if (activeProducerId) params.append('producerId', activeProducerId);
+            const res = await fetch(`/api/checklists/available-for-prefill?${params.toString()}`);
+            if (!res.ok) throw new Error('Failed to fetch');
+            return res.json();
+        },
+        enabled: isOpen && !!activeTemplateId && enablePrefill
     });
 
     const mutation = useMutation({
@@ -83,7 +105,8 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
         mutation.mutate({
             templateId: activeTemplateId,
             producerId: activeProducerId,
-            sentVia: sentVia === 'LINK' ? null : sentVia
+            sentVia: sentVia === 'LINK' ? null : sentVia,
+            prefillFromChecklistId: enablePrefill && prefillChecklistId ? prefillChecklistId : undefined
         });
     };
 
@@ -177,6 +200,79 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Pre-fill Option (shown when template and producer are selected) */}
+                        {activeTemplateId && activeProducerId && (
+                            <div className="space-y-4">
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={enablePrefill}
+                                        onChange={(e) => {
+                                            setEnablePrefill(e.target.checked);
+                                            if (!e.target.checked) setPrefillChecklistId('');
+                                        }}
+                                        className="w-5 h-5 rounded-lg border-2 border-slate-200 text-primary focus:ring-primary focus:ring-offset-0"
+                                    />
+                                    <div className="flex items-center gap-2">
+                                        <History size={16} className="text-amber-500" />
+                                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors">
+                                            {t('modals.sendChecklist.prefillFromPrevious') || 'Pré-preencher com checklist anterior'}
+                                        </span>
+                                    </div>
+                                </label>
+                                
+                                {enablePrefill && (
+                                    <div className="pl-8 animate-fade-in">
+                                        {loadingPrefill ? (
+                                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                                <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                                                {t('common.loading') || 'Carregando...'}
+                                            </div>
+                                        ) : availableForPrefill && availableForPrefill.length > 0 ? (
+                                            <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                {availableForPrefill.map((checklist: any) => (
+                                                    <button
+                                                        key={checklist.id}
+                                                        onClick={() => setPrefillChecklistId(checklist.id)}
+                                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between ${
+                                                            prefillChecklistId === checklist.id 
+                                                                ? 'border-amber-400 bg-amber-50' 
+                                                                : 'border-slate-100 hover:border-slate-200'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <ClipboardCopy size={16} className={prefillChecklistId === checklist.id ? 'text-amber-500' : 'text-slate-400'} />
+                                                            <div>
+                                                                <p className={`font-bold text-sm ${prefillChecklistId === checklist.id ? 'text-amber-700' : 'text-slate-700'}`}>
+                                                                    {checklist.producer?.name || t('common.unknown')}
+                                                                </p>
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                                    {checklist.finalizedAt 
+                                                                        ? format.dateTime(new Date(checklist.finalizedAt), { dateStyle: 'short' })
+                                                                        : format.dateTime(new Date(checklist.createdAt), { dateStyle: 'short' })
+                                                                    } • {checklist._count?.responses || 0} {t('common.items') || 'itens'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        {prefillChecklistId === checklist.id && (
+                                                            <svg className="text-amber-500 w-[16px] h-[16px]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                                                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-slate-400 italic">
+                                                {t('modals.sendChecklist.noPreviousChecklists') || 'Nenhum checklist anterior disponível para este template'}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
@@ -10,6 +10,45 @@ interface ChangelogModalProps {
 }
 
 const releases = [
+    {
+        version: "V 0.4.0",
+        date: "05 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Subworkspaces",
+                description: "Crie subworkspaces dentro de um workspace. Cada um com logo, nome e CNPJ próprios.",
+                icon: Network,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Pré-preenchimento",
+                description: "Carregue respostas de um checklist anterior ao criar um novo. Economize tempo na auditoria.",
+                icon: ClipboardCopy,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Hierarquia Expandida",
+                description: "Grid de checklists agora exibe até 4 níveis de profundidade (pai, filho, neto, bisneto).",
+                icon: GitBranch,
+                color: "text-amber-500",
+                bg: "bg-amber-50/50"
+            },
+            {
+                title: "Filtro por Origem",
+                description: "Filtre checklists por workspace de origem quando há subworkspaces ativos.",
+                icon: Filter,
+                color: "text-red-500",
+                bg: "bg-red-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "CAR não é mais obrigatório para produtores brasileiros (apenas CPF)." },
+            { text: "Checklists netos e bisnetos agora aparecem corretamente no grid." },
+            { text: "Coluna 'Origem' exibida quando há subworkspaces." }
+        ]
+    },
     {
         version: "V 0.3.0",
         date: "02 de Fevereiro, 2026",

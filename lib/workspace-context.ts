@@ -1,5 +1,6 @@
 import { Session } from "next-auth";
 import { UserRole } from "@prisma/client";
+import { db } from "./db";
 
 /**
  * Get workspace filter for database queries
@@ -90,4 +91,123 @@ export function getCreateWorkspaceId(session: Session | null): string {
     }
 
     return session.user.workspaceId;
+}
+
+/**
+ * Get all workspace IDs that a user can see (includes subworkspaces for parent workspaces)
+ * Returns null for SuperAdmin (meaning all workspaces)
+ */
+export async function getVisibleWorkspaceIds(session: Session | null): Promise<string[] | null> {
+    if (!session?.user) {
+        throw new Error("Unauthorized");
+    }
+
+    // SuperAdmin can see all
+    if (session.user.role === "SUPERADMIN") {
+        return null;
+    }
+
+    if (!session.user.workspaceId) {
+        throw new Error("User has no workspace assigned");
+    }
+
+    // Get the user's workspace to check if it has subworkspaces
+    const workspace = await db.workspace.findUnique({
+        where: { id: session.user.workspaceId },
+        select: {
+            id: true,
+            hasSubworkspaces: true,
+            parentWorkspaceId: true,
+            subworkspaces: {
+                select: { id: true }
+            }
+        }
+    });
+
+    if (!workspace) {
+        throw new Error("Workspace not found");
+    }
+
+    // If user is in a subworkspace, they only see their own workspace
+    if (workspace.parentWorkspaceId) {
+        return [session.user.workspaceId];
+    }
+
+    // If workspace has subworkspaces, include all child workspace IDs
+    if (workspace.hasSubworkspaces && workspace.subworkspaces.length > 0) {
+        return [
+            session.user.workspaceId,
+            ...workspace.subworkspaces.map(sw => sw.id)
+        ];
+    }
+
+    // Normal workspace without subworkspaces
+    return [session.user.workspaceId];
+}
+
+/**
+ * Get workspace filter for database queries that supports subworkspaces
+ * For parent workspaces with hasSubworkspaces=true, includes all subworkspace data
+ */
+export async function getSubworkspaceFilter(session: Session | null): Promise<{ workspaceId?: string | { in: string[] } }> {
+    const visibleIds = await getVisibleWorkspaceIds(session);
+    
+    // SuperAdmin sees all
+    if (visibleIds === null) {
+        return {};
+    }
+
+    // Single workspace
+    if (visibleIds.length === 1) {
+        return { workspaceId: visibleIds[0] };
+    }
+
+    // Multiple workspaces (parent + subworkspaces)
+    return { workspaceId: { in: visibleIds } };
+}
+
+/**
+ * Check if a workspace is a subworkspace of another
+ */
+export async function isSubworkspaceOf(subworkspaceId: string, parentWorkspaceId: string): Promise<boolean> {
+    const subworkspace = await db.workspace.findUnique({
+        where: { id: subworkspaceId },
+        select: { parentWorkspaceId: true }
+    });
+
+    return subworkspace?.parentWorkspaceId === parentWorkspaceId;
+}
+
+/**
+ * Get workspace info including subworkspace relationship
+ */
+export async function getWorkspaceWithHierarchy(workspaceId: string) {
+    return db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            cnpj: true,
+            hasSubworkspaces: true,
+            parentWorkspaceId: true,
+            parentWorkspace: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true
+                }
+            },
+            subworkspaces: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    logoUrl: true,
+                    cnpj: true
+                }
+            }
+        }
+    });
 }

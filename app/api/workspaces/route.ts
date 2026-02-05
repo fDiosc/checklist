@@ -42,6 +42,10 @@ export async function GET() {
         }
 
         const workspaces = await db.workspace.findMany({
+            where: {
+                // Only show parent workspaces (not subworkspaces) in main list
+                parentWorkspaceId: null
+            },
             include: {
                 _count: {
                     select: {
@@ -49,6 +53,7 @@ export async function GET() {
                         producers: true,
                         templates: true,
                         checklists: true,
+                        subworkspaces: true,
                     }
                 }
             },

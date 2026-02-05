@@ -1,7 +1,7 @@
 # Arquitetura Técnica - MerX Platform
 
-> **Versão:** 3.0  
-> **Última atualização:** Fevereiro 2026  
+> **Versão:** 4.0  
+> **Última atualização:** 05 Fevereiro 2026  
 > **Status:** Produção
 
 ## Índice
@@ -257,7 +257,7 @@ A plataforma utiliza **NextAuth.js v5** com Credentials Provider para autentica�
 
 ### 5.2 Multi-tenancy (Workspaces)
 
-O sistema suporta múltiplas organizações isoladas:
+O sistema suporta múltiplas organizações isoladas com hierarquia de subworkspaces:
 
 ```prisma
 model Workspace {
@@ -265,6 +265,13 @@ model Workspace {
   name      String
   slug      String   @unique
   logoUrl   String?
+  cnpj      String?  // Para subworkspaces
+  
+  // Hierarquia de Subworkspaces
+  parentWorkspaceId  String?
+  parentWorkspace    Workspace? @relation("WorkspaceHierarchy")
+  subworkspaces      Workspace[] @relation("WorkspaceHierarchy")
+  hasSubworkspaces   Boolean    @default(false)
   
   users      User[]
   producers  Producer[]
@@ -272,6 +279,13 @@ model Workspace {
   checklists Checklist[]
 }
 ```
+
+**Subworkspaces:**
+- Workspace pai pode ter múltiplos subworkspaces
+- Cada subworkspace tem logo, nome e CNPJ próprios
+- Subworkspaces não veem dados uns dos outros
+- Workspace pai vê todos os dados de seus subworkspaces
+- Subworkspaces não podem ter seus próprios subworkspaces (máx. 2 níveis)
 
 ### 5.3 Roles e Permissões
 

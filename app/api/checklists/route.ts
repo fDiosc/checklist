@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { nanoid } from "nanoid";
-import { getWorkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
+import { getSubworkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
 
 export async function POST(req: Request) {
     try {
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         }
 
         const workspaceId = getCreateWorkspaceId(session);
-        const { templateId, producerId, subUserId, sentVia, sentTo } = await req.json();
+        const { templateId, producerId, subUserId, sentVia, sentTo, prefillFromChecklistId } = await req.json();
 
         // If NOT Admin/SuperAdmin, check if assigned to this producer
         if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN" && producerId) {
@@ -65,9 +65,49 @@ export async function POST(req: Request) {
             },
         });
 
+        // Pre-fill responses from previous checklist if specified
+        if (prefillFromChecklistId) {
+            const sourceChecklist = await db.checklist.findFirst({
+                where: {
+                    id: prefillFromChecklistId,
+                    workspaceId, // Must be in same workspace
+                    templateId, // Must be same template
+                    status: { in: ['APPROVED', 'FINALIZED', 'PARTIALLY_FINALIZED'] }
+                },
+                include: {
+                    responses: {
+                        where: {
+                            status: 'APPROVED'
+                        }
+                    }
+                }
+            });
+
+            if (sourceChecklist && sourceChecklist.responses.length > 0) {
+                // Copy approved responses to new checklist with PENDING_VERIFICATION status
+                await db.response.createMany({
+                    data: sourceChecklist.responses.map(resp => ({
+                        checklistId: checklist.id,
+                        itemId: resp.itemId,
+                        fieldId: resp.fieldId,
+                        answer: resp.answer,
+                        quantity: resp.quantity,
+                        observation: resp.observation,
+                        fileUrl: resp.fileUrl, // Keep reference to same file
+                        validity: resp.validity,
+                        status: 'PENDING_VERIFICATION', // Requires re-verification
+                    }))
+                });
+            }
+        }
+
         const link = `${process.env.NEXT_PUBLIC_APP_URL}/c/${publicToken}`;
 
-        return NextResponse.json({ checklist, link });
+        return NextResponse.json({ 
+            checklist, 
+            link,
+            prefilled: !!prefillFromChecklistId 
+        });
     } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         console.error("Error creating checklist:", errorMessage);
@@ -88,16 +128,22 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const workspaceFilter = getWorkspaceFilter(session);
+        const workspaceFilter = await getSubworkspaceFilter(session);
         const { searchParams } = new URL(req.url);
         const status = searchParams.get("status");
         const templateId = searchParams.get("templateId");
         const producerSearch = searchParams.get("producer");
         const dateFrom = searchParams.get("dateFrom");
         const dateTo = searchParams.get("dateTo");
+        const subworkspaceId = searchParams.get("subworkspaceId"); // Optional filter for specific subworkspace
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const where: any = { ...workspaceFilter };
+        
+        // If filtering by specific subworkspace, override the workspace filter
+        if (subworkspaceId) {
+            where.workspaceId = subworkspaceId;
+        }
         if (status) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             where.status = status as any;
@@ -132,6 +178,14 @@ export async function GET(req: Request) {
         const checklists = await db.checklist.findMany({
             where,
             include: {
+                workspace: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        parentWorkspaceId: true,
+                    },
+                },
                 template: {
                     select: {
                         name: true,
@@ -161,7 +215,49 @@ export async function GET(req: Request) {
                         },
                         createdAt: true,
                         publicToken: true,
-                        _count: { select: { responses: true } }
+                        _count: { select: { responses: true } },
+                        // Level 2: Grandchildren (netos)
+                        children: {
+                            select: {
+                                id: true,
+                                status: true,
+                                type: true,
+                                responses: {
+                                    select: { rejectionReason: true }
+                                },
+                                createdAt: true,
+                                publicToken: true,
+                                _count: { select: { responses: true } },
+                                // Level 3: Great-grandchildren (bisnetos)
+                                children: {
+                                    select: {
+                                        id: true,
+                                        status: true,
+                                        type: true,
+                                        responses: {
+                                            select: { rejectionReason: true }
+                                        },
+                                        createdAt: true,
+                                        publicToken: true,
+                                        _count: { select: { responses: true } },
+                                        // Level 4: Great-great-grandchildren (tataranetos)
+                                        children: {
+                                            select: {
+                                                id: true,
+                                                status: true,
+                                                type: true,
+                                                createdAt: true,
+                                                publicToken: true,
+                                                _count: { select: { responses: true } }
+                                            },
+                                            orderBy: { createdAt: 'desc' }
+                                        }
+                                    },
+                                    orderBy: { createdAt: 'desc' }
+                                }
+                            },
+                            orderBy: { createdAt: 'desc' }
+                        }
                     },
                     orderBy: { createdAt: 'desc' }
                 },

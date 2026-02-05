@@ -219,7 +219,7 @@ export default function DashboardLayout({
                                 onClick={() => setIsChangelogOpen(true)}
                                 className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all mb-4"
                             >
-                                <span className="text-[10px] font-black text-slate-500 group-hover:text-white uppercase tracking-widest transition-colors">v 0.3.0</span>
+                                <span className="text-[10px] font-black text-slate-500 group-hover:text-white uppercase tracking-widest transition-colors">v 0.4.0</span>
                                 <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center animate-pulse group-hover:animate-none">
                                     <Info size={10} className="text-white" />
                                 </div>
@@ -232,7 +232,7 @@ export default function DashboardLayout({
                             <button
                                 onClick={() => setIsChangelogOpen(true)}
                                 className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all"
-                                title="Versão V 0.3.0"
+                                title="Versão V 0.4.0"
                             >
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             </button>

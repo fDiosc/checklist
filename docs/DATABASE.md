@@ -1,7 +1,7 @@
 # Modelo de Dados - MerX Platform
 
-> **Versão:** 3.0  
-> **Última atualização:** Fevereiro 2026  
+> **Versão:** 4.0  
+> **Última atualização:** 05 Fevereiro 2026  
 > **ORM:** Prisma 5.22.0  
 > **Banco:** PostgreSQL (Neon.db)
 

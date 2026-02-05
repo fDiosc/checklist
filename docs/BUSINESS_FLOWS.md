@@ -1,7 +1,7 @@
 # Fluxos de Negócio - MerX Platform
 
-> **Versão:** 3.0  
-> **Última atualização:** Fevereiro 2026
+> **Versão:** 4.0  
+> **Última atualização:** 05 Fevereiro 2026
 
 ## Índice
 

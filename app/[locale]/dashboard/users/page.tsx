@@ -20,10 +20,22 @@ interface User {
     workspace: { id: string; name: string; slug: string } | null;
 }
 
-interface Workspace {
+interface Subworkspace {
     id: string;
     name: string;
     slug: string;
+}
+
+interface WorkspaceWithSubs {
+    id: string;
+    name: string;
+    slug: string;
+    hasSubworkspaces: boolean;
+    subworkspaces: Subworkspace[];
+}
+
+interface WorkspacesResponse {
+    workspaces: WorkspaceWithSubs[];
 }
 
 const roleColors: Record<string, string> = {
@@ -60,15 +72,17 @@ export default function UsersPage() {
         }
     });
 
-    const { data: workspaces = [] } = useQuery<Workspace[]>({
-        queryKey: ['workspaces'],
+    const { data: workspacesData } = useQuery<WorkspacesResponse>({
+        queryKey: ['workspaces-all'],
         queryFn: async () => {
-            const res = await fetch('/api/workspaces');
+            const res = await fetch('/api/workspaces/all');
             if (!res.ok) throw new Error('Failed to fetch workspaces');
             return res.json();
         },
         enabled: isSuperAdmin,
     });
+
+    const workspaces = workspacesData?.workspaces || [];
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
@@ -283,23 +297,47 @@ export default function UsersPage() {
 
 interface UserModalProps {
     user: User | null;
-    workspaces: Workspace[];
+    workspaces: WorkspaceWithSubs[];
     isSuperAdmin: boolean;
     onClose: () => void;
     onSuccess: () => void;
 }
 
 function UserModal({ user, workspaces, isSuperAdmin, onClose, onSuccess }: UserModalProps) {
+    // Find if user's workspace is a subworkspace
+    const findUserWorkspaceInfo = () => {
+        if (!user?.workspace?.id) return { parentId: '', subId: '' };
+        
+        // Check if it's a parent workspace
+        const isParent = workspaces.find(ws => ws.id === user.workspace?.id);
+        if (isParent) return { parentId: user.workspace.id, subId: '' };
+        
+        // Check if it's a subworkspace
+        for (const ws of workspaces) {
+            const sub = ws.subworkspaces?.find(s => s.id === user.workspace?.id);
+            if (sub) return { parentId: ws.id, subId: sub.id };
+        }
+        return { parentId: '', subId: '' };
+    };
+
+    const userWsInfo = findUserWorkspaceInfo();
+
     const [formData, setFormData] = useState({
         name: user?.name || '',
         email: user?.email || '',
         password: '',
         role: user?.role || 'SUPERVISOR',
-        workspaceId: user?.workspace?.id || '',
+        parentWorkspaceId: userWsInfo.parentId,
+        subworkspaceId: userWsInfo.subId,
         cpf: user?.cpf || '',
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Get selected parent workspace
+    const selectedParentWorkspace = workspaces.find(ws => ws.id === formData.parentWorkspaceId);
+    const hasSubworkspaces = selectedParentWorkspace?.hasSubworkspaces && 
+        (selectedParentWorkspace?.subworkspaces?.length || 0) > 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -326,9 +364,13 @@ function UserModal({ user, workspaces, isSuperAdmin, onClose, onSuccess }: UserM
                 body.cpf = formData.cpf;
             }
 
-            // SuperAdmin can assign workspace
-            if (isSuperAdmin && formData.workspaceId) {
-                body.workspaceId = formData.workspaceId;
+            // SuperAdmin can assign workspace - use subworkspace if selected, otherwise parent
+            if (isSuperAdmin) {
+                if (formData.subworkspaceId) {
+                    body.workspaceId = formData.subworkspaceId;
+                } else if (formData.parentWorkspaceId) {
+                    body.workspaceId = formData.parentWorkspaceId;
+                }
             }
 
             const res = await fetch(url, {
@@ -434,21 +476,52 @@ function UserModal({ user, workspaces, isSuperAdmin, onClose, onSuccess }: UserM
                     </div>
 
                     {isSuperAdmin && (
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                Workspace
-                            </label>
-                            <select
-                                value={formData.workspaceId}
-                                onChange={(e) => setFormData({ ...formData, workspaceId: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            >
-                                <option value="">Global (sem workspace)</option>
-                                {workspaces.map((ws) => (
-                                    <option key={ws.id} value={ws.id}>{ws.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                    Workspace *
+                                </label>
+                                <select
+                                    value={formData.parentWorkspaceId}
+                                    onChange={(e) => setFormData({ 
+                                        ...formData, 
+                                        parentWorkspaceId: e.target.value,
+                                        subworkspaceId: '' // Reset subworkspace when parent changes
+                                    })}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                >
+                                    <option value="">Global (sem workspace)</option>
+                                    {workspaces.map((ws) => (
+                                        <option key={ws.id} value={ws.id}>
+                                            {ws.name} {ws.hasSubworkspaces ? `(${ws.subworkspaces.length} subs)` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {hasSubworkspaces && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                        Subworkspace (opcional)
+                                    </label>
+                                    <select
+                                        value={formData.subworkspaceId}
+                                        onChange={(e) => setFormData({ ...formData, subworkspaceId: e.target.value })}
+                                        className="w-full px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400/20 focus:border-indigo-400"
+                                    >
+                                        <option value="">Workspace principal ({selectedParentWorkspace?.name})</option>
+                                        {selectedParentWorkspace?.subworkspaces.map((sub) => (
+                                            <option key={sub.id} value={sub.id}>
+                                                ↳ {sub.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-indigo-500 mt-1">
+                                        Se selecionado, o usuário pertencerá ao subworkspace
+                                    </p>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     <div>
