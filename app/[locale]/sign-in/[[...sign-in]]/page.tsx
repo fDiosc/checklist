@@ -62,10 +62,13 @@ export default function SignInPage() {
             }
 
             if (result?.ok) {
-                // Clear any error from URL and redirect
-                window.history.replaceState({}, '', window.location.pathname);
-                router.push(callbackUrl);
-                router.refresh();
+                // Login successful - redirect to dashboard
+                // Use window.location for a full page navigation to ensure cookies are sent
+                const targetUrl = callbackUrl.startsWith('/') 
+                    ? callbackUrl 
+                    : `/${locale}/dashboard`;
+                window.location.href = targetUrl;
+                // Don't reset isLoading - let the page navigate
             } else {
                 setError('Erro inesperado ao fazer login');
                 setIsLoading(false);
