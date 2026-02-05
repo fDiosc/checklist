@@ -4,7 +4,7 @@ import { createNavigation } from 'next-intl/navigation';
 export const routing = defineRouting({
   locales: ['pt-BR', 'en', 'es'],
   defaultLocale: 'pt-BR',
-  localePrefix: 'as-needed' // /dashboard para pt-BR, /en/dashboard para outros
+  localePrefix: 'always' // Always include locale prefix: /pt-BR/dashboard, /en/dashboard
 });
 
 // Exportar helpers de navegação tipados

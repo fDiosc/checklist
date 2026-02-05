@@ -82,19 +82,15 @@ export async function middleware(req: NextRequest) {
     const locale = getLocaleFromPath(pathname);
 
     if (!token) {
-        // Not authenticated - redirect to sign-in
-        const signInPath = locale === defaultLocale ? '/sign-in' : `/${locale}/sign-in`;
-        const signInUrl = new URL(signInPath, req.url);
+        // Not authenticated - redirect to sign-in (always with locale prefix now)
+        const signInUrl = new URL(`/${locale}/sign-in`, req.url);
         signInUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(signInUrl);
     }
 
     // 4. Check if user must change password
     if (token.mustChangePassword && !pathname.includes(changePasswordPath)) {
-        const changePwdPath = locale === defaultLocale 
-            ? '/dashboard/change-password' 
-            : `/${locale}/dashboard/change-password`;
-        return NextResponse.redirect(new URL(changePwdPath, req.url));
+        return NextResponse.redirect(new URL(`/${locale}/dashboard/change-password`, req.url));
     }
 
     // 5. Authenticated user - apply i18n middleware
