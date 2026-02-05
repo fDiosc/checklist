@@ -832,6 +832,58 @@ GET /api/integration/esg/property?carCode=SP-1234567...
 
 Verifica status ESG da propriedade.
 
+### 9.4 Configuração ESG por Workspace
+
+#### Buscar Configuração
+
+```http
+GET /api/workspaces/[id]/esg-config
+Authorization: SUPERADMIN
+```
+
+**Response:**
+
+```json
+{
+  "carApiKey": "abc...",
+  "carCooperativeId": "123",
+  "esgApiEnabled": true,
+  "esgEnabledForSubworkspaces": false
+}
+```
+
+#### Atualizar Configuração
+
+```http
+PUT /api/workspaces/[id]/esg-config
+Authorization: SUPERADMIN
+Content-Type: application/json
+
+{
+  "carApiKey": "new-key",
+  "carCooperativeId": "new-id",
+  "esgApiEnabled": true,
+  "esgEnabledForSubworkspaces": true
+}
+```
+
+### 9.5 Status ESG do Workspace Atual
+
+```http
+GET /api/workspaces/esg-status
+```
+
+Retorna se o workspace do usuário atual tem integração ESG habilitada.
+
+**Response:**
+
+```json
+{
+  "esgEnabled": true,
+  "source": "inherited"  // ou "own"
+}
+```
+
 ---
 
 ## 10. Planos de Ação

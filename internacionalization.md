@@ -9,12 +9,15 @@
 ## Integração com Multi-tenancy e Subworkspaces
 
 A partir da versão 0.3.0, o cadastro de produtores está integrado ao sistema de multi-tenancy.
-A versão 0.4.0 adiciona suporte a subworkspaces:
+A versão 0.4.0 adiciona suporte a subworkspaces.
+A versão 0.4.1 adiciona configuração de ESG por workspace:
 
 - **Segregação por Workspace:** Cada produtor pertence a um workspace específico
 - **CPF/DNI por Workspace:** O mesmo documento pode existir em workspaces diferentes
 - **Configuração por País:** Regras de país são globais, mas dados são por workspace
 - **ESG por País:** Análise ESG disponível apenas para BR, independente do workspace
+- **ESG por Workspace:** Cada workspace configura suas próprias credenciais CAR/ESG
+- **Herança de ESG:** Subworkspaces podem herdar configuração ESG do workspace pai
 - **Subworkspaces:** Produtores de subworkspaces são visíveis pelo workspace pai
 - **Filtro por Origem:** Grids permitem filtrar por subworkspace específico
 
@@ -36,6 +39,8 @@ A versão 0.4.0 adiciona suporte a subworkspaces:
 - [x] Traduções em pt-BR, en, es
 - [x] **Multi-tenancy:** Produtores segregados por workspace
 - [x] **CPF único por workspace:** Mesmo CPF pode existir em workspaces diferentes
+- [x] **ESG por Workspace:** Credenciais CAR/ESG configuradas por workspace (v0.4.1)
+- [x] **Herança de ESG:** Subworkspaces podem usar credenciais do workspace pai
 
 ### ⏳ Próximas Fases
 - [ ] Integração RENSPA (Argentina)

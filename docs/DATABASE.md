@@ -97,16 +97,29 @@
 
 ### 2.0 Workspace (Organizações Multi-tenant)
 
-Organizações isoladas no sistema para multi-tenancy.
+Organizações isoladas no sistema para multi-tenancy. Suporta hierarquia de subworkspaces.
 
 ```prisma
 model Workspace {
   id        String   @id @default(cuid())
   name      String
-  slug      String   @unique
+  slug      String   // Único para workspaces root ou combinado parent+slug
+  cnpj      String?
   logoUrl   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Hierarquia de Subworkspaces
+  parentWorkspaceId String?
+  parentWorkspace   Workspace?  @relation("SubworkspaceHierarchy", fields: [parentWorkspaceId], references: [id])
+  subworkspaces     Workspace[] @relation("SubworkspaceHierarchy")
+  hasSubworkspaces  Boolean     @default(false)
+
+  // Integração ESG/CAR
+  carApiKey                  String?   @map("car_api_key")
+  carCooperativeId           String?   @map("car_cooperative_id")
+  esgApiEnabled              Boolean   @default(false) @map("esg_api_enabled")
+  esgEnabledForSubworkspaces Boolean   @default(false) @map("esg_enabled_for_subworkspaces")
 
   users      User[]
   producers  Producer[]
@@ -114,8 +127,20 @@ model Workspace {
   checklists Checklist[]
   auditLogs  AuditLog[]
   aiPrompts  AiPrompt[]
+  templateAssignments TemplateAssignment[]
 }
 ```
+
+**Campos de Subworkspaces:**
+- `parentWorkspaceId`: ID do workspace pai (null para workspaces root)
+- `hasSubworkspaces`: Flag que habilita funcionalidade de subworkspaces
+- `cnpj`: CNPJ do subworkspace
+
+**Campos de Integração ESG:**
+- `carApiKey`: Token da API CAR
+- `carCooperativeId`: ID da Cooperativa
+- `esgApiEnabled`: Habilita integração ESG para o workspace
+- `esgEnabledForSubworkspaces`: Permite subworkspaces usarem a integração do pai
 
 ### 2.1 User (Usuários)
 

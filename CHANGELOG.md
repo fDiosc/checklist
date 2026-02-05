@@ -33,6 +33,11 @@ Esta versão introduz a configuração individual de integração ESG/CAR por wo
 ### 🐛 Correções
 - **ESG não funcionava em subworkspaces:** Corrigido erro de configuração que impedia análise socioambiental.
 - **Tokens globais removidos:** Migrado de SystemConfig global para configuração por workspace.
+- **Navegação de checklists de subworkspaces:** Botão Eye agora navega corretamente para visualização read-only.
+- **Histórico de produtores:** Workspace pai agora consegue ver histórico de checklists de produtores de subworkspaces.
+- **Checklists filhos/netos de subworkspaces:** Exibem apenas botão Eye (read-only) quando vêm de subworkspaces.
+- **URLs sem locale:** Corrigidas URLs em `ChildChecklistsAccordion`, `checklist-management-client` e `ProducerHistory`.
+- **Strings hardcoded:** Corrigidas strings em português que não usavam sistema de tradução.
 
 ---
 

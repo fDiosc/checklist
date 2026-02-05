@@ -317,11 +317,20 @@ export async function sendWhatsAppMessage(
 
 ### Configuração
 
-```bash
-# Armazenado no banco (SystemConfig)
-CAR_API_KEY=your-car-api-key
-CAR_COOPERATIVE_ID=your-cooperative-id
+As credenciais CAR são configuradas **por workspace** através do painel de SuperAdmin:
+
+```prisma
+model Workspace {
+  carApiKey        String?  // Token da API CAR
+  carCooperativeId String?  // ID da Cooperativa
+  esgApiEnabled    Boolean  // Se integração está habilitada
+  esgEnabledForSubworkspaces Boolean  // Se subworkspaces podem usar
+}
 ```
+
+**Hierarquia de Credenciais:**
+1. Se workspace é subworkspace e pai tem `esgEnabledForSubworkspaces = true`, usa credenciais do pai
+2. Caso contrário, usa credenciais do próprio workspace
 
 ### Endpoint Interno
 
@@ -483,16 +492,21 @@ RESEND_API_KEY=re_...
 NEXT_PUBLIC_APP_URL=https://app.merx.com.br
 ```
 
-### Configurações no Banco (SystemConfig)
+### Configurações no Banco (Por Workspace)
 
-Algumas configurações sensíveis são armazenadas no banco:
+Credenciais ESG/CAR são configuradas individualmente por workspace:
 
-```sql
--- Exemplo
-INSERT INTO system_config (key, value) VALUES
-  ('CAR_API_KEY', 'your-key'),
-  ('CAR_COOPERATIVE_ID', 'your-coop-id');
+```prisma
+model Workspace {
+  // Integração ESG/CAR
+  carApiKey                  String?
+  carCooperativeId           String?
+  esgApiEnabled              Boolean @default(false)
+  esgEnabledForSubworkspaces Boolean @default(false)
+}
 ```
+
+**Interface:** SuperAdmin configura via botão "Integração Socioambiental" na página de workspaces.
 
 ---
 

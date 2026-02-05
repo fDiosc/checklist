@@ -99,6 +99,13 @@ getSubworkspaceFilter(session): Promise<{ workspaceId: string | { in: string[] }
 
 // Verifica se workspace é subworkspace de outro
 isSubworkspaceOf(workspaceId, parentId): Promise<boolean>
+
+// Verifica acesso a workspace considerando hierarquia (async)
+// Permite workspace pai acessar dados de subworkspaces
+hasWorkspaceAccessWithHierarchy(session, targetWorkspaceId): Promise<boolean>
+
+// Verifica acesso simples (sync, sem hierarquia)
+hasWorkspaceAccess(session, workspaceId): boolean
 ```
 
 ### 1.6 Atribuição de Templates a Subworkspaces
