@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -7,8 +7,8 @@ export async function PUT(
     { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -34,17 +34,12 @@ export async function PUT(
 
         if (isInternal) {
             data.isInternal = true;
-            data.filledById = userId;
+            data.filledById = session.user.id;
             if (answer !== undefined) data.answer = answer;
             if (observation !== undefined) data.observation = observation;
             if (quantity !== undefined) data.quantity = quantity;
             if (fileUrl !== undefined) data.fileUrl = fileUrl;
             if (validity !== undefined) data.validity = validity ? new Date(validity) : null;
-            // If internal, we often set it to PENDING_VERIFICATION or APPROVED automatically depending on flow?
-            // User said "produtor envia um doc por email, o usuario validador sobe para o produtor".
-            // So it should probably be PENDING_VERIFICATION so the auditor can then approve it? 
-            // Or just approve it immediately if the auditor is the one filling.
-            // Let's allow the status to be passed, but default to PENDING_VERIFICATION if not provided and isInternal.
             if (!status) data.status = 'PENDING_VERIFICATION';
         }
 
@@ -66,11 +61,18 @@ export async function PUT(
             }
         });
 
+        // Get checklist for workspaceId
+        const checklist = await db.checklist.findUnique({
+            where: { id },
+            select: { workspaceId: true, producerId: true, template: { select: { name: true } } }
+        });
+
         // Create Audit Log
         try {
             await db.auditLog.create({
                 data: {
-                    userId,
+                    userId: session.user.id,
+                    workspaceId: checklist?.workspaceId,
                     checklistId: id,
                     action: isInternal ? `INTERNAL_FILL` : `RESPONSE_${status}`,
                     details: { itemId, status, rejectionReason, isInternal }
@@ -81,43 +83,36 @@ export async function PUT(
         }
 
         // 5. PERMANENT PERSISTENCE SYNC (Auditor Side)
-        if (answer) {
+        if (answer && checklist?.producerId) {
             try {
                 const item = await db.item.findUnique({ where: { id: itemId } });
                 if (item?.type === 'PROPERTY_MAP') {
-                    const checklist = await db.checklist.findUnique({
-                        where: { id },
-                        include: { template: true }
-                    });
-
-                    if (checklist?.producerId) {
-                        try {
-                            const mapData = typeof answer === 'string' ? JSON.parse(answer) : answer;
-                            if (mapData && mapData.fields) {
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                await (db.propertyMap as any).upsert({
-                                    where: { id: `map-${id}-${itemId}` },
-                                    update: {
-                                        fields: mapData.fields,
-                                        propertyLocation: mapData.propertyLocation || null,
-                                        city: mapData.city || null,
-                                        state: mapData.state || null,
-                                        updatedAt: new Date()
-                                    },
-                                    create: {
-                                        id: `map-${id}-${itemId}`,
-                                        producerId: checklist.producerId,
-                                        name: `Mapa do Checklist: ${checklist.template?.name || 'Geral'}`,
-                                        fields: mapData.fields,
-                                        propertyLocation: mapData.propertyLocation || null,
-                                        city: mapData.city || null,
-                                        state: mapData.state || null,
-                                    }
-                                });
-                            }
-                        } catch (e) {
-                            console.error("Map sync error (auditor):", e);
+                    try {
+                        const mapData = typeof answer === 'string' ? JSON.parse(answer) : answer;
+                        if (mapData && mapData.fields) {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            await (db.propertyMap as any).upsert({
+                                where: { id: `map-${id}-${itemId}` },
+                                update: {
+                                    fields: mapData.fields,
+                                    propertyLocation: mapData.propertyLocation || null,
+                                    city: mapData.city || null,
+                                    state: mapData.state || null,
+                                    updatedAt: new Date()
+                                },
+                                create: {
+                                    id: `map-${id}-${itemId}`,
+                                    producerId: checklist.producerId,
+                                    name: `Mapa do Checklist: ${checklist.template?.name || 'Geral'}`,
+                                    fields: mapData.fields,
+                                    propertyLocation: mapData.propertyLocation || null,
+                                    city: mapData.city || null,
+                                    state: mapData.state || null,
+                                }
+                            });
                         }
+                    } catch (e) {
+                        console.error("Map sync error (auditor):", e);
                     }
                 }
             } catch (e) {
@@ -126,10 +121,10 @@ export async function PUT(
         }
 
         return NextResponse.json(response);
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: unknown) {
         console.error("Full error updating response:", err);
-        const errorMessage = err?.message || String(err) || "Unknown error";
-        const errorCode = err?.code || "No code";
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const errorCode = (err as { code?: string })?.code || "No code";
 
         return NextResponse.json(
             {

@@ -5,6 +5,9 @@ import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import { PropertyMapData, GeoPoint, PropertyField } from '@/types/checklist';
 import { calculateAreaInHectares } from '@/lib/geo';
+import { useTranslations } from 'next-intl';
+import GeoFileUpload from './forms/GeoFileUpload';
+import { CountryCode, usesCarIntegration } from '@/lib/countries';
 
 // Dynamic import for Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -34,6 +37,7 @@ interface PropertyMapInputProps {
     readOnly?: boolean;
     mapId?: string;
     hideEsg?: boolean;
+    countryCode?: CountryCode;
 }
 
 interface SearchResult {
@@ -43,9 +47,15 @@ interface SearchResult {
     display_name: string;
 }
 
-const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, readOnly = false, mapId, hideEsg = false }) => {
+const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, readOnly = false, mapId, hideEsg = false, countryCode = 'BR' }) => {
+    const t = useTranslations();
     const [mapData, setMapData] = useState<PropertyMapData>({ fields: [] });
     const [mode, setMode] = useState<'view' | 'set_location' | 'draw_field'>('view');
+    const [drawingType, setDrawingType] = useState<'property' | 'field'>('field'); // Track what we're drawing
+    const [uploadedPolygon, setUploadedPolygon] = useState<GeoPoint[]>([]);
+
+    // Check if this country uses CAR integration
+    const usesCar = usesCarIntegration(countryCode);
     const [currentPolygon, setCurrentPolygon] = useState<GeoPoint[]>([]);
     const [currentFieldName, setCurrentFieldName] = useState('');
     const [center, setCenter] = useState<[number, number]>([-15.7942, -47.8822]);
@@ -278,12 +288,94 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
     const handleMapClick = async (lat: number, lng: number) => {
         if (readOnly) return;
         if (mode === 'set_location') {
-            // New logic: Fetch CAR when setting location
-            await fetchCAR(lat, lng);
-            setMode('view');
+            if (usesCar) {
+                // For Brazil: Fetch CAR when setting location
+                await fetchCAR(lat, lng);
+                setMode('view');
+            } else {
+                // For other countries: Set location AND start drawing property boundary
+                const geoInfo = await fetchReverseGeocode(lat, lng);
+                const newData: PropertyMapData = {
+                    ...mapData,
+                    propertyLocation: { lat, lng },
+                    city: geoInfo.city,
+                    state: geoInfo.state
+                };
+                setMapData(newData);
+                onChange?.(JSON.stringify(newData));
+                saveToProducerHistory(newData);
+                // Start drawing property boundary with this as the first point
+                setDrawingType('property'); // Mark as property boundary drawing
+                setCurrentPolygon([{ lat, lng }]);
+                setMode('draw_field');
+            }
         } else if (mode === 'draw_field') {
             setCurrentPolygon([...currentPolygon, { lat, lng }]);
         }
+    };
+
+    // Handle file upload for non-CAR countries
+    const handleGeoUpload = (geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon, areaHa: number) => {
+        let points: GeoPoint[] = [];
+        let center: { lat: number; lng: number } | undefined;
+
+        if (geometry.type === 'Polygon') {
+            const ring = geometry.coordinates[0];
+            points = ring.map((p) => ({ lat: p[1], lng: p[0] }));
+        } else if (geometry.type === 'MultiPolygon') {
+            const polygon = geometry.coordinates[0];
+            const ring = polygon[0];
+            points = ring.map((p) => ({ lat: p[1], lng: p[0] }));
+        }
+
+        // Calculate center from polygon
+        if (points.length > 0) {
+            const sumLat = points.reduce((acc, p) => acc + p.lat, 0);
+            const sumLng = points.reduce((acc, p) => acc + p.lng, 0);
+            center = { lat: sumLat / points.length, lng: sumLng / points.length };
+        }
+
+        setUploadedPolygon(points);
+
+        if (center) {
+            setCenter([center.lat, center.lng]);
+        }
+
+        // Create a property boundary from the uploaded polygon
+        const newProperty: PropertyField = {
+            id: Date.now().toString(),
+            name: t('propertyMap.importedProperty'),
+            points: points,
+            area: `${areaHa.toFixed(2)} ha`,
+            type: 'property' // Mark as property boundary (white outline)
+        };
+
+        // Keep existing fields (talhões) but replace property boundary
+        const existingFields = mapData.fields.filter(f => f.type === 'field');
+
+        const newData: PropertyMapData = {
+            ...mapData,
+            propertyLocation: center,
+            fields: [newProperty, ...existingFields]
+        };
+
+        setMapData(newData);
+        onChange?.(JSON.stringify(newData));
+    };
+
+    const handleGeoUploadError = (message: string) => {
+        alert(message);
+    };
+
+    const handleClearUpload = () => {
+        setUploadedPolygon([]);
+        const newData: PropertyMapData = {
+            ...mapData,
+            fields: [],
+            propertyLocation: undefined
+        };
+        setMapData(newData);
+        onChange?.(JSON.stringify(newData));
     };
 
     const handleSaveField = async () => {
@@ -304,12 +396,23 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
             id: Date.now().toString(),
             name: currentFieldName,
             points: currentPolygon,
-            area: `${area} ha`
+            area: `${area.toFixed(2)} ha`,
+            type: drawingType // 'property' for farm boundary, 'field' for talhão
         };
+
+        // If drawing property, replace existing property; if field, add to existing
+        let updatedFields: PropertyField[];
+        if (drawingType === 'property') {
+            // Keep only fields (talhões), replace property boundary
+            const existingTalhoes = mapData.fields.filter(f => f.type === 'field');
+            updatedFields = [newField, ...existingTalhoes];
+        } else {
+            updatedFields = [...mapData.fields, newField];
+        }
 
         const newData = {
             ...mapData,
-            fields: [...mapData.fields, newField],
+            fields: updatedFields,
             city,
             state
         };
@@ -318,10 +421,11 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
         saveToProducerHistory(newData);
         setCurrentPolygon([]);
         setCurrentFieldName('');
+        setDrawingType('field'); // Reset to field for next drawing
         setMode('view');
     };
 
-    if (!isMounted) return <div className="h-[500px] bg-gray-100 rounded-3xl animate-pulse flex items-center justify-center text-gray-400 font-bold uppercase tracking-widest">Carregando Mapa...</div>;
+    if (!isMounted) return <div className="h-[500px] bg-gray-100 rounded-3xl animate-pulse flex items-center justify-center text-gray-400 font-bold uppercase tracking-widest">{t('publicChecklist.loadingMap')}</div>;
 
     return (
         <div className="space-y-4 animate-fade-in">
@@ -333,7 +437,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Pesquisar endereço ou fazenda..."
+                                placeholder={t('propertyMap.searchPlaceholder')}
                                 className="w-full pl-12 pr-4 py-5 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
                             />
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -379,27 +483,43 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                     <circle cx="12" cy="12" r="3" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             )}
-                            <span className="text-xs font-black uppercase tracking-widest">{isLocating ? 'Localizando...' : 'Minha Localização'}</span>
+                            <span className="text-xs font-black uppercase tracking-widest">{isLocating ? t('propertyMap.locating') : t('propertyMap.myLocation')}</span>
                         </button>
                     </div>
+
+                    {/* File Upload for non-CAR countries */}
+                    {!usesCar && (
+                        <div className="mb-4">
+                            <GeoFileUpload
+                                onUpload={handleGeoUpload}
+                                onError={handleGeoUploadError}
+                                onClear={handleClearUpload}
+                                hasData={uploadedPolygon.length > 0 || mapData.fields.length > 0}
+                                disabled={readOnly}
+                            />
+                            <p className="text-xs text-gray-400 mt-2 text-center">
+                                {t('propertyMap.upload.orDrawOnMap')}
+                            </p>
+                        </div>
+                    )}
 
                     <div className="flex flex-col md:flex-row gap-3">
                         {mode === 'view' ? (
                             <>
                                 <button
-                                    onClick={() => setMode('draw_field')}
-                                    disabled={!mapData.propertyLocation || !mapData.carCode}
+                                    onClick={() => { setDrawingType('field'); setMode('draw_field'); }}
+                                    disabled={usesCar ? (!mapData.propertyLocation || !mapData.carCode) : false}
                                     className={`flex-1 flex items-center justify-center gap-3 py-4 bg-white border-2 border-dashed rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all
-                                        ${(!mapData.propertyLocation || !mapData.carCode)
+                                        ${(usesCar && (!mapData.propertyLocation || !mapData.carCode))
                                             ? 'border-gray-100 text-gray-300 cursor-not-allowed'
                                             : 'border-gray-200 text-gray-400 hover:border-emerald-500 hover:text-emerald-500'
                                         }`}
-                                    title={(!mapData.propertyLocation || !mapData.carCode) ? "Defina a Sede e o CAR primeiro" : "Desenhar Talhão"}
+                                    title={(usesCar && (!mapData.propertyLocation || !mapData.carCode)) ? t('propertyMap.defineHqFirst') : t('propertyMap.drawField')}
                                 >
                                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path d="M12 2l9 6.75V17.5L12 22l-9-4.5V8.75L12 2z" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
-                                    Desenhar Talhão
+                                    {t('propertyMap.drawField')}
                                 </button>
                                 <button onClick={() => setMode('set_location')} className="flex-1 flex items-center justify-center gap-3 py-4 bg-white border-2 border-dashed border-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:border-emerald-500 hover:text-emerald-500 transition-all">
                                     {isLoadingCAR ? (
@@ -412,13 +532,15 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                     )}
-                                    {isLoadingCAR ? 'Buscando CAR...' : (mapData.propertyLocation ? 'Alterar Propriedade' : 'Marcar Propriedade')}
+                                    {usesCar
+                                        ? (isLoadingCAR ? t('propertyMap.searchingCAR') : (mapData.propertyLocation ? t('propertyMap.changeProperty') : t('propertyMap.markProperty')))
+                                        : (mapData.propertyLocation ? t('propertyMap.redrawProperty') : t('propertyMap.drawProperty'))}
                                 </button>
                             </>
                         ) : (
                             <div className="flex-1 flex items-center justify-between px-6 py-4 bg-emerald-50 rounded-2xl border border-emerald-100 animate-fade-in">
                                 <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                                    {mode === 'set_location' ? 'Clique na Propriedade' : 'Toque os vértices'}
+                                    {mode === 'set_location' ? t('propertyMap.clickOnProperty') : t('propertyMap.touchVertices')}
                                 </span>
                                 <button onClick={() => setMode('view')} className="text-emerald-400 hover:text-red-500">
                                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -430,11 +552,11 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
 
                         {mode === 'draw_field' && (
                             <div className="flex gap-2 animate-slide-up items-center">
-                                <input type="text" placeholder="Nome" value={currentFieldName} onChange={(e) => setCurrentFieldName(e.target.value)} className="w-32 px-4 py-4 bg-gray-50 border-none rounded-2xl text-xs font-bold focus:ring-4 focus:ring-emerald-500/10" />
+                                <input type="text" placeholder={t('propertyMap.name')} value={currentFieldName} onChange={(e) => setCurrentFieldName(e.target.value)} className="w-32 px-4 py-4 bg-gray-50 border-none rounded-2xl text-xs font-bold focus:ring-4 focus:ring-emerald-500/10" />
                                 <button
                                     onClick={() => { setCurrentPolygon([]); setCurrentFieldName(''); }}
                                     className="p-4 text-red-400 hover:text-red-500 transition-colors"
-                                    title="Limpar desenho"
+                                    title={t('propertyMap.clearDrawing')}
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" />
@@ -466,13 +588,22 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                         <Polygon
                             key={field.id}
                             positions={field.points.map((p: GeoPoint) => [p.lat, p.lng])}
-                            pathOptions={{ color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.3, weight: 3 }}
+                            pathOptions={field.type === 'property'
+                                ? { color: 'white', fillColor: 'white', fillOpacity: 0.1, weight: 2 } // Property boundary - white
+                                : { color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.3, weight: 3 } // Talhão - yellow
+                            }
                         />
                     ))}
                     {carPolygon && carPolygon.length > 0 && (
                         <Polygon
                             positions={carPolygon.map((p: GeoPoint) => [p.lat, p.lng])}
                             pathOptions={{ color: 'white', fillColor: 'transparent', fillOpacity: 0, weight: 2 }}
+                        />
+                    )}
+                    {uploadedPolygon && uploadedPolygon.length > 0 && (
+                        <Polygon
+                            positions={uploadedPolygon.map((p: GeoPoint) => [p.lat, p.lng])}
+                            pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.2, weight: 2 }}
                         />
                     )}
                     {currentPolygon.length > 0 && (
@@ -497,7 +628,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                     <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </button>
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4 pr-6">Propriedade</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4 pr-6">{t('propertyMap.property')}</h4>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-2">
@@ -506,13 +637,13 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">Sede</span>
+                                            <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">{t('propertyMap.headquarters')}</span>
                                             {mapData.carCode && (
                                                 <div className="flex flex-col">
                                                     <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">{mapData.carCode}</span>
                                                     {(mapData.carData?.num_area || mapData.carData?.area_ha) && (
                                                         <span className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">
-                                                            Área CAR: {Number(mapData.carData?.num_area || mapData.carData?.area_ha).toLocaleString('pt-BR')} ha
+                                                            {t('propertyMap.carArea')}: {Number(mapData.carData?.num_area || mapData.carData?.area_ha).toLocaleString('pt-BR')} ha
                                                         </span>
                                                     )}
                                                 </div>
@@ -545,7 +676,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                             <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>
                                         <div className="flex flex-col">
-                                            <span className="text-[8px] font-black text-indigo-800 uppercase tracking-widest">Órgão Ambiental</span>
+                                            <span className="text-[8px] font-black text-indigo-800 uppercase tracking-widest">{t('propertyMap.environmentalAgency')}</span>
                                             <span className="text-[9px] font-bold text-indigo-600">{mapData.emeCode}</span>
                                         </div>
                                     </div>
@@ -564,12 +695,12 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                 {mapData.fields.map((field: PropertyField) => (
                                     <div key={field.id} className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                            <svg className={`w-3.5 h-3.5 ${field.type === 'property' ? 'text-gray-400' : 'text-amber-400'}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                                 <path d="M12 2l9 6.75V17.5L12 22l-9-4.5V8.75L12 2z" strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
                                             <div className="flex flex-col flex-1 min-w-0">
                                                 <span className="text-[10px] font-black font-bold text-gray-700 uppercase tracking-widest truncate">{field.name}</span>
-                                                {field.area && <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">{field.area}</span>}
+                                                {field.area && <span className={`text-[8px] font-bold uppercase tracking-widest ${field.type === 'property' ? 'text-gray-400' : 'text-emerald-500'}`}>{field.area}</span>}
                                             </div>
                                         </div>
                                         {!readOnly && (
@@ -605,8 +736,8 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                     </svg>
                                 </div>
                                 <div className="flex flex-col">
-                                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight">Análise Socioambiental</h3>
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Conformidade e Monitoramento</span>
+                                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight">{t('propertyMap.esgAnalysis')}</h3>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('propertyMap.complianceMonitoring')}</span>
                                 </div>
                             </div>
 
@@ -621,7 +752,7 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                     ) : (
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     )}
-                                    {isLoadingEsg ? 'Analisando...' : 'Executar Análise'}
+                                    {isLoadingEsg ? t('checklistManagement.analyzing') : t('propertyMap.runAnalysis')}
                                 </button>
                             )}
                         </div>
@@ -641,16 +772,16 @@ const PropertyMapInput: React.FC<PropertyMapInputProps> = ({ value, onChange, re
                                             ? 'text-emerald-700'
                                             : 'text-red-700'
                                             }`}>
-                                            {mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK' ? 'Situação Regular' : 'Irregularidades Encontradas'}
+                                            {mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK' ? t('propertyMap.regularStatus') : t('propertyMap.irregularitiesFound')}
                                         </span>
                                         <span className={`text-[10px] font-bold uppercase tracking-wider opacity-70 ${mapData.carEsgStatus === 'CONFORME' || mapData.carEsgStatus === 'LIBERADO' || mapData.carEsgStatus === 'OK'
                                             ? 'text-emerald-600'
                                             : 'text-red-600'
                                             }`}>
-                                            Última verificação: Hoje
+                                            {t('propertyMap.lastVerification')}: {t('propertyMap.today')}
                                         </span>
                                     </div>
-                                    <button onClick={handleAnalyzeEsg} disabled={isLoadingEsg} className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="Reanalisar">
+                                    <button onClick={handleAnalyzeEsg} disabled={isLoadingEsg} className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title={t('propertyMap.reanalyze')}>
                                         <svg className={`w-5 h-5 ${isLoadingEsg ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                             <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
                                         </svg>

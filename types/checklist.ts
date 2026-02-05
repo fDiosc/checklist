@@ -17,6 +17,7 @@ export interface PropertyField {
     name: string;
     area?: string; // e.g., "15.5 ha"
     points: GeoPoint[];
+    type?: 'property' | 'field'; // property = farm boundary (white), field = plot/talhão (yellow)
 }
 
 export interface PropertyMapData {

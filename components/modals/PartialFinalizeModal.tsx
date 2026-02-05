@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, CheckCircle2, ListRestart, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface PartialFinalizeModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ interface PartialFinalizeModalProps {
 }
 
 export default function PartialFinalizeModal({ isOpen, onClose, onConfirm, isPending }: PartialFinalizeModalProps) {
+    const t = useTranslations();
     const [createCorrection, setCreateCorrection] = useState(true);
     const [createCompletion, setCreateCompletion] = useState(true);
     const [generateActionPlan, setGenerateActionPlan] = useState(true);
@@ -28,8 +30,8 @@ export default function PartialFinalizeModal({ isOpen, onClose, onConfirm, isPen
                 {/* Header */}
                 <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Finalização Parcial</h2>
-                        <p className="text-sm text-slate-500 font-medium">Capture um status e crie ações corretivas</p>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t('modals.partialFinalize.title')}</h2>
+                        <p className="text-sm text-slate-500 font-medium">{t('modals.partialFinalize.description')}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
                         <X size={20} />
@@ -49,9 +51,9 @@ export default function PartialFinalizeModal({ isOpen, onClose, onConfirm, isPen
                             <ListRestart size={20} />
                         </div>
                         <div className="flex-1">
-                            <h3 className={cn("font-bold text-sm", createCorrection ? "text-red-900" : "text-slate-700")}>Gerar Checklist de Correção</h3>
+                            <h3 className={cn("font-bold text-sm", createCorrection ? "text-red-900" : "text-slate-700")}>{t('modals.partialFinalize.correction')}</h3>
                             <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                                Inclui apenas os itens que foram <strong>rejeitados</strong> nesta análise.
+                                {t('modals.partialFinalize.correctionDesc')}
                             </p>
                         </div>
                         <div className={cn(
@@ -73,9 +75,9 @@ export default function PartialFinalizeModal({ isOpen, onClose, onConfirm, isPen
                             <ListRestart size={20} />
                         </div>
                         <div className="flex-1">
-                            <h3 className={cn("font-bold text-sm", createCompletion ? "text-indigo-900" : "text-slate-700")}>Gerar Checklist de Complemento</h3>
+                            <h3 className={cn("font-bold text-sm", createCompletion ? "text-indigo-900" : "text-slate-700")}>{t('modals.partialFinalize.completion')}</h3>
                             <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                                Inclui os itens que <strong>não foram respondidos</strong> ou estão pendentes.
+                                {t('modals.partialFinalize.completionDesc')}
                             </p>
                         </div>
                         <div className={cn(
@@ -97,9 +99,9 @@ export default function PartialFinalizeModal({ isOpen, onClose, onConfirm, isPen
                             <Sparkles size={20} />
                         </div>
                         <div className="flex-1">
-                            <h3 className={cn("font-bold text-sm", generateActionPlan ? "text-emerald-900" : "text-slate-700")}>Gerar Plano de Ação (IA)</h3>
+                            <h3 className={cn("font-bold text-sm", generateActionPlan ? "text-emerald-900" : "text-slate-700")}>{t('modals.partialFinalize.actionPlan')}</h3>
                             <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                                Inteligência Artificial analisará as falhas e criará um guia de correção.
+                                {t('modals.partialFinalize.actionPlanDesc')}
                             </p>
                         </div>
                         <div className={cn(
@@ -117,14 +119,14 @@ export default function PartialFinalizeModal({ isOpen, onClose, onConfirm, isPen
                         onClick={onClose}
                         className="flex-1 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={() => onConfirm({ createCorrection, createCompletion, generateActionPlan })}
                         disabled={isPending || (!createCorrection && !createCompletion)}
                         className="flex-1 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                     >
-                        {isPending ? <Loader2 className="animate-spin" size={18} /> : "Finalizar Parcial"}
+                        {isPending ? <Loader2 className="animate-spin" size={18} /> : t('modals.partialFinalize.confirm')}
                     </button>
                 </div>
             </div>

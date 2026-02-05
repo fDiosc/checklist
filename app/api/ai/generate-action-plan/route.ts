@@ -17,9 +17,16 @@ interface ActionPlanResponse {
     }>;
 }
 
+// Language instructions for AI responses
+const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+    'pt-BR': 'Responda em Português do Brasil.',
+    'en': 'Respond in English.',
+    'es': 'Responde en Español.'
+};
+
 export async function POST(req: Request) {
     try {
-        const { checklistId } = await req.json();
+        const { checklistId, locale = 'pt-BR' } = await req.json();
 
         // Fetch checklist with ALL responses (not just rejected)
         const checklist = await db.checklist.findUnique({
@@ -127,7 +134,7 @@ export async function POST(req: Request) {
         // - "plano-de-acao-completion" for COMPLETION
 
         if (template.actionPlanPromptId) {
-            const basePrompt = await db.aiPrompt.findUnique({
+            const basePrompt = await db.aiPrompt.findFirst({
                 where: { id: template.actionPlanPromptId }
             });
 
@@ -136,7 +143,7 @@ export async function POST(req: Request) {
                 if (typeSuffix) {
                     // Try to find type-specific variant
                     const variantSlug = basePrompt.slug + typeSuffix;
-                    const variantPrompt = await db.aiPrompt.findUnique({
+                    const variantPrompt = await db.aiPrompt.findFirst({
                         where: { slug: variantSlug }
                     });
                     promptConfig = variantPrompt || basePrompt;
@@ -151,13 +158,13 @@ export async function POST(req: Request) {
             const defaultSuffix = isCorrection ? '-correction' : isCompletion ? '-completion' : '';
             const defaultSlug = 'generate-action-plan-default' + defaultSuffix;
 
-            promptConfig = await db.aiPrompt.findUnique({
+            promptConfig = await db.aiPrompt.findFirst({
                 where: { slug: defaultSlug }
             });
 
             // Ultimate fallback
             if (!promptConfig) {
-                promptConfig = await db.aiPrompt.findUnique({
+                promptConfig = await db.aiPrompt.findFirst({
                     where: { slug: 'generate-action-plan-default' }
                 });
             }
@@ -187,7 +194,12 @@ export async function POST(req: Request) {
             .replace('{{pendingItems}}', JSON.stringify(relevantItems, null, 2))
             .replace('{{items}}', JSON.stringify(relevantItems, null, 2));
 
+        // Add language instruction based on locale
+        const languageInstruction = LANGUAGE_INSTRUCTIONS[locale] || LANGUAGE_INSTRUCTIONS['pt-BR'];
+        prompt = `${languageInstruction}\n\n${prompt}`;
+
         console.log("=== ACTION PLAN GENERATION ===");
+        console.log("Locale:", locale);
         console.log("Type:", checklistType);
         console.log("Prompt slug:", promptConfig.slug);
         console.log("Items count:", relevantItems.length);

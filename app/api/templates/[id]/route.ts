@@ -1,7 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { hasWorkspaceAccess } from "@/lib/workspace-context";
 
 const updateTemplateSchema = z.object({
     name: z.string().min(1),
@@ -19,9 +20,9 @@ export async function GET(
     try {
         const params = await props.params;
         const { id } = params;
-        const { userId } = await auth();
+        const session = await auth();
 
-        if (!userId) {
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -46,12 +47,17 @@ export async function GET(
             return NextResponse.json({ error: "Template not found" }, { status: 404 });
         }
 
+        // Check workspace access
+        if (!hasWorkspaceAccess(session, template.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         return NextResponse.json(template);
-        return NextResponse.json(template);
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("GET Template Error:", error?.message || error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("GET Template Error:", errorMessage);
         return NextResponse.json(
-            { error: "Internal server error", details: error?.message },
+            { error: "Internal server error", details: errorMessage },
             { status: 500 }
         );
     }
@@ -64,9 +70,9 @@ export async function PATCH(
     try {
         const params = await props.params;
         const { id } = params;
-        const { userId } = await auth();
+        const session = await auth();
 
-        if (!userId) {
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -82,9 +88,12 @@ export async function PATCH(
             return NextResponse.json({ error: "Template not found" }, { status: 404 });
         }
 
+        // Check workspace access
+        if (!hasWorkspaceAccess(session, templateUsage.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const isUsed = templateUsage._count.checklists > 0;
-
-
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updatedTemplate = await db.$transaction(async (tx: any) => {
@@ -137,12 +146,13 @@ export async function PATCH(
         });
 
         return NextResponse.json(updatedTemplate);
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("PATCH Template Error:", error?.message || error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("PATCH Template Error:", errorMessage);
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 });
         }
-        return NextResponse.json({ error: "Internal server error", details: error?.message }, { status: 500 });
+        return NextResponse.json({ error: "Internal server error", details: errorMessage }, { status: 500 });
     }
 }
 
@@ -153,9 +163,9 @@ export async function DELETE(
     try {
         const params = await props.params;
         const { id } = params;
-        const { userId } = await auth();
+        const session = await auth();
 
-        if (!userId) {
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -169,6 +179,11 @@ export async function DELETE(
             return NextResponse.json({ error: "Template not found" }, { status: 404 });
         }
 
+        // Check workspace access
+        if (!hasWorkspaceAccess(session, template.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         if (template._count.checklists > 0) {
             return NextResponse.json(
                 { error: "Não é possível excluir um template que já foi utilizado em checklists" },
@@ -180,10 +195,11 @@ export async function DELETE(
         await db.template.delete({ where: { id } });
 
         return NextResponse.json({ success: true });
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("DELETE Template Error:", error?.message || error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("DELETE Template Error:", errorMessage);
         return NextResponse.json(
-            { error: "Internal server error", details: error?.message },
+            { error: "Internal server error", details: errorMessage },
             { status: 500 }
         );
     }

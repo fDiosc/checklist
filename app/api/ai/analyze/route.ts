@@ -2,13 +2,20 @@ import { GoogleGenAI } from "@google/genai";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+// Language instructions for AI responses
+const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+    'pt-BR': 'Responda em Português do Brasil.',
+    'en': 'Respond in English.',
+    'es': 'Responde en Español.'
+};
+
 export async function POST(req: Request) {
     try {
-        const { checklistId, itemId, userAnswer, userObservation, itemName, itemDescription, fieldId } = await req.json();
+        const { checklistId, itemId, userAnswer, userObservation, itemName, itemDescription, fieldId, locale = 'pt-BR' } = await req.json();
 
         // Fetch prompt config
         // In a real app we might cache this or use a singleton
-        const promptConfig = await db.aiPrompt.findUnique({
+        const promptConfig = await db.aiPrompt.findFirst({
             where: { slug: 'analyze-checklist-item' }
         });
 
@@ -62,9 +69,8 @@ export async function POST(req: Request) {
         // Real AI Call
         const ai = new GoogleGenAI({ apiKey });
 
-        // Use stable Gemini 2.5 Flash as requested (Production Ready)
-        // This gives better reasoning than 1.5 but is faster than Pro.
-        let modelName = 'gemini-2.5-flash';
+        // Use Gemini 3 Flash as requested
+        let modelName = 'gemini-3-flash-preview';
 
         if (promptConfig.model && promptConfig.model.trim().length > 0) {
             const dbModel = promptConfig.model.toLowerCase();
@@ -80,6 +86,9 @@ export async function POST(req: Request) {
         // Safe Fallback logic for Experimental Models
         // If 2.0/3.0 fails (404), fallback to 1.5 Flash
 
+        // Add language instruction based on locale
+        const languageInstruction = LANGUAGE_INSTRUCTIONS[locale] || LANGUAGE_INSTRUCTIONS['pt-BR'];
+
         const prompt = promptConfig.template
             .replace('{{itemName}}', itemName)
             .replace('{{itemDescription}}', itemDescription || '')
@@ -87,7 +96,7 @@ export async function POST(req: Request) {
             .replace('{{userObservation}}', userObservation || 'Nenhuma');
 
         // Handle Image content if answer looks like URL
-        let finalPrompt = prompt;
+        let finalPrompt = `${languageInstruction}\n\n${prompt}`;
 
         // HALLUCINATION FIX: Detect JSON/Map Data
         if (userAnswer && (userAnswer.trim().startsWith('[') || userAnswer.trim().startsWith('{'))) {

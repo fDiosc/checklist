@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -34,21 +33,32 @@ SAÍDA OBRIGATÓRIA (JSON puro, sem markdown):
 }
 `.trim();
 
-    await prisma.aiPrompt.upsert({
-        where: { slug: 'analyze-checklist-item' },
-        update: {
-            template: template,
-            model: 'gemini-1.5-flash', // Force 1.5 logic as default
-            temperature: 0.1
-        },
-        create: {
-            slug: 'analyze-checklist-item',
-            description: 'Prompt Otimizado para Análise Técnica e JSON',
-            model: 'gemini-1.5-flash',
-            temperature: 0.1,
-            template: template
-        }
+    // Find existing global prompt
+    const existing = await prisma.aiPrompt.findFirst({
+        where: { slug: 'analyze-checklist-item', workspaceId: null }
     });
+
+    if (existing) {
+        await prisma.aiPrompt.update({
+            where: { id: existing.id },
+            data: {
+                template: template,
+                model: 'gemini-3-flash-preview',
+                temperature: 0.1
+            }
+        });
+    } else {
+        await prisma.aiPrompt.create({
+            data: {
+                slug: 'analyze-checklist-item',
+                workspaceId: null,
+                description: 'Prompt Otimizado para Análise Técnica e JSON',
+                model: 'gemini-3-flash-preview',
+                temperature: 0.1,
+                template: template
+            }
+        });
+    }
 
     console.log('✅ Prompt "analyze-checklist-item" updated successfully!');
 }

@@ -1,20 +1,26 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getWorkspaceFilter } from "@/lib/workspace-context";
 
 export async function GET() {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const workspaceFilter = getWorkspaceFilter(session);
+
         const [producersCount, templatesCount, checklistsCount, finalizedChecklistsCount] = await Promise.all([
-            db.producer.count(),
-            db.template.count(),
-            db.checklist.count(),
+            db.producer.count({ where: workspaceFilter }),
+            db.template.count({ where: workspaceFilter }),
+            db.checklist.count({ where: workspaceFilter }),
             db.checklist.count({
-                where: { status: 'FINALIZED' } // Assuming 'FINALIZED' is the status enum value
+                where: { 
+                    ...workspaceFilter,
+                    status: 'FINALIZED' 
+                }
             })
         ]);
 

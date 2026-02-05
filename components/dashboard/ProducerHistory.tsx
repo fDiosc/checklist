@@ -5,12 +5,15 @@ import { Calendar, MapPin, ClipboardList, ExternalLink, Loader2, ChevronDown, Ch
 import Link from 'next/link';
 import React, { useState } from 'react';
 import PropertyMapInput from '@/components/PropertyMapInput';
+import { useTranslations, useFormatter } from 'next-intl';
 
 interface ProducerHistoryProps {
     producerId: string;
 }
 
 export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
+    const t = useTranslations();
+    const format = useFormatter();
     const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
 
     const { data: producer, isLoading } = useQuery({
@@ -26,7 +29,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
         return (
             <div className="flex items-center justify-center py-12 gap-3">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Carregando Histórico...</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('producer.loadingHistory')}</span>
             </div>
         );
     }
@@ -42,7 +45,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                         <div className="p-2 bg-primary/10 rounded-lg">
                             <ClipboardList className="w-4 h-4 text-primary" />
                         </div>
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Checklists Respondidos</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('producer.checklistsAnswered')}</h3>
                         <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md text-[9px] font-black">
                             {producer.checklists?.length || 0}
                         </span>
@@ -62,7 +65,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                                         <div className="flex items-center gap-2 text-slate-400">
                                             <Calendar className="w-3.5 h-3.5" />
                                             <span className="text-[10px] font-bold uppercase tracking-wider">
-                                                Última interação: {new Date(checklist.updatedAt).toLocaleDateString('pt-BR')}
+                                                {t('producer.lastInteraction')}: {format.dateTime(new Date(checklist.updatedAt), { dateStyle: 'short' })}
                                             </span>
                                         </div>
                                     </div>
@@ -73,7 +76,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                             ))
                         ) : (
                             <div className="py-8 text-center bg-white/50 border-2 border-dashed border-slate-200 rounded-[2rem]">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhum checklist respondido</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('producer.noChecklistsAnswered')}</p>
                             </div>
                         )}
                     </div>
@@ -85,9 +88,9 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                         <div className="p-2 bg-emerald-500/10 rounded-lg">
                             <MapPin className="w-4 h-4 text-emerald-500" />
                         </div>
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Propriedades Mapeadas</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('producer.mappedProperties')}</h3>
                         <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md text-[9px] font-black">
-                            {producer.maps?.length || 0} Mapas
+                            {producer.maps?.length || 0} {t('producer.maps')}
                         </span>
                     </div>
 
@@ -108,7 +111,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                                         </div>
                                         <div className="space-y-1 flex-1 min-w-0">
                                             <h4 className="font-black text-slate-900 uppercase tracking-tighter truncate">
-                                                {map.name || 'Sede não definida'}
+                                                {map.name || t('producer.noHeadquarters')}
                                             </h4>
                                             <div className="flex flex-col gap-0.5">
                                                 {map.city && (
@@ -165,7 +168,7 @@ export default function ProducerHistory({ producerId }: ProducerHistoryProps) {
                             ))
                         ) : (
                             <div className="py-8 text-center bg-white/50 border-2 border-dashed border-slate-200 rounded-[2rem]">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nenhuma propriedade mapeada</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('producer.noPropertiesMapped')}</p>
                             </div>
                         )}
                     </div>

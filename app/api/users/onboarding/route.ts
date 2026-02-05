@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
@@ -11,30 +11,39 @@ const onboardingSchema = z.object({
 
 export async function POST(req: Request) {
     try {
-        const authData = await auth();
-        const userId = authData.userId;
-        const sessionClaims = authData.sessionClaims;
-
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const body = await req.json();
         const validatedData = onboardingSchema.parse(body);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const email = (sessionClaims as any)?.email;
+        // Get current user to find their workspace
+        const currentUser = await db.user.findUnique({
+            where: { id: session.user.id },
+            select: { workspaceId: true }
+        });
 
-        const updatedUser = await db.user.upsert({
-            where: { id: userId },
-            create: {
-                id: userId,
-                email: email || `${userId}@clerk.user`,
-                name: validatedData.name,
+        // Check if CPF already exists in the same workspace
+        const existingUser = await db.user.findFirst({
+            where: {
                 cpf: validatedData.cpf,
-                role: "SUPERVISOR",
-            },
-            update: {
+                workspaceId: currentUser?.workspaceId,
+                id: { not: session.user.id } // Exclude current user
+            }
+        });
+
+        if (existingUser) {
+            return NextResponse.json(
+                { error: "Este CPF já está cadastrado neste workspace." },
+                { status: 400 }
+            );
+        }
+
+        const updatedUser = await db.user.update({
+            where: { id: session.user.id },
+            data: {
                 name: validatedData.name,
                 cpf: validatedData.cpf,
             },
@@ -44,13 +53,10 @@ export async function POST(req: Request) {
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             if (error.code === 'P2002') {
-                const target = (error.meta?.target as string[]) || [];
-                if (target.includes('cpf')) {
-                    return NextResponse.json(
-                        { error: "Este CPF já está cadastrado em outra conta." },
-                        { status: 400 }
-                    );
-                }
+                return NextResponse.json(
+                    { error: "Este CPF já está cadastrado neste workspace." },
+                    { status: 400 }
+                );
             }
         }
 

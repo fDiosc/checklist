@@ -1,27 +1,26 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
+import { getWorkspaceFilter, isAdmin } from "@/lib/workspace-context";
 
 export async function GET() {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Check if current user is ADMIN
-        const currentUser = await db.user.findUnique({
-            where: { id: userId },
-            select: { role: true }
-        });
-
-        if (currentUser?.role !== UserRole.ADMIN) {
+        // Check if current user is ADMIN or SUPERADMIN
+        if (!isAdmin(session)) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
+        const workspaceFilter = getWorkspaceFilter(session);
+
         const supervisors = await db.user.findMany({
             where: {
+                ...workspaceFilter,
                 role: UserRole.SUPERVISOR
             },
             include: {
@@ -50,18 +49,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const { userId: currentUserId } = await auth();
-        if (!currentUserId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Check if current user is ADMIN
-        const currentUser = await db.user.findUnique({
-            where: { id: currentUserId },
-            select: { role: true }
-        });
-
-        if (currentUser?.role !== UserRole.ADMIN) {
+        // Check if current user is ADMIN or SUPERADMIN
+        if (!isAdmin(session)) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

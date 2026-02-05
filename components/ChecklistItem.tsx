@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { DocumentItem } from '@/types/checklist';
 import PropertyMapInput from './PropertyMapInput';
 import CameraCapture from './CameraCapture';
-
 import FieldSelectorInput from './FieldSelectorInput';
+import { useTranslations } from 'next-intl';
+import { CountryCode } from '@/lib/countries';
 
 interface ChecklistItemProps {
     item: DocumentItem;
@@ -15,6 +16,7 @@ interface ChecklistItemProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     producerMaps?: any[];
     readOnly?: boolean;
+    countryCode?: CountryCode;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({
@@ -23,8 +25,10 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
     onUpdate,
     producerIdentifier,
     producerMaps,
-    readOnly = false
+    readOnly = false,
+    countryCode = 'BR'
 }) => {
+    const t = useTranslations();
     const [showCamera, setShowCamera] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [dbOptions, setDbOptions] = useState<any[]>([]);
@@ -59,7 +63,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <span className="text-[10px] font-black uppercase tracking-widest">Anexar Comprovante</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{t('publicChecklist.attachFile')}</span>
                 </div>
 
                 {item.fileUrl ? (
@@ -67,7 +71,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                             <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-xs font-bold truncate max-w-[150px]">Arquivo Enviado</span>
+                        <span className="text-xs font-bold truncate max-w-[150px]">{t('publicChecklist.fileUploaded')}</span>
                         <button onClick={() => onUpdate({ fileUrl: '' })} className="ml-2 hover:text-red-500 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -80,7 +84,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             onClick={() => document.getElementById(`file-${uniqueId}`)?.click()}
                             className="bg-white border text-gray-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all"
                         >
-                            Arquivo
+                            {t('publicChecklist.file')}
                         </button>
                         <button
                             onClick={() => setShowCamera(true)}
@@ -90,7 +94,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                                 <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />
                                 <circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            Câmera
+                            {t('publicChecklist.camera')}
                         </button>
                         <input
                             id={`file-${uniqueId}`}
@@ -136,7 +140,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                                     }}
                                     className="w-full appearance-none p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] text-xl font-bold outline-none shadow-sm text-slate-900 transition-all focus:bg-white focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500"
                                 >
-                                    <option value="">Selecione uma opção...</option>
+                                    <option value="">{t('publicChecklist.selectOption')}</option>
                                     {options.map((opt, i) => (
                                         <option key={i} value={opt}>{opt}</option>
                                     ))}
@@ -152,7 +156,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                         {item.askForQuantity && item.answer && (
                             <div className="p-8 bg-emerald-50/50 rounded-[2.5rem] border-2 border-emerald-100 flex flex-col gap-4 animate-fade-in">
                                 <label className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] flex flex-col gap-1">
-                                    <span>{item.databaseSource ? 'Dose' : `Quantidade de ${item.answer}`}</span>
+                                    <span>{item.databaseSource ? t('publicChecklist.dose') : `${t('publicChecklist.quantity')} ${item.answer}`}</span>
                                     {dbOptions.find(o => o.label === item.answer)?.composition && (
                                         <span className="text-xs font-bold text-emerald-700 italic">
                                             ({dbOptions.find(o => o.label === item.answer)?.composition})
@@ -250,7 +254,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     value={item.answer as string || ''}
                     onChange={(e) => onUpdate({ answer: e.target.value })}
                     className="w-full h-64 p-8 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] text-xl font-bold outline-none resize-none shadow-sm text-slate-900 transition-all focus:bg-white focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500"
-                    placeholder="Digite sua resposta detalhada..."
+                    placeholder={t('publicChecklist.typeDetailedAnswer')}
                 />
             );
 
@@ -259,6 +263,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     value={item.answer as string || ''}
                     onChange={(val) => onUpdate({ answer: val })}
                     readOnly={readOnly}
+                    countryCode={countryCode}
                 />
             );
 
@@ -297,7 +302,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                         </div>
                     )}
                 </div>
-                {item.required && <span className="self-start md:self-auto bg-red-50 text-red-500 px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest border-2 border-red-100/50 shadow-sm animate-bounce-slow">Obrigatório</span>}
+                {item.required && <span className="self-start md:self-auto bg-red-50 text-red-500 px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest border-2 border-red-100/50 shadow-sm animate-bounce-slow">{t('publicChecklist.required')}</span>}
             </div>
 
             <div className="space-y-12">
@@ -309,12 +314,12 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <path d="M17 10H3M21 6H3M21 14H3M17 18H3" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Observações Extras</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">{t('publicChecklist.observations')}</span>
                         </div>
                         <textarea
                             value={item.observationValue || ''}
                             onChange={(e) => onUpdate({ observationValue: e.target.value })}
-                            placeholder="Algum comentário ou ressalva?"
+                            placeholder={t('publicChecklist.observationsPlaceholder')}
                             className="w-full h-32 bg-gray-50 border-none rounded-2xl p-6 font-medium outline-none resize-none shadow-inner text-slate-800 transition-all focus:bg-white"
                         />
                     </div>
@@ -326,7 +331,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <rect width="18" height="18" x="3" y="4" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Controle de Validade</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">{t('publicChecklist.validityControl')}</span>
                         </div>
                         <input
                             type="date"
@@ -335,7 +340,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             onChange={(e) => onUpdate({ validity: e.target.value as any })}
                             className="w-full p-4 bg-white rounded-xl font-bold outline-none border-2 border-indigo-100 focus:border-indigo-500 text-indigo-900 transition-all"
                         />
-                        <p className="mt-3 text-[10px] font-bold text-indigo-400 italic">Este documento possui prazo de expiração monitorado.</p>
+                        <p className="mt-3 text-[10px] font-bold text-indigo-400 italic">{t('publicChecklist.validityDescription')}</p>
                     </div>
                 )}
             </div>

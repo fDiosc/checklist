@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/auth';
 import { sendWhatsAppMessage } from '@/lib/evolution';
+
+// WhatsApp message templates per locale
+const WHATSAPP_TEMPLATES: Record<string, (name: string, templateName: string, link: string) => string> = {
+    'pt-BR': (name, templateName, link) => 
+        `Olá ${name}! 👋\n\nSiga o link abaixo para preencher o checklist *${templateName}*:\n\n${link}\n\nObrigado!`,
+    'en': (name, templateName, link) => 
+        `Hello ${name}! 👋\n\nFollow the link below to fill out the checklist *${templateName}*:\n\n${link}\n\nThank you!`,
+    'es': (name, templateName, link) => 
+        `Hola ${name}! 👋\n\nSigue el enlace a continuación para completar el checklist *${templateName}*:\n\n${link}\n\n¡Gracias!`
+};
 
 export async function POST(
     req: NextRequest,
@@ -9,9 +19,20 @@ export async function POST(
 ) {
     try {
         const { id: checklistId } = await params;
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return new NextResponse('Unauthorized', { status: 401 });
+        }
+
+        // Parse optional locale from request body
+        let locale = 'pt-BR';
+        try {
+            const body = await req.json().catch(() => ({}));
+            if (body.locale && WHATSAPP_TEMPLATES[body.locale]) {
+                locale = body.locale;
+            }
+        } catch {
+            // No body, use default locale
         }
 
         // Buscar checklist com produtor
@@ -36,7 +57,12 @@ export async function POST(
         }
 
         const publicLink = `${process.env.NEXT_PUBLIC_APP_URL}/c/${checklist.publicToken}`;
-        const message = `Olá ${checklist.producer?.name}! 👋\n\nSiga o link abaixo para preencher o checklist *${checklist.template.name}*:\n\n${publicLink}\n\nObrigado!`;
+        const messageTemplate = WHATSAPP_TEMPLATES[locale] || WHATSAPP_TEMPLATES['pt-BR'];
+        const message = messageTemplate(
+            checklist.producer?.name || 'Produtor',
+            checklist.template.name,
+            publicLink
+        );
 
         // Enviar mensagem via Evolution API
         await sendWhatsAppMessage(phone, message);

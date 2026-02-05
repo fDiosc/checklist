@@ -1,7 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { getWorkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
 
 const createTemplateSchema = z.object({
     name: z.string().min(1),
@@ -43,41 +44,25 @@ const createTemplateSchema = z.object({
 
 export async function POST(req: Request) {
     try {
-        const { userId, sessionClaims } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Ensure user exists in our DB
-        // sessionClaims might contain name/email if configured, otherwise use defaults
-        // sessionClaims might contain name/email if configured, otherwise use defaults
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const email = (sessionClaims as any)?.email || "";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const name = (sessionClaims as any)?.name || (sessionClaims as any)?.fullName || "";
-
-        await db.user.upsert({
-            where: { id: userId },
-            update: {},
-            create: {
-                id: userId,
-                email: email || `${userId}@clerk.user`,
-                name: name || "User",
-            },
-        });
-
+        const workspaceId = getCreateWorkspaceId(session);
         const body = await req.json();
         const validatedData = createTemplateSchema.parse(body);
 
         const template = await db.template.create({
             data: {
+                workspaceId,
                 name: validatedData.name,
                 folder: validatedData.folder,
                 requiresProducerIdentification:
                     validatedData.requiresProducerIdentification ?? false,
                 isContinuous: validatedData.isContinuous ?? false,
                 actionPlanPromptId: validatedData.actionPlanPromptId,
-                createdById: userId,
+                createdById: session.user.id,
                 sections: {
                     create: validatedData.sections.map((section, sIdx) => ({
                         name: section.name,
@@ -110,8 +95,8 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json(template);
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("Error creating template:", err?.message || err);
+    } catch (err: unknown) {
+        console.error("Error creating template:", err instanceof Error ? err.message : err);
 
         if (err instanceof z.ZodError) {
             return NextResponse.json(
@@ -132,23 +117,25 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const workspaceFilter = getWorkspaceFilter(session);
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
 
         const templates = await db.template.findMany({
-            where: search
-                ? {
+            where: {
+                ...workspaceFilter,
+                ...(search ? {
                     OR: [
                         { name: { contains: search, mode: "insensitive" } },
                         { folder: { contains: search, mode: "insensitive" } },
                     ],
-                }
-                : undefined,
+                } : {}),
+            },
             include: {
                 _count: {
                     select: { checklists: true, sections: true },

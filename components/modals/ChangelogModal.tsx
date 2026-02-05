@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
@@ -10,6 +10,123 @@ interface ChangelogModalProps {
 }
 
 const releases = [
+    {
+        version: "V 0.3.0",
+        date: "02 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Multi-tenancy",
+                description: "Workspaces isolados para diferentes organizações com dados completamente segregados.",
+                icon: Building2,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Autenticação Própria",
+                description: "Sistema de login com email/senha substituindo Clerk. Maior controle e segurança.",
+                icon: Shield,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Gerenciamento de Usuários",
+                description: "Crie e gerencie usuários por workspace. ADMINs podem criar outros ADMINs, Supervisores e Produtores.",
+                icon: Users,
+                color: "text-amber-500",
+                bg: "bg-amber-50/50"
+            },
+            {
+                title: "Logo Dinâmica",
+                description: "Cada workspace pode ter sua própria logo e nome exibidos no dashboard.",
+                icon: Palette,
+                color: "text-red-500",
+                bg: "bg-red-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "Primeiro acesso agora exige alteração de senha para maior segurança." },
+            { text: "CPF agora é único apenas dentro do mesmo workspace." },
+            { text: "Toggle de mostrar/esconder senha nas telas de login e alteração." }
+        ]
+    },
+    {
+        version: "V 0.1.0",
+        date: "02 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Produtores Internacionais",
+                description: "Cadastro de produtores de múltiplos países com documentos dinâmicos (CPF, DNI, SSN).",
+                icon: Globe,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Upload de Propriedades",
+                description: "Importe arquivos KML ou GeoJSON para definir limites de propriedade automaticamente.",
+                icon: Upload,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Desenho no Mapa",
+                description: "Para países sem CAR, desenhe o polígono da propriedade diretamente no mapa.",
+                icon: MapPin,
+                color: "text-amber-500",
+                bg: "bg-amber-50/50"
+            },
+            {
+                title: "Hierarquia Visual",
+                description: "Fazendas em branco, talhões em amarelo. Distinção clara entre propriedade e subdivisões.",
+                icon: Palette,
+                color: "text-red-500",
+                bg: "bg-red-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "DNI agora exibido corretamente ao editar produtor argentino." },
+            { text: "Identificação correta na tabela de produtores para todos os países." },
+            { text: "Análise ESG desativada para produtores internacionais." }
+        ]
+    },
+    {
+        version: "V 0.0.9",
+        date: "02 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Internacionalização (i18n)",
+                description: "Suporte completo a Português, Inglês e Espanhol com roteamento por URL.",
+                icon: Languages,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Gemini 3 Flash",
+                description: "Modelo de IA atualizado para gemini-3-flash-preview com performance superior.",
+                icon: Zap,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Portal Traduzido",
+                description: "Portal do produtor e formulário público totalmente traduzidos.",
+                icon: Globe,
+                color: "text-amber-500",
+                bg: "bg-amber-50/50"
+            },
+            {
+                title: "Status Dinâmicos",
+                description: "Labels de status traduzidos automaticamente conforme o idioma selecionado.",
+                icon: LayoutList,
+                color: "text-red-500",
+                bg: "bg-red-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "Correção de função getPortalStatusInfo não definida no portal." },
+            { text: "Hook useTranslations inicializado corretamente em todos os componentes." },
+            { text: "Prompt de IA inserido automaticamente no banco de dados." }
+        ]
+    },
     {
         version: "V 0.0.8",
         date: "28 de Janeiro, 2026",

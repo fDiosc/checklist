@@ -9,30 +9,59 @@ datasource db {
 }
 
 // ============================================
-// USERS & AUTH (synced from Clerk)
+// WORKSPACES (Multi-tenancy)
+// ============================================
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?  @map("logo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users      User[]
+  producers  Producer[]
+  templates  Template[]
+  checklists Checklist[]
+  auditLogs  AuditLog[]
+  aiPrompts  AiPrompt[]
+
+  @@map("workspaces")
+}
+
+// ============================================
+// USERS & AUTH
 // ============================================
 
 enum UserRole {
-  ADMIN
-  SUPERVISOR
-  PRODUCER
+  SUPERADMIN  // Global admin - manages workspaces and global users
+  ADMIN       // Workspace admin - full access within workspace
+  SUPERVISOR  // Can manage assigned producers
+  PRODUCER    // Producer access only
 }
 
 model User {
-  id        String   @id
-  email     String   @unique
-  name      String?
-  cpf       String?  @unique
-  role      UserRole @default(SUPERVISOR)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String?
+  passwordHash       String    @map("password_hash")
+  mustChangePassword Boolean   @default(true) @map("must_change_password")
+  cpf                String?
+  role               UserRole  @default(SUPERVISOR)
+  workspaceId        String?   @map("workspace_id")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
+  workspace         Workspace? @relation(fields: [workspaceId], references: [id])
   templatesCreated  Template[]
   checklistsCreated Checklist[]
   auditLogs         AuditLog[]
   internalResponses Response[] @relation("InternalResponses")
   assignedProducers Producer[] @relation("SupervisorProducers")
   
+  @@unique([cpf, workspaceId]) // CPF unique within workspace
+  @@index([workspaceId])
   @@map("users")
 }
 
@@ -41,28 +70,71 @@ model User {
 // ============================================
 
 model Producer {
-  id        String   @id @default(cuid())
-  name      String
-  cpf       String   @unique
-  email     String?
-  phone     String?
-  city      String?
-  state     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  countryCode String   @default("BR")
+  subjectType String   @default("person") // person | org
+  
+  // Legacy BR fields (kept for backward compatibility)
+  cpf         String?  @unique
+  email       String?
+  phone       String?
+  city        String?
+  state       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  subUsers          SubUser[]
-  checklists        Checklist[]
-  maps              PropertyMap[]
+  workspace            Workspace @relation(fields: [workspaceId], references: [id])
+  subUsers             SubUser[]
+  checklists           Checklist[]
+  maps                 PropertyMap[]
   assignedSupervisors  User[]        @relation("SupervisorProducers")
   
+  // ESG (Brazil-specific)
   esgStatus    String?
   esgData      Json?
   esgLastCheck DateTime?
 
+  // International support
+  identifiers          ProducerIdentifier[]
+  agriculturalRegistry AgriculturalRegistry?
+
+  @@index([workspaceId])
   @@index([cpf])
   @@index([email])
+  @@index([countryCode])
   @@map("producers")
+}
+
+// Flexible identifier storage for international producers
+model ProducerIdentifier {
+  id         String   @id @default(cuid())
+  producerId String
+  category   String   // personal | fiscal
+  idType     String   // cpf, dni, ssn, cnpj, cuit, ein
+  idValue    String
+  createdAt  DateTime @default(now())
+
+  producer   Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@unique([producerId, category])
+  @@index([idType, idValue])
+  @@map("producer_identifiers")
+}
+
+// Agricultural registry for international producers
+model AgriculturalRegistry {
+  id            String   @id @default(cuid())
+  producerId    String   @unique
+  registryType  String   // car, renspa, fsa
+  registryValue String
+  countryCode   String
+  createdAt     DateTime @default(now())
+
+  producer      Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@map("agricultural_registries")
 }
 
 model SubUser {
@@ -95,6 +167,7 @@ enum TemplateStatus {
 
 model Template {
   id                              String         @id @default(cuid())
+  workspaceId                     String         @map("workspace_id")
   name                            String
   folder                          String
   status                          TemplateStatus @default(ACTIVE)
@@ -107,10 +180,12 @@ model Template {
   createdAt                       DateTime       @default(now())
   updatedAt                       DateTime       @updatedAt
 
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id])
   createdBy  User       @relation(fields: [createdById], references: [id])
   sections   Section[]
   checklists Checklist[]
   
+  @@index([workspaceId])
   @@index([status])
   @@index([createdById])
   @@map("templates")
@@ -187,6 +262,7 @@ enum ChecklistType {
 
 model Checklist {
   id          String          @id @default(cuid())
+  workspaceId String          @map("workspace_id")
   templateId  String
   producerId  String?
   subUserId   String?
@@ -207,6 +283,7 @@ model Checklist {
   parent      Checklist?  @relation("ChecklistHistory", fields: [parentId], references: [id])
   children    Checklist[] @relation("ChecklistHistory")
 
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id])
   template   Template    @relation(fields: [templateId], references: [id])
   producer   Producer?   @relation(fields: [producerId], references: [id])
   subUser    SubUser?    @relation(fields: [subUserId], references: [id])
@@ -216,6 +293,7 @@ model Checklist {
   reports    Report[]
   actionPlans ActionPlan[]
   
+  @@index([workspaceId])
   @@index([publicToken])
   @@index([producerId])
   @@index([status])
@@ -322,6 +400,9 @@ model Report {
 model PropertyMap {
   id               String   @id @default(cuid())
   producerId       String
+  name             String?
+  countryCode      String   @default("BR")
+  sourceType       String   @default("car") // car | upload | draw
   propertyLocation Json?
   carCode          String?
   carData          Json?
@@ -333,12 +414,16 @@ model PropertyMap {
   state            String?
   emeCode          String?
   ruralRegionCode  Int?
+  areaHa           Float?
+  uploadedFileUrl  String?
+  uploadedFileType String?  // kml | geojson
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
   producer Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
   
   @@index([producerId])
+  @@index([countryCode])
   @@map("property_maps")
 }
 
@@ -348,15 +433,18 @@ model PropertyMap {
 
 model AuditLog {
   id          String   @id @default(cuid())
+  workspaceId String?  @map("workspace_id")
   checklistId String?
   userId      String
   action      String
   details     Json?
   createdAt   DateTime @default(now())
   
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
   checklist Checklist? @relation(fields: [checklistId], references: [id], onDelete: SetNull)
   user      User       @relation(fields: [userId], references: [id])
   
+  @@index([workspaceId])
   @@index([checklistId])
   @@index([userId])
   @@map("audit_logs")
@@ -367,15 +455,20 @@ model AuditLog {
 // ============================================
 
 model AiPrompt {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String    @id @default(cuid())
+  workspaceId String?   @map("workspace_id") // null = global/default prompt
+  slug        String
   description String?
-  template    String   @db.Text
-  model       String   @default("gpt-4o")
-  temperature Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  template    String    @db.Text
+  model       String    @default("gpt-4o")
+  temperature Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, slug]) // Unique per workspace (or global if workspaceId is null)
+  @@index([workspaceId])
   @@map("ai_prompts")
 }
 

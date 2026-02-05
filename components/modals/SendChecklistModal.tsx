@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 
 interface SendChecklistModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
     initialTemplateId,
     initialProducerId
 }) => {
+    const t = useTranslations();
     // Internal selection state (used when not provided via props)
     const [templateId, setTemplateId] = useState('');
     const [producerId, setProducerId] = useState('');
@@ -69,13 +71,13 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onError: (err: any) => {
             console.error('Checklist creation error:', err);
-            alert(`Erro ao gerar checklist: ${err.message}`);
+            alert(`${t('modals.sendChecklist.generateError')}: ${err.message}`);
         }
     });
 
     const handleSend = () => {
         if (!activeTemplateId || !activeProducerId) {
-            alert('Por favor, selecione um template e um produtor.');
+            alert(t('modals.sendChecklist.selectBoth'));
             return;
         }
         mutation.mutate({
@@ -102,8 +104,8 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                 {/* Header */}
                 <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tighter">Enviar Checklist</h2>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Gerar link de acesso para produtor</p>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t('modals.sendChecklist.title')}</h2>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{t('modals.sendChecklist.subtitle')}</p>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-300 transition-all">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -153,7 +155,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                     <svg className="text-indigo-500 w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m12-14a4 4 0 11-8 0 4 4 0 018 0z" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
-                                    2. Selecionar Produtor
+                                    {t('modals.sendChecklist.selectProducer')}
                                 </label>
                                 <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -183,7 +185,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                             {[
                                 {
                                     id: 'LINK',
-                                    label: 'Link Único',
+                                    label: t('modals.sendChecklist.uniqueLink'),
                                     icon: () => (
                                         <svg className={`w-5 h-5 ${sentVia === 'LINK' ? 'text-primary' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                             <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" strokeLinecap="round" strokeLinejoin="round" />
@@ -201,7 +203,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                 },
                                 {
                                     id: 'EMAIL',
-                                    label: 'E-mail',
+                                    label: t('modals.sendChecklist.email'),
                                     icon: () => (
                                         <svg className={`w-5 h-5 ${sentVia === 'EMAIL' ? 'text-primary' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" strokeLinecap="round" strokeLinejoin="round" /><path d="M22 6l-10 7L2 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -244,8 +246,8 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-3xl font-black text-slate-900 tracking-tighter">Checklist Gerado!</h3>
-                            <p className="text-slate-500 font-medium text-sm mt-2">O link abaixo garante acesso direto ao formulário.</p>
+                            <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{t('modals.sendChecklist.generated')}</h3>
+                            <p className="text-slate-500 font-medium text-sm mt-2">{t('modals.sendChecklist.generatedDescription')}</p>
                         </div>
 
                         <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center gap-4 group">
@@ -268,7 +270,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                         <path d="M8 7v8a2 2 0 002 2h6M8 7a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 )}
-                                {isCopied ? 'Copiado' : 'Copiar'}
+                                {isCopied ? t('modals.sendChecklist.copied') : t('modals.sendChecklist.copy')}
                             </button>
                         </div>
 
@@ -281,7 +283,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                             </button>
                             {sentVia === 'WHATSAPP' && (
                                 <a
-                                    href={`https://wa.me/?text=${encodeURIComponent(`Olá! Siga o link para preencher seu checklist: ${generatedLink}`)}`}
+                                    href={`https://wa.me/?text=${encodeURIComponent(`${t('modals.sendChecklist.whatsappMessage')}: ${generatedLink}`)}`}
                                     target="_blank"
                                     className="flex-1 py-5 bg-[#25D366] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-green-200"
                                 >

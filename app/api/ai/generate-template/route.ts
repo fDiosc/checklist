@@ -16,7 +16,7 @@ export async function POST(req: Request) {
         }
 
         // 1. Fetch or Seed Prompt
-        let promptConfig = await db.aiPrompt.findUnique({
+        let promptConfig = await db.aiPrompt.findFirst({
             where: { slug: 'generate-template-structure' }
         });
 

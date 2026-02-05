@@ -1,42 +1,25 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { nanoid } from "nanoid";
+import { getWorkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
 
 export async function POST(req: Request) {
     try {
-        const { userId, sessionClaims } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Ensure user exists in our DB
-        // Ensure user exists in our DB
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const email = (sessionClaims as any)?.email || "";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const name = (sessionClaims as any)?.name || (sessionClaims as any)?.fullName || "";
+        const workspaceId = getCreateWorkspaceId(session);
+        const { templateId, producerId, subUserId, sentVia, sentTo } = await req.json();
 
-        const user = await db.user.upsert({
-            where: { id: userId },
-            update: {},
-            create: {
-                id: userId,
-                email: email || `${userId}@clerk.user`,
-                name: name || "User",
-            },
-            select: { id: true, role: true }
-        });
-
-        const { templateId, producerId, subUserId, sentVia, sentTo } =
-            await req.json();
-
-        // If NOT Admin, check if assigned to this producer
-        if (user.role !== "ADMIN" && producerId) {
+        // If NOT Admin/SuperAdmin, check if assigned to this producer
+        if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN" && producerId) {
             const isAssigned = await db.producer.findFirst({
                 where: {
                     id: producerId,
-                    assignedSupervisors: { some: { id: userId } }
+                    assignedSupervisors: { some: { id: session.user.id } }
                 }
             });
             if (!isAssigned) {
@@ -48,6 +31,7 @@ export async function POST(req: Request) {
 
         const checklist = await db.checklist.create({
             data: {
+                workspaceId,
                 templateId,
                 producerId: producerId || null,
                 subUserId: subUserId || null,
@@ -56,7 +40,7 @@ export async function POST(req: Request) {
                 sentAt: new Date(),
                 sentVia: sentVia || null,
                 sentTo: sentTo || null,
-                createdById: userId,
+                createdById: session.user.id,
             },
             include: {
                 template: {
@@ -84,12 +68,13 @@ export async function POST(req: Request) {
         const link = `${process.env.NEXT_PUBLIC_APP_URL}/c/${publicToken}`;
 
         return NextResponse.json({ checklist, link });
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("Error creating checklist:", err?.message || err);
+    } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error("Error creating checklist:", errorMessage);
         return NextResponse.json(
             {
                 error: "Internal server error",
-                message: err instanceof Error ? err.message : String(err)
+                message: errorMessage
             },
             { status: 500 }
         );
@@ -98,16 +83,12 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const user = await db.user.findUnique({
-            where: { id: userId },
-            select: { role: true }
-        });
-
+        const workspaceFilter = getWorkspaceFilter(session);
         const { searchParams } = new URL(req.url);
         const status = searchParams.get("status");
         const templateId = searchParams.get("templateId");
@@ -116,7 +97,7 @@ export async function GET(req: Request) {
         const dateTo = searchParams.get("dateTo");
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const where: any = {};
+        const where: any = { ...workspaceFilter };
         if (status) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             where.status = status as any;
@@ -138,16 +119,15 @@ export async function GET(req: Request) {
             if (dateTo) where.sentAt.lte = new Date(dateTo);
         }
 
-        // Apply role-based filters (Only ADMIN sees everything)
-        if (user?.role !== "ADMIN") {
+        // Apply role-based filters (Only ADMIN/SUPERADMIN sees everything)
+        if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN") {
             // Merge with existing producer filter if any
             const existingProducerFilter = where.producer || {};
             where.producer = {
                 ...existingProducerFilter,
-                assignedSupervisors: { some: { id: userId } }
+                assignedSupervisors: { some: { id: session.user.id } }
             };
         }
-
 
         const checklists = await db.checklist.findMany({
             where,

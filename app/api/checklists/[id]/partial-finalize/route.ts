@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { nanoid } from "nanoid";
@@ -10,8 +10,8 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -43,7 +43,6 @@ export async function POST(
             return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
         }
 
-        // ... existing report snapshot logic ...
         // 1. Create Report Snapshot
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (db as any).report.create({
@@ -122,13 +121,14 @@ export async function POST(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const child = await (db.checklist as any).create({
                 data: {
+                    workspaceId: checklist.workspaceId,
                     templateId: checklist.templateId,
                     producerId: checklist.producerId,
                     subUserId: checklist.subUserId,
                     publicToken,
                     status: "SENT",
                     sentAt: new Date(),
-                    createdById: userId,
+                    createdById: session.user.id,
                     parentId: checklist.id,
                     type: 'CORRECTION',
                 }
@@ -157,13 +157,14 @@ export async function POST(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const child = await (db.checklist as any).create({
                 data: {
+                    workspaceId: checklist.workspaceId,
                     templateId: checklist.templateId,
                     producerId: checklist.producerId,
                     subUserId: checklist.subUserId,
                     publicToken,
                     status: "SENT",
                     sentAt: new Date(),
-                    createdById: userId,
+                    createdById: session.user.id,
                     parentId: checklist.id,
                     type: 'COMPLETION',
                 }
@@ -187,7 +188,8 @@ export async function POST(
 
         await db.auditLog.create({
             data: {
-                userId,
+                userId: session.user.id,
+                workspaceId: checklist.workspaceId,
                 checklistId: id,
                 action: `CHECKLIST_PARTIALLY_FINALIZED`,
                 details: {

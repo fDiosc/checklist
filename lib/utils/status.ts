@@ -1,6 +1,9 @@
 /**
  * Centralized status and type label utilities for checklists.
  * Used across dashboard and management components.
+ * 
+ * For internationalization, use the STATUS_TRANSLATION_KEYS and TYPE_TRANSLATION_KEYS
+ * with the useTranslations hook from next-intl.
  */
 
 export type ChecklistStatus =
@@ -15,13 +18,52 @@ export type ChecklistStatus =
 
 export type ChecklistType = 'ORIGINAL' | 'CORRECTION' | 'COMPLETION';
 
+export type ResponseStatus = 'MISSING' | 'PENDING_VERIFICATION' | 'APPROVED' | 'REJECTED';
+
 export interface StatusInfo {
     label: string;
     variant: string;
 }
 
 /**
+ * Translation keys for checklist status.
+ * Use with t(STATUS_TRANSLATION_KEYS[status]) from next-intl.
+ */
+export const STATUS_TRANSLATION_KEYS: Record<ChecklistStatus, string> = {
+    DRAFT: 'status.draft',
+    SENT: 'status.sent',
+    IN_PROGRESS: 'status.inProgress',
+    PENDING_REVIEW: 'status.pendingReview',
+    APPROVED: 'status.approved',
+    REJECTED: 'status.rejected',
+    PARTIALLY_FINALIZED: 'status.partiallyFinalized',
+    FINALIZED: 'status.finalized',
+};
+
+/**
+ * Translation keys for checklist types.
+ * Use with t(TYPE_TRANSLATION_KEYS[type]) from next-intl.
+ */
+export const TYPE_TRANSLATION_KEYS: Record<ChecklistType, string> = {
+    ORIGINAL: 'checklistType.original',
+    CORRECTION: 'checklistType.correction',
+    COMPLETION: 'checklistType.completion',
+};
+
+/**
+ * Translation keys for response status.
+ * Use with t(RESPONSE_STATUS_KEYS[status]) from next-intl.
+ */
+export const RESPONSE_STATUS_KEYS: Record<ResponseStatus, string> = {
+    MISSING: 'responseStatus.missing',
+    PENDING_VERIFICATION: 'responseStatus.pendingVerification',
+    APPROVED: 'responseStatus.approved',
+    REJECTED: 'responseStatus.rejected',
+};
+
+/**
  * Returns a human-readable label for a checklist status.
+ * @deprecated Use STATUS_TRANSLATION_KEYS with useTranslations hook for i18n support.
  */
 export function getStatusLabel(status: string): string {
     switch (status) {
@@ -39,6 +81,7 @@ export function getStatusLabel(status: string): string {
 
 /**
  * Returns a human-readable label for a child checklist type.
+ * @deprecated Use TYPE_TRANSLATION_KEYS with useTranslations hook for i18n support.
  */
 export function getChildTypeLabel(child: { type?: ChecklistType }): string {
     if (child.type === 'CORRECTION') return 'Correção';
@@ -86,15 +129,29 @@ export function getPortalStatusInfo(status: string): { label: string; class: str
 
 /**
  * List of all checklist statuses for filter dropdowns.
+ * The labelKey can be used with useTranslations to get localized labels.
  */
 export const CHECKLIST_STATUSES = [
-    { value: '', label: 'Todos os status' },
-    { value: 'DRAFT', label: 'Rascunho' },
-    { value: 'SENT', label: 'Enviado' },
-    { value: 'IN_PROGRESS', label: 'Em Progresso' },
-    { value: 'PENDING_REVIEW', label: 'Aguardando Revisão' },
-    { value: 'APPROVED', label: 'Aprovado' },
-    { value: 'REJECTED', label: 'Rejeitado' },
-    { value: 'PARTIALLY_FINALIZED', label: 'Finalizado Parcialmente' },
-    { value: 'FINALIZED', label: 'Finalizado' },
+    { value: '', labelKey: 'checklists.allStatus', labelFallback: 'Todos os status' },
+    { value: 'DRAFT', labelKey: 'status.draft', labelFallback: 'Rascunho' },
+    { value: 'SENT', labelKey: 'status.sent', labelFallback: 'Enviado' },
+    { value: 'IN_PROGRESS', labelKey: 'status.inProgress', labelFallback: 'Em Progresso' },
+    { value: 'PENDING_REVIEW', labelKey: 'status.pendingReview', labelFallback: 'Aguardando Revisão' },
+    { value: 'APPROVED', labelKey: 'status.approved', labelFallback: 'Aprovado' },
+    { value: 'REJECTED', labelKey: 'status.rejected', labelFallback: 'Rejeitado' },
+    { value: 'PARTIALLY_FINALIZED', labelKey: 'status.partiallyFinalized', labelFallback: 'Finalizado Parcialmente' },
+    { value: 'FINALIZED', labelKey: 'status.finalized', labelFallback: 'Finalizado' },
 ] as const;
+
+/**
+ * Portal status info with translation keys.
+ */
+export const PORTAL_STATUS_INFO: Record<string, { labelKey: string; class: string }> = {
+    SENT: { labelKey: 'status.pending', class: 'bg-amber-100 text-amber-700' },
+    IN_PROGRESS: { labelKey: 'status.inProgress', class: 'bg-blue-100 text-blue-700' },
+    REJECTED: { labelKey: 'status.rejected', class: 'bg-red-100 text-red-700' },
+    PENDING_REVIEW: { labelKey: 'status.pendingReview', class: 'bg-indigo-100 text-indigo-700' },
+    APPROVED: { labelKey: 'status.approved', class: 'bg-emerald-100 text-emerald-700' },
+    FINALIZED: { labelKey: 'status.finalized', class: 'bg-slate-100 text-slate-700' },
+    PARTIALLY_FINALIZED: { labelKey: 'status.partiallyFinalized', class: 'bg-violet-100 text-violet-700' },
+};

@@ -1,15 +1,32 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { getWorkspaceFilter, getCreateWorkspaceId } from "@/lib/workspace-context";
+
+const identifierSchema = z.object({
+    category: z.enum(['personal', 'fiscal']),
+    type: z.string(),
+    value: z.string()
+});
+
+const agriculturalRegistrySchema = z.object({
+    type: z.string(),
+    value: z.string()
+});
 
 const createProducerSchema = z.object({
     name: z.string().min(1),
-    cpf: z.string().length(11),
+    countryCode: z.string().length(2).default('BR'),
+    // CPF is now optional (required for BR via application logic)
+    cpf: z.string().length(11).optional(),
     email: z.string().email().optional(),
     phone: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
+    // International support
+    identifiers: z.array(identifierSchema).optional(),
+    agriculturalRegistry: agriculturalRegistrySchema.optional(),
     subUsers: z
         .array(
             z.object({
@@ -25,18 +42,29 @@ const createProducerSchema = z.object({
 
 export async function POST(req: Request) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const workspaceId = getCreateWorkspaceId(session);
         const body = await req.json();
         const validatedData = createProducerSchema.parse(body);
 
+        // For BR, cpf is required
+        if (validatedData.countryCode === 'BR' && !validatedData.cpf) {
+            return NextResponse.json(
+                { error: "CPF is required for Brazilian producers" },
+                { status: 400 }
+            );
+        }
+
         const producer = await db.producer.create({
             data: {
+                workspaceId,
                 name: validatedData.name,
-                cpf: validatedData.cpf,
+                countryCode: validatedData.countryCode,
+                cpf: validatedData.cpf, // Keep for BR backward compatibility
                 email: validatedData.email,
                 phone: validatedData.phone,
                 city: validatedData.city,
@@ -46,8 +74,32 @@ export async function POST(req: Request) {
                         create: validatedData.subUsers,
                     }
                     : undefined,
+                // Create identifiers
+                identifiers: validatedData.identifiers && validatedData.identifiers.length > 0
+                    ? {
+                        create: validatedData.identifiers.map(id => ({
+                            category: id.category,
+                            idType: id.type,
+                            idValue: id.value
+                        }))
+                    }
+                    : undefined,
+                // Create agricultural registry
+                agriculturalRegistry: validatedData.agriculturalRegistry
+                    ? {
+                        create: {
+                            registryType: validatedData.agriculturalRegistry.type,
+                            registryValue: validatedData.agriculturalRegistry.value,
+                            countryCode: validatedData.countryCode
+                        }
+                    }
+                    : undefined,
             },
-            include: { subUsers: true },
+            include: { 
+                subUsers: true,
+                identifiers: true,
+                agriculturalRegistry: true
+            },
         });
 
         return NextResponse.json(producer);
@@ -68,21 +120,17 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const user = await db.user.findUnique({
-            where: { id: userId },
-            select: { role: true }
-        });
-
+        const workspaceFilter = getWorkspaceFilter(session);
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const where: any = {};
+        const where: any = { ...workspaceFilter };
 
         if (search) {
             where.OR = [
@@ -92,10 +140,10 @@ export async function GET(req: Request) {
             ];
         }
 
-        // Apply role-based filters (Only ADMIN sees everything)
-        if (user?.role !== "ADMIN") {
+        // Apply role-based filters (Only ADMIN/SUPERADMIN sees everything)
+        if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN") {
             where.assignedSupervisors = {
-                some: { id: userId }
+                some: { id: session.user.id }
             };
         }
 
@@ -105,6 +153,7 @@ export async function GET(req: Request) {
                 _count: {
                     select: { checklists: true },
                 },
+                identifiers: true, // Include identifiers for international producers
             },
             orderBy: { name: "asc" },
         });

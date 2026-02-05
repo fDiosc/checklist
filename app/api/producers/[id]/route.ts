@@ -1,7 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { hasWorkspaceAccess } from "@/lib/workspace-context";
 
 export async function GET(
     req: Request,
@@ -9,15 +10,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const user = await db.user.findUnique({
-            where: { id: userId },
-            select: { role: true }
-        });
 
         const producer = await db.producer.findUnique({
             where: { id },
@@ -46,6 +42,8 @@ export async function GET(
                     orderBy: { createdAt: "desc" },
                 },
                 maps: true,
+                identifiers: true,
+                agriculturalRegistry: true,
             },
         });
 
@@ -53,11 +51,15 @@ export async function GET(
             return NextResponse.json({ error: "Producer not found" }, { status: 404 });
         }
 
-        // Apply role-based filters (Only ADMIN sees everything)
-        // Apply role-based filters (Only ADMIN sees everything)
-        if (user?.role !== "ADMIN") {
+        // Check workspace access
+        if (!hasWorkspaceAccess(session, producer.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        // Apply role-based filters (Only ADMIN/SUPERADMIN sees everything)
+        if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN") {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const isAssigned = producer.assignedSupervisors.some((a: any) => a.id === userId);
+            const isAssigned = producer.assignedSupervisors.some((a: any) => a.id === session.user.id);
             if (!isAssigned) {
                 return NextResponse.json({ error: "Forbidden: Not assigned to this producer" }, { status: 403 });
             }
@@ -114,15 +116,29 @@ export async function GET(
     }
 }
 
+const identifierSchema = z.object({
+    category: z.enum(['personal', 'fiscal']),
+    type: z.string(),
+    value: z.string()
+});
+
+const agriculturalRegistrySchema = z.object({
+    type: z.string(),
+    value: z.string()
+});
+
 const updateProducerSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1),
-    cpf: z.string().length(11),
+    countryCode: z.string().length(2).optional(),
+    cpf: z.string().length(11).optional().nullable(),
     email: z.string().email().optional().nullable(),
     phone: z.string().optional().nullable(),
     city: z.string().optional().nullable(),
     state: z.string().optional().nullable(),
     assignedSupervisorIds: z.array(z.string()).optional(),
+    identifiers: z.array(identifierSchema).optional(),
+    agriculturalRegistry: agriculturalRegistrySchema.optional().nullable(),
     subUsers: z
         .array(
             z.object({
@@ -143,9 +159,23 @@ export async function PATCH(
 ) {
     try {
         const { id } = await params;
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Check producer exists and user has access
+        const existingProducer = await db.producer.findUnique({
+            where: { id },
+            select: { workspaceId: true }
+        });
+
+        if (!existingProducer) {
+            return NextResponse.json({ error: "Producer not found" }, { status: 404 });
+        }
+
+        if (!hasWorkspaceAccess(session, existingProducer.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const body = await req.json();
@@ -169,7 +199,47 @@ export async function PATCH(
                 },
             });
 
-            // 2. Sync Sub-users
+            // 2. Sync Identifiers
+            if (validatedData.identifiers) {
+                // Delete existing identifiers
+                await tx.producerIdentifier.deleteMany({
+                    where: { producerId: id }
+                });
+
+                // Create new identifiers
+                for (const identifier of validatedData.identifiers) {
+                    await tx.producerIdentifier.create({
+                        data: {
+                            producerId: id,
+                            category: identifier.category,
+                            idType: identifier.type,
+                            idValue: identifier.value
+                        }
+                    });
+                }
+            }
+
+            // 3. Sync Agricultural Registry
+            if (validatedData.agriculturalRegistry !== undefined) {
+                // Delete existing
+                await tx.agriculturalRegistry.deleteMany({
+                    where: { producerId: id }
+                });
+
+                // Create new if provided
+                if (validatedData.agriculturalRegistry) {
+                    await tx.agriculturalRegistry.create({
+                        data: {
+                            producerId: id,
+                            registryType: validatedData.agriculturalRegistry.type,
+                            registryValue: validatedData.agriculturalRegistry.value,
+                            countryCode: validatedData.countryCode || 'BR'
+                        }
+                    });
+                }
+            }
+
+            // 4. Sync Sub-users
             if (validatedData.subUsers) {
                 const subUsers = validatedData.subUsers;
                 const existingSubUsers = await tx.subUser.findMany({
@@ -246,9 +316,23 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Check producer exists and user has access
+        const existingProducer = await db.producer.findUnique({
+            where: { id },
+            select: { workspaceId: true }
+        });
+
+        if (!existingProducer) {
+            return NextResponse.json({ error: "Producer not found" }, { status: 404 });
+        }
+
+        if (!hasWorkspaceAccess(session, existingProducer.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         await db.producer.delete({

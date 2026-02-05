@@ -2,6 +2,103 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.3.0] - 2026-02-02
+
+### 🚀 Multi-tenancy e Autenticação Customizada
+
+Esta versão introduz suporte completo a multi-tenancy com workspaces isolados e sistema de autenticação proprietário.
+
+### ✨ Novas Funcionalidades
+- **Workspaces (Multi-tenancy):** Sistema de organizações isoladas com dados segregados (produtores, templates, checklists, usuários).
+- **Autenticação NextAuth:** Substituição do Clerk por autenticação customizada com NextAuth.js e bcrypt.
+- **Roles Hierárquicos:** SUPERADMIN (global), ADMIN (workspace), SUPERVISOR, PRODUCER.
+- **Gerenciamento de Usuários:** Tela completa para CRUD de usuários por workspace. ADMINs podem criar outros ADMINs no mesmo workspace.
+- **Gerenciamento de Workspaces:** Tela exclusiva SuperAdmin para criar/editar organizações.
+- **Logo Dinâmica:** Dashboard exibe logo e nome do workspace do usuário logado.
+- **Primeiro Acesso:** Usuários novos são obrigados a alterar senha no primeiro login.
+- **Toggle de Senha:** Botão "olhinho" para mostrar/esconder senha nas telas de login e alteração.
+- **Menu Usuários para ADMIN:** Menu de gerenciamento de usuários visível para ADMINs de workspace (não apenas SUPERADMIN).
+
+### 🔧 Melhorias Técnicas
+- **Modelo Workspace:** Nova entidade com `name`, `slug`, `logoUrl`.
+- **workspaceId em Entidades:** Producers, Templates, Checklists, Users, AuditLogs agora pertencem a um workspace.
+- **CPF por Workspace:** Constraint `@@unique([cpf, workspaceId])` permite mesmo CPF em workspaces diferentes.
+- **Session com Workspace:** Token JWT inclui `workspaceId` e `role` para controle de acesso.
+- **Middleware Atualizado:** Integração next-intl + NextAuth com redirecionamentos inteligentes.
+- **APIs Segregadas:** Todas as APIs aplicam filtro de workspace automaticamente.
+- **helpers `workspace-context.ts`:** Funções `getWorkspaceFilter`, `hasWorkspaceAccess`, `isAdmin`, `isSuperAdmin`.
+
+### 🗃️ Migrações de Banco de Dados
+- `20260202200000_add_workspaces_and_auth` - Cria tabela workspaces e adiciona campos de auth
+- `20260202210000_cpf_unique_per_workspace` - Altera constraint de CPF para ser por workspace
+
+### 📁 Novos Arquivos
+- `lib/auth.ts` - Configuração NextAuth com Credentials provider
+- `lib/workspace-context.ts` - Helpers de controle de acesso
+- `app/api/auth/[...nextauth]/route.ts` - Handler NextAuth
+- `app/api/users/route.ts` - CRUD de usuários
+- `app/api/users/[id]/route.ts` - Operações em usuário específico
+- `app/api/users/change-password/route.ts` - Alteração de senha
+- `app/api/workspaces/route.ts` - CRUD de workspaces
+- `app/api/workspaces/[id]/route.ts` - Operações em workspace específico
+- `app/[locale]/dashboard/users/page.tsx` - Gerenciamento de usuários
+- `app/[locale]/dashboard/workspaces/page.tsx` - Gerenciamento de workspaces
+- `app/[locale]/dashboard/change-password/page.tsx` - Tela de alteração de senha
+- `components/providers/session-provider.tsx` - Provider do NextAuth
+
+### ⚠️ Breaking Changes
+- **Clerk removido:** Todas as referências ao Clerk foram substituídas por NextAuth.
+- **Variáveis de ambiente:** Remover variáveis `CLERK_*`, adicionar `AUTH_SECRET` e `NEXTAUTH_URL`.
+- **Onboarding simplificado:** Fluxo de primeiro acesso agora é apenas alteração de senha.
+
+---
+
+## [V 0.1.0] - 2026-02-02
+
+### ✨ Novas Funcionalidades
+- **Suporte Internacional de Produtores:** Cadastro de produtores de múltiplos países (Brasil, Argentina, EUA).
+- **Documentos Dinâmicos por País:** CPF para BR, DNI para AR, SSN para US - campos ajustam automaticamente.
+- **Registro Agrícola Flexível:** CAR (BR), RENSPA (AR), FSA (US) com validações específicas.
+- **Upload de Propriedades:** Suporte a arquivos KML e GeoJSON para definir limites de propriedade.
+- **Desenho de Propriedade:** Para países sem CAR, usuário pode desenhar o polígono da propriedade diretamente no mapa.
+- **Hierarquia Propriedade/Talhões:** Distinção visual entre fazenda (contorno branco) e talhões (amarelo).
+
+### 🔧 Melhorias Técnicas
+- **Novo Schema Prisma:** Modelos `ProducerIdentifier` e `AgriculturalRegistry` para dados internacionais.
+- **Campo `type` em PropertyField:** Diferencia `property` (fazenda) de `field` (talhão).
+- **Configuração Centralizada:** `lib/countries.ts` com regras de validação por país.
+- **Componentes Reutilizáveis:** `CountrySelector` e `GeoFileUpload` para formulários internacionais.
+- **ESG Condicional:** Análise socioambiental disponível apenas para produtores brasileiros.
+
+### 🐛 Correções (Bugfixes)
+- **DNI não exibido ao editar:** Correção de mapeamento `idValue` vs `value` no ProducerForm.
+- **PropertyMapInput para não-BR:** Upload e desenho agora funcionam corretamente.
+- **Identificação na tabela:** Coluna mostra DNI/SSN para produtores internacionais.
+- **Traduções hardcoded:** Strings em português no PropertyMapInput agora traduzidas.
+
+---
+
+## [V 0.0.9] - 2026-02-02
+
+### ✨ Novas Funcionalidades
+- **Internacionalização (i18n):** Suporte completo a múltiplos idiomas usando `next-intl` com roteamento baseado em prefixo de URL (`/pt-BR/`, `/en/`, `/es/`).
+- **Idiomas Suportados:** Português do Brasil (padrão), Inglês e Espanhol.
+- **Tradução Completa:** Dashboard, Portal do Produtor, Formulário Público de Checklist, Modais e Componentes traduzidos.
+- **Gemini 3 Flash:** Atualização do modelo de IA para `gemini-3-flash-preview` com inteligência nível Pro e velocidade Flash.
+
+### 🔧 Melhorias Técnicas
+- **Arquivos de Mensagens:** Estrutura de tradução em `messages/pt-BR.json`, `messages/en.json` e `messages/es.json`.
+- **Hook useTranslations:** Componentes utilizam `useTranslations()` para strings traduzíveis.
+- **Hook useFormatter:** Formatação de datas e números respeitando o locale.
+- **Fallback de Modelo IA:** Se Gemini 3 Flash falhar, fallback automático para `gemini-1.5-flash`.
+
+### 🐛 Correções (Bugfixes)
+- **Portal do Produtor:** Correção de função `getPortalStatusInfo` não definida.
+- **Componente ChecklistItem:** Correção de `t is not defined` por falta de inicialização do hook.
+- **Prompt de IA:** Inserção automática do prompt `analyze-checklist-item` no banco de dados.
+
+---
+
 ## [V 0.0.8] - 2026-01-28
 
 ### ✨ Novas Funcionalidades

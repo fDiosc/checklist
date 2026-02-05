@@ -4,6 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, X, Shield } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import CountrySelector from './CountrySelector';
+import {
+    CountryCode,
+    DEFAULT_COUNTRY,
+    getCountryConfig,
+    validateDocument,
+    usesCarIntegration
+} from '@/lib/countries';
 
 interface SubUser {
     id: string;
@@ -20,16 +29,31 @@ interface Supervisor {
     email: string;
 }
 
+interface ProducerIdentifier {
+    category: 'personal' | 'fiscal';
+    type: string;
+    value: string;
+}
+
+interface AgriculturalRegistryData {
+    type: string;
+    value: string;
+}
+
 interface ProducerData {
     id?: string;
     name: string;
-    cpf: string;
+    countryCode: CountryCode;
+    cpf: string; // Legacy field for BR compatibility
     email: string;
     phone: string;
     city?: string;
     state?: string;
     subUsers: SubUser[];
     assignedSupervisors?: Supervisor[];
+    // International fields
+    identifiers?: ProducerIdentifier[];
+    agriculturalRegistry?: AgriculturalRegistryData;
 }
 
 interface ProducerFormProps {
@@ -40,19 +64,40 @@ interface ProducerFormProps {
 export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const t = useTranslations();
 
     const [producer, setProducer] = useState<ProducerData>(
         initialData || {
             name: '',
+            countryCode: DEFAULT_COUNTRY,
             cpf: '',
             email: '',
             phone: '',
             city: '',
             state: '',
             subUsers: [],
-            assignedSupervisors: []
+            assignedSupervisors: [],
+            identifiers: [],
+            agriculturalRegistry: undefined
         }
     );
+
+    // State for international document fields
+    const [personalDocValue, setPersonalDocValue] = useState<string>(
+        initialData?.identifiers?.find(i => i.category === 'personal')?.value ||
+        initialData?.cpf ||
+        ''
+    );
+    const [fiscalDocValue, setFiscalDocValue] = useState<string>(
+        initialData?.identifiers?.find(i => i.category === 'fiscal')?.value || ''
+    );
+    const [agricRegistryValue, setAgricRegistryValue] = useState<string>(
+        initialData?.agriculturalRegistry?.value || ''
+    );
+
+    // Get country configuration
+    const countryConfig = getCountryConfig(producer.countryCode);
+    const isBrazil = producer.countryCode === 'BR';
 
     // Fetch user role
     const { data: userData } = useQuery({
@@ -82,8 +127,36 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
             const url = mode === 'EDIT' ? `/api/producers/${data.id}` : '/api/producers';
             const method = mode === 'EDIT' ? 'PATCH' : 'POST';
 
+            // Build identifiers array
+            const identifiers: ProducerIdentifier[] = [];
+            if (personalDocValue) {
+                identifiers.push({
+                    category: 'personal',
+                    type: countryConfig.personalDoc.type,
+                    value: personalDocValue.replace(/\D/g, '')
+                });
+            }
+            if (fiscalDocValue && countryConfig.fiscalDoc) {
+                identifiers.push({
+                    category: 'fiscal',
+                    type: countryConfig.fiscalDoc.type,
+                    value: fiscalDocValue
+                });
+            }
+
+            // Build agricultural registry
+            const agriculturalRegistry = agricRegistryValue ? {
+                type: countryConfig.agriculturalRegistry.type,
+                value: agricRegistryValue
+            } : undefined;
+
             const payload = {
                 ...data,
+                countryCode: data.countryCode,
+                // For BR compatibility, keep cpf field synced
+                cpf: data.countryCode === 'BR' ? personalDocValue.replace(/\D/g, '') : undefined,
+                identifiers,
+                agriculturalRegistry,
                 assignedSupervisorIds: data.assignedSupervisors?.map(a => a.id)
             };
 
@@ -99,15 +172,17 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
             return res.json();
         },
         onSuccess: async (data) => {
-            // Trigger ESG Analysis in background
-            try {
-                await fetch('/api/integration/esg/producer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ producerId: data.id, cpf: data.cpf })
-                });
-            } catch (e) {
-                console.error("Failed to trigger ESG analysis", e);
+            // Trigger ESG Analysis in background (only for BR)
+            if (isBrazil && data.cpf) {
+                try {
+                    await fetch('/api/integration/esg/producer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ producerId: data.id, cpf: data.cpf })
+                    });
+                } catch (e) {
+                    console.error("Failed to trigger ESG analysis", e);
+                }
             }
 
             queryClient.invalidateQueries({ queryKey: ['producers'] });
@@ -147,16 +222,50 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
     };
 
     const handleSave = () => {
-        if (!producer.name || !producer.cpf) {
-            alert('Nome e CPF são obrigatórios');
+        // Validate name
+        if (!producer.name) {
+            alert(t('producer.form.validation.nameRequired'));
             return;
         }
-        // Basic CPF validation (length)
-        if (producer.cpf.replace(/\D/g, '').length !== 11) {
-            alert('CPF deve ter 11 dígitos');
+
+        // Validate personal document (required for all countries)
+        if (!personalDocValue) {
+            alert(t('producer.form.validation.documentRequired', { doc: countryConfig.personalDoc.label }));
             return;
         }
+
+        // Validate document format
+        if (!validateDocument(personalDocValue, countryConfig.personalDoc.validation)) {
+            alert(t('producer.form.validation.invalidDocument', { doc: countryConfig.personalDoc.label }));
+            return;
+        }
+
+        // Validate fiscal document if provided
+        if (fiscalDocValue && countryConfig.fiscalDoc) {
+            if (!validateDocument(fiscalDocValue, countryConfig.fiscalDoc.validation)) {
+                alert(t('producer.form.validation.invalidDocument', { doc: countryConfig.fiscalDoc.label }));
+                return;
+            }
+        }
+
+        // For Brazil, also validate agricultural registry if required
+        if (isBrazil && countryConfig.agriculturalRegistry.required && !agricRegistryValue) {
+            alert(t('producer.form.validation.carRequired'));
+            return;
+        }
+
         mutation.mutate(producer);
+    };
+
+    // Handle country change - reset document fields
+    const handleCountryChange = (newCountry: CountryCode) => {
+        setProducer(prev => ({ ...prev, countryCode: newCountry }));
+        // Only reset if creating new producer
+        if (mode === 'CREATE') {
+            setPersonalDocValue('');
+            setFiscalDocValue('');
+            setAgricRegistryValue('');
+        }
     };
 
     return (
@@ -172,10 +281,10 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                     </button>
                     <div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-                            {mode === 'CREATE' ? 'Novo Produtor' : 'Editar Produtor'}
+                            {mode === 'CREATE' ? t('producer.newProducer') : t('producer.editProducer')}
                         </h1>
                         <p className="text-slate-500 font-medium text-xs uppercase tracking-widest mt-1">
-                            {mode === 'CREATE' ? 'Cadastro de Contraparte' : `ID: ${producer.id?.slice(-8) || '...'}`}
+                            {mode === 'CREATE' ? t('producer.form.registerCounterparty') : `ID: ${producer.id?.slice(-8) || '...'}`}
                         </p>
                     </div>
                 </div>
@@ -184,17 +293,17 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                         className="bg-white text-slate-500 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-100 hover:bg-slate-50 transition-all"
                         onClick={() => router.back()}
                     >
-                        Cancelar
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={mutation.isPending}
                         className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
                     >
-                        {mutation.isPending ? 'Salvando...' : (
+                        {mutation.isPending ? t('producer.form.saving') : (
                             <>
                                 <Save size={18} />
-                                {mode === 'CREATE' ? 'Salvar Cadastro' : 'Atualizar Dados'}
+                                {mode === 'CREATE' ? t('producer.form.saveRegister') : t('producer.form.updateData')}
                             </>
                         )}
                     </button>
@@ -207,32 +316,87 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                     <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-100/50 p-10">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-10 flex items-center gap-3">
                             <Plus className="text-primary w-4 h-4" />
-                            Dados Principais
+                            {t('producer.form.mainData')}
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Country Selector */}
                             <div className="md:col-span-2">
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Nome Completo</label>
+                                <CountrySelector
+                                    value={producer.countryCode}
+                                    onChange={handleCountryChange}
+                                    disabled={mode === 'EDIT'} // Disable country change when editing
+                                />
+                            </div>
+
+                            {/* Name */}
+                            <div className="md:col-span-2">
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">{t('producer.form.fullName')}</label>
                                 <input
                                     type="text"
-                                    placeholder="Digite o nome completo do produtor"
+                                    placeholder={t('producer.form.namePlaceholder')}
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
                                     value={producer.name || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, name: e.target.value }))}
                                 />
                             </div>
 
+                            {/* Personal Document (dynamic label based on country) */}
                             <div>
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">CPF (somente números)</label>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
+                                    {countryConfig.personalDoc.label} *
+                                </label>
                                 <input
                                     type="text"
-                                    maxLength={11}
-                                    placeholder="00000000000"
+                                    maxLength={countryConfig.personalDoc.maxLength}
+                                    placeholder={countryConfig.personalDoc.placeholder}
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
-                                    value={producer.cpf || ''}
-                                    onChange={e => setProducer(prev => ({ ...prev, cpf: e.target.value.replace(/\D/g, '') }))}
+                                    value={personalDocValue}
+                                    onChange={e => {
+                                        const value = countryConfig.personalDoc.validation === 'numeric' || countryConfig.personalDoc.validation === 'cpf'
+                                            ? e.target.value.replace(/\D/g, '')
+                                            : e.target.value;
+                                        setPersonalDocValue(value);
+                                        // For BR, also update legacy cpf field
+                                        if (isBrazil) {
+                                            setProducer(prev => ({ ...prev, cpf: value }));
+                                        }
+                                    }}
                                 />
                             </div>
+
+                            {/* Fiscal Document (optional, dynamic based on country) */}
+                            {countryConfig.fiscalDoc && (
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
+                                        {countryConfig.fiscalDoc.label} {!countryConfig.fiscalDoc.required && `(${t('common.optional')})`}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        maxLength={countryConfig.fiscalDoc.maxLength}
+                                        placeholder={countryConfig.fiscalDoc.placeholder}
+                                        className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
+                                        value={fiscalDocValue}
+                                        onChange={e => setFiscalDocValue(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Agricultural Registry (for non-CAR countries) */}
+                            {!usesCarIntegration(producer.countryCode) && (
+                                <div className="md:col-span-2">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
+                                        {countryConfig.agriculturalRegistry.label} {!countryConfig.agriculturalRegistry.required && `(${t('common.optional')})`}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder={countryConfig.agriculturalRegistry.placeholder}
+                                        className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
+                                        value={agricRegistryValue}
+                                        onChange={e => setAgricRegistryValue(e.target.value)}
+                                    />
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">E-mail</label>
@@ -246,7 +410,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Telefone / WhatsApp</label>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">{t('producer.form.phone')}</label>
                                 <input
                                     type="text"
                                     placeholder="(00) 00000-0000"
@@ -258,12 +422,11 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
 
                             <div>
                                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
-                                    Cidade
-                                    <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[8px] leading-none">NOVO</span>
+                                    {t('producer.form.city')}
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="Ex: Sorriso"
+                                    placeholder={t('producer.form.cityPlaceholder')}
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
                                     value={producer.city || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, city: e.target.value }))}
@@ -272,13 +435,12 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
 
                             <div>
                                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">
-                                    Estado (UF)
-                                    <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[8px] leading-none">NOVO</span>
+                                    {t('producer.form.state')}
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="Ex: MT"
-                                    maxLength={2}
+                                    placeholder={t('producer.form.statePlaceholder')}
+                                    maxLength={10}
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all uppercase"
                                     value={producer.state || ''}
                                     onChange={e => setProducer(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
@@ -299,7 +461,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                 type="button"
                                 className="text-primary font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity"
                             >
-                                <Plus size={14} /> Adicionar Vínculo
+                                <Plus size={14} /> {t('producer.form.addLink')}
                             </button>
                         </div>
 
@@ -311,7 +473,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                     style={{ animationDelay: `${idx * 0.1}s` }}
                                 >
                                     <div className="md:col-span-4">
-                                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Nome</label>
+                                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">{t('producer.form.name')}</label>
                                         <input
                                             type="text"
                                             className="w-full p-3 bg-white rounded-xl font-bold text-xs outline-none"
@@ -320,7 +482,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                         />
                                     </div>
                                     <div className="md:col-span-3">
-                                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">CPF</label>
+                                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">{t('producer.form.cpfShort')}</label>
                                         <input
                                             type="text"
                                             maxLength={11}
@@ -330,7 +492,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                         />
                                     </div>
                                     <div className="md:col-span-4">
-                                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">E-mail</label>
+                                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">{t('producer.form.emailShort')}</label>
                                         <input
                                             type="email"
                                             className="w-full p-3 bg-white rounded-xl font-bold text-xs outline-none"
@@ -363,16 +525,16 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                         <div className="bg-primary/20 w-12 h-12 rounded-2xl flex items-center justify-center mb-8 text-primary">
                             <Save size={24} />
                         </div>
-                        <h3 className="text-xl font-black tracking-tight mb-4">Gestão de Parceiros</h3>
+                        <h3 className="text-xl font-black tracking-tight mb-4">{t('producer.form.partnerManagement')}</h3>
                         <p className="text-slate-400 text-xs font-medium leading-relaxed mb-8">
-                            Mantenha os dados dos produtores atualizados para garantir a integridade socioambiental da operação.
+                            {t('producer.form.partnerDescription')}
                         </p>
                         <ul className="space-y-4">
                             {[
-                                'Contatos atualizados facilitam o envio',
-                                'Sub-usuários podem responder em nome do titular',
-                                'Histórico vinculado ao CPF principal',
-                                'Sincronização automática com checklists'
+                                t('producer.form.tip1'),
+                                t('producer.form.tip2'),
+                                t('producer.form.tip3'),
+                                t('producer.form.tip4')
                             ].map((item, i) => (
                                 <li key={i} className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">
                                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -392,7 +554,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                                 <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Atribuir Supervisor</label>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">{t('producer.form.assignSupervisor')}</label>
                                     <select
                                         className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all"
                                         onChange={(e) => {
@@ -445,7 +607,7 @@ export default function ProducerForm({ initialData, mode }: ProducerFormProps) {
                                     ))
                                 ) : (
                                     <div className="md:col-span-2 py-8 text-center bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-3xl">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Nenhum supervisor vinculado a este produtor</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">{t('producer.form.noSupervisors')}</p>
                                     </div>
                                 )}
                             </div>

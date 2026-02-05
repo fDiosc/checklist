@@ -1,41 +1,40 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 export async function GET() {
     try {
-        const { userId, sessionClaims } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        let user = await db.user.findUnique({
-            where: { id: userId }
+        const user = await db.user.findUnique({
+            where: { id: session.user.id },
+            include: {
+                workspace: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        logoUrl: true,
+                    }
+                }
+            }
         });
 
-        // Auto-sync if not found (similar to checklist POST logic)
         if (!user) {
-            console.log("Syncing user from Clerk session claims:", sessionClaims);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const email = (sessionClaims as any)?.email || "";
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const name = (sessionClaims as any)?.name || (sessionClaims as any)?.fullName || "";
-
-            console.log(`Creating user with email: ${email || 'fallback'}`);
-
-            user = await db.user.create({
-                data: {
-                    id: userId,
-                    email: email || `${userId}@clerk.user`,
-                    name: name || null,
-                    role: "SUPERVISOR",
-                },
-            });
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
         const needsOnboarding = !user.name || !user.cpf;
 
-        return NextResponse.json({ ...user, needsOnboarding });
+        return NextResponse.json({ 
+            ...user, 
+            needsOnboarding,
+            // Don't expose password hash
+            passwordHash: undefined,
+        });
     } catch (error) {
         console.error("Error fetching current user:", error);
         return NextResponse.json(

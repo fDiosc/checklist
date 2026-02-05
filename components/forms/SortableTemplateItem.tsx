@@ -4,17 +4,18 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Trash2, X, ChevronDown, Sparkles, GripVertical } from 'lucide-react';
 import Checkbox from '@/components/ui/Checkbox';
+import { useTranslations } from 'next-intl';
 
-const ITEM_TYPES = [
-    { value: 'TEXT', label: 'TEXTO CURTO' },
-    { value: 'LONG_TEXT', label: 'TEXTO LONGO' },
-    { value: 'FILE', label: 'DOCUMENTO (FOTO/UPLOAD)' },
-    { value: 'DATE', label: 'DATA' },
-    { value: 'SINGLE_CHOICE', label: 'ÚNICA ESCOLHA (SIM/NÃO)' },
-    { value: 'MULTIPLE_CHOICE', label: 'MÚLTIPLA ESCOLHA' },
-    { value: 'DROPDOWN_SELECT', label: 'SELEÇÃO (DROPDOWN)' },
-    { value: 'PROPERTY_MAP', label: 'DESENHAR MAPA/TALHÃO' },
-    { value: 'FIELD_SELECTOR', label: 'SELEÇÃO DE TALHÃO EXISTENTE' },
+const ITEM_TYPES_KEYS = [
+    { value: 'TEXT', labelKey: 'template.itemTypes.shortText' },
+    { value: 'LONG_TEXT', labelKey: 'template.itemTypes.longText' },
+    { value: 'FILE', labelKey: 'template.itemTypes.document' },
+    { value: 'DATE', labelKey: 'template.itemTypes.date' },
+    { value: 'SINGLE_CHOICE', labelKey: 'template.itemTypes.singleChoice' },
+    { value: 'MULTIPLE_CHOICE', labelKey: 'template.itemTypes.multipleChoice' },
+    { value: 'DROPDOWN_SELECT', labelKey: 'template.itemTypes.dropdown' },
+    { value: 'PROPERTY_MAP', labelKey: 'template.itemTypes.propertyMap' },
+    { value: 'FIELD_SELECTOR', labelKey: 'template.itemTypes.fieldSelector' },
 ];
 
 interface SortableTemplateItemProps {
@@ -28,6 +29,7 @@ interface SortableTemplateItemProps {
 }
 
 export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRemove }: SortableTemplateItemProps) {
+    const t = useTranslations();
     const {
         attributes,
         listeners,
@@ -67,7 +69,7 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                         <input
                             type="text"
                             disabled={readOnly}
-                            placeholder="Pergunta ou Título do Item..."
+                            placeholder={t('template.form.itemPlaceholder')}
                             className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
                             value={item.name}
                             onChange={e => onUpdate(sectionId, item.id, { name: e.target.value })}
@@ -78,8 +80,8 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                             value={item.type}
                             onChange={e => onUpdate(sectionId, item.id, { type: e.target.value })}
                         >
-                            {ITEM_TYPES.map(t => (
-                                <option key={t.value} value={t.value}>{t.label}</option>
+                            {ITEM_TYPES_KEYS.map(type => (
+                                <option key={type.value} value={type.value}>{t(type.labelKey)}</option>
                             ))}
                         </select>
                     </div>
@@ -89,24 +91,24 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                             <Checkbox
                                 checked={item.required}
                                 onChange={val => !readOnly && onUpdate(sectionId, item.id, { required: val })}
-                                label="OBRIGATÓRIO"
+                                label={t('template.form.required')}
                             />
                             {item.type === 'SINGLE_CHOICE' && (
                                 <Checkbox
                                     checked={item.requestArtifact}
                                     onChange={val => !readOnly && onUpdate(sectionId, item.id, { requestArtifact: val })}
-                                    label="SOLICITAR ANEXO"
+                                    label={t('template.form.requestArtifact')}
                                 />
                             )}
                             <Checkbox
                                 checked={item.observationEnabled}
                                 onChange={val => !readOnly && onUpdate(sectionId, item.id, { observationEnabled: val })}
-                                label="CAMPO OBSERVAÇÃO"
+                                label={t('template.form.observationField')}
                             />
                             <Checkbox
                                 checked={item.validityControl}
                                 onChange={val => !readOnly && onUpdate(sectionId, item.id, { validityControl: val })}
-                                label="VALIDADE"
+                                label={t('template.form.validity')}
                             />
                         </div>
 
@@ -114,18 +116,18 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                             <div className="w-full animate-fade-in pt-4">
                                 <div className="flex items-center justify-between mb-4">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                        {item.type === 'DROPDOWN_SELECT' ? 'OPÇÕES DO DROPDOWN' : 'OPÇÕES DE RESPOSTA'}
+                                        {item.type === 'DROPDOWN_SELECT' ? t('template.form.dropdownOptions') : t('template.form.responseOptions')}
                                     </label>
                                     {!readOnly && (
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 const currentOptions = item.options || [];
-                                                onUpdate(sectionId, item.id, { options: [...currentOptions, 'Nova Opção'] });
+                                                onUpdate(sectionId, item.id, { options: [...currentOptions, t('template.form.newOption')] });
                                             }}
                                             className="text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-600 transition-colors"
                                         >
-                                            ADICIONAR OPÇÃO
+                                            {t('template.form.addOption')}
                                         </button>
                                     )}
                                 </div>
@@ -159,7 +161,7 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                                         </div>
                                     ))}
                                     {(!item.options || item.options.length === 0) && (
-                                        <p className="text-[10px] text-slate-400 italic">Nenhuma opção adicionada.</p>
+                                        <p className="text-[10px] text-slate-400 italic">{t('template.form.noOptions')}</p>
                                     )}
                                 </div>
                             </div>
@@ -192,13 +194,13 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                                             onChange={() => onUpdate(sectionId, item.id, { databaseSource: 'fertilizers_soil' })}
                                             className="hidden"
                                         />
-                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Banco de Dados</span>
+                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{t('template.form.database')}</span>
                                     </label>
                                 </div>
 
                                 {item.databaseSource && (
                                     <div className="flex flex-col gap-3 animate-fade-in">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Fonte de Dados</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('template.form.dataSource')}</label>
                                         <div className="relative">
                                             <select
                                                 disabled={readOnly}
@@ -226,7 +228,7 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                                 <Checkbox
                                     checked={item.askForQuantity}
                                     onChange={val => !readOnly && onUpdate(sectionId, item.id, { askForQuantity: val })}
-                                    label="EXIGIR QUANTIDADE"
+                                    label={t('template.form.requireQuantity')}
                                 />
                             </div>
                         )}
@@ -238,9 +240,9 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                                         < Sparkles size={18} />
                                     </div>
                                     <div>
-                                        <p className="text-amber-900 font-bold text-sm">Informação importante</p>
+                                        <p className="text-amber-900 font-bold text-sm">{t('template.form.importantInfo')}</p>
                                         <p className="text-amber-700/80 text-xs font-medium mt-1 leading-relaxed">
-                                            O produtor poderá desenhar a propriedade e talhões no mapa.
+                                            {t('template.form.propertyMapInfo')}
                                         </p>
                                     </div>
                                 </div>

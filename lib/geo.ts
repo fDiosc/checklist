@@ -3,9 +3,22 @@ import { GeoPoint } from '../types/checklist';
 /**
  * Calculates the area of a polygon in hectares using the Shoelace formula
  * adapted for geographical coordinates (approximate for small areas).
+ * 
+ * Supports both GeoPoint[] array and GeoJSON Polygon/MultiPolygon geometries.
  */
-export function calculateAreaInHectares(points: GeoPoint[]): string {
-    if (points.length < 3) return '0.00';
+export function calculateAreaInHectares(input: GeoPoint[] | GeoJSON.Polygon | GeoJSON.MultiPolygon): number {
+    let points: GeoPoint[];
+
+    // Check if input is a GeoJSON geometry
+    if ('type' in input && (input.type === 'Polygon' || input.type === 'MultiPolygon')) {
+        points = convertGeoJSONToPoints(input);
+    } else if (Array.isArray(input)) {
+        points = input as GeoPoint[];
+    } else {
+        return 0;
+    }
+
+    if (points.length < 3) return 0;
 
     const radius = 6378137; // Earth's radius in meters
     let area = 0;
@@ -25,5 +38,30 @@ export function calculateAreaInHectares(points: GeoPoint[]): string {
     area = (area * radius * radius) / 2;
     const hectares = Math.abs(area) / 10000;
 
-    return hectares.toFixed(2);
+    return hectares;
 }
+
+/**
+ * Converts GeoJSON Polygon or MultiPolygon to GeoPoint[] array
+ */
+function convertGeoJSONToPoints(geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): GeoPoint[] {
+    if (geometry.type === 'Polygon') {
+        // Use the outer ring (first array of coordinates)
+        return geometry.coordinates[0].map(coord => ({
+            lat: coord[1],
+            lng: coord[0]
+        }));
+    } else if (geometry.type === 'MultiPolygon') {
+        // For MultiPolygon, calculate total from all polygons
+        // For now, just use the first polygon's outer ring
+        // (a more complete implementation would sum all polygon areas)
+        if (geometry.coordinates.length > 0 && geometry.coordinates[0].length > 0) {
+            return geometry.coordinates[0][0].map(coord => ({
+                lat: coord[1],
+                lng: coord[0]
+            }));
+        }
+    }
+    return [];
+}
+

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Sparkles, List, ArrowLeft, Upload, Command, FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface AITemplateSelectorProps {
     onSelectManual: () => void;
@@ -10,6 +11,7 @@ interface AITemplateSelectorProps {
 }
 
 export default function AITemplateSelector({ onSelectManual, onAIComplete }: AITemplateSelectorProps) {
+    const t = useTranslations();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -61,7 +63,7 @@ export default function AITemplateSelector({ onSelectManual, onAIComplete }: AIT
 
         } catch (error) {
             console.error("AI Error:", error);
-            alert("Erro ao processar arquivo. Tente novamente.");
+            alert(t('errors.genericError'));
         } finally {
             setIsAnalyzing(false);
         }
@@ -77,9 +79,9 @@ export default function AITemplateSelector({ onSelectManual, onAIComplete }: AIT
                             <Sparkles size={40} className="text-white animate-pulse" />
                         </div>
                     </div>
-                    <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Analisando Documento</h2>
+                    <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">{t('aiTemplateSelector.analyzing')}</h2>
                     <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-                        Nossa Inteligência Artificial está lendo seu arquivo, identificando seções e estruturando o checklist...
+                        {t('aiTemplateSelector.analyzingDesc')}
                     </p>
                     <div className="mt-8 flex justify-center gap-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
@@ -98,15 +100,15 @@ export default function AITemplateSelector({ onSelectManual, onAIComplete }: AIT
                     onClick={() => window.history.back()}
                     className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600 transition-all mb-8"
                 >
-                    <ArrowLeft size={16} /> Cancelar e Voltar
+                    <ArrowLeft size={16} /> {t('common.cancel')} {t('common.back')}
                 </button>
 
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter mb-4">
-                        Como deseja criar seu Checklist?
+                        {t('aiTemplateSelector.title')}
                     </h1>
                     <p className="text-slate-500 text-lg font-medium">
-                        Escolha a melhor forma de estruturar sua auditoria ou inspeção.
+                        {t('aiTemplateSelector.description')}
                     </p>
                 </div>
 
@@ -119,9 +121,9 @@ export default function AITemplateSelector({ onSelectManual, onAIComplete }: AIT
                         <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-8 group-hover:bg-slate-100 transition-colors">
                             <List size={32} className="text-slate-700" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Manual do Zero</h3>
+                        <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">{t('aiTemplateSelector.manual')}</h3>
                         <p className="text-slate-500 leading-relaxed font-medium">
-                            Crie seções e itens um por um, configurando cada detalhe manualmente conforme sua necessidade.
+                            {t('aiTemplateSelector.manualDesc')}
                         </p>
                     </div>
 
@@ -146,10 +148,10 @@ export default function AITemplateSelector({ onSelectManual, onAIComplete }: AIT
                             <Sparkles size={32} className="text-emerald-400" />
                         </div>
                         <h3 className="text-2xl font-black text-white mb-3 relative z-10 tracking-tight">
-                            IA Mágica <span className="bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-full uppercase tracking-widest ml-2 align-middle">Novo 2.5</span>
+                            {t('aiTemplateSelector.aiMagic')} <span className="bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-full uppercase tracking-widest ml-2 align-middle">{t('common.new')} 2.5</span>
                         </h3>
                         <p className="text-slate-400 leading-relaxed font-medium relative z-10">
-                            Envie um PDF, Imagem ou Foto de um checklist físico. A IA irá ler, interpretar e estruturar tudo para você em segundos.
+                            {t('aiTemplateSelector.aiMagicDesc')}
                         </p>
 
                         <div className="mt-8 flex items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest relative z-10">

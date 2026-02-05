@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { syncResponsesToParent } from "@/lib/services/sync.service";
@@ -8,8 +8,8 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
+        const session = await auth();
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -43,7 +43,8 @@ export async function POST(
 
         await db.auditLog.create({
             data: {
-                userId,
+                userId: session.user.id,
+                workspaceId: checklist.workspaceId,
                 checklistId: id,
                 action: checklist.parentId
                     ? `CHILD_CHECKLIST_FINALIZED_WITH_PARENT_SYNC`
@@ -61,4 +62,3 @@ export async function POST(
         );
     }
 }
-

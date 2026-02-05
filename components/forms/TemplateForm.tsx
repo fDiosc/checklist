@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, X, ChevronDown, GripVertical } from 'lucide-react';
 import Switch from '@/components/ui/Switch';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import {
     DndContext,
     closestCenter,
@@ -62,6 +63,7 @@ interface TemplateFormProps {
 export default function TemplateForm({ initialData, mode, readOnly = false }: TemplateFormProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const t = useTranslations();
 
     const [template, setTemplate] = useState<TemplateData>(
         initialData || {
@@ -73,7 +75,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
             sections: [
                 {
                     id: `section-${crypto.randomUUID()}`,
-                    name: 'Nova Seção',
+                    name: t('template.form.newSection'),
                     iterateOverFields: false,
                     items: []
                 }
@@ -120,7 +122,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
             ...prev,
             sections: [
                 ...prev.sections,
-                { id: `section-${crypto.randomUUID()}`, name: 'Nova Seção', iterateOverFields: false, items: [] }
+                { id: `section-${crypto.randomUUID()}`, name: t('template.form.newSection'), iterateOverFields: false, items: [] }
             ]
         }));
     };
@@ -230,9 +232,9 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                     </button>
                     <div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-                            {mode === 'CREATE' ? 'Criar Template' : 'Editar Template'}
+                            {mode === 'CREATE' ? t('template.createTemplate') : t('template.editTemplate')}
                         </h1>
-                        <p className="text-slate-500 font-medium text-xs uppercase tracking-widest mt-1">Biblioteca Operacional</p>
+                        <p className="text-slate-500 font-medium text-xs uppercase tracking-widest mt-1">{t('template.form.library')}</p>
                     </div>
                 </div>
                 {!readOnly && (
@@ -251,7 +253,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                             {mutation.isPending ? (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : <Save size={18} />}
-                            {mode === 'CREATE' ? 'Publicar Biblioteca' : 'Atualizar Template'}
+                            {mode === 'CREATE' ? t('template.form.publish') : t('template.form.update')}
                         </button>
                     </div>
                 )}
@@ -264,16 +266,16 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                         {/* Sidebar content remains same... */}
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            Configurações Gerais
+                            {t('template.form.generalSettings')}
                         </h3>
 
                         <div className="space-y-8">
                             <div>
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Título do Template</label>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">{t('template.form.templateName')}</label>
                                 <input
                                     type="text"
                                     disabled={readOnly}
-                                    placeholder="Ex: Checklist de Sustentabilidade"
+                                    placeholder={t('template.form.templateNamePlaceholder')}
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
                                     value={template.name}
                                     onChange={e => setTemplate(prev => ({ ...prev, name: e.target.value }))}
@@ -281,11 +283,11 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Pasta / Categoria</label>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">{t('template.form.folder')}</label>
                                 <input
                                     type="text"
                                     disabled={readOnly}
-                                    placeholder="Ex: Auditoria"
+                                    placeholder={t('template.form.folderPlaceholder')}
                                     className="w-full p-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
                                     value={template.folder}
                                     onChange={e => setTemplate(prev => ({ ...prev, folder: e.target.value }))}
@@ -296,10 +298,10 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                 <Switch
                                     checked={template.requiresProducerIdentification}
                                     onChange={val => !readOnly && setTemplate(prev => ({ ...prev, requiresProducerIdentification: val }))}
-                                    label="Exigir Identificação"
+                                    label={t('template.form.requireIdentification')}
                                 />
                                 <p className="text-[9px] text-slate-400 font-medium mt-3 leading-relaxed">
-                                    Obriga o preenchimento de CPF/Email antes do checklist iniciar.
+                                    {t('template.form.requireIdentificationDesc')}
                                 </p>
                             </div>
 
@@ -307,16 +309,16 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                 <Switch
                                     checked={template.isContinuous}
                                     onChange={val => !readOnly && setTemplate(prev => ({ ...prev, isContinuous: val }))}
-                                    label="Checklist Contínuo"
+                                    label={t('template.form.continuousChecklist')}
                                 />
                                 <p className="text-[9px] text-slate-400 font-medium mt-3 leading-relaxed">
-                                    Permite finalizações parciais e criação de checklists filhos.
+                                    {t('template.form.continuousChecklistDesc')}
                                 </p>
                             </div>
 
                             {template.isContinuous && (
                                 <div className="space-y-4 animate-fade-in">
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Prompt de Plano de Ação</label>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">{t('template.form.actionPlanPrompt')}</label>
                                     <div className="relative">
                                         <select
                                             disabled={readOnly}
@@ -385,7 +387,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                                 ...prev,
                                                 sections: prev.sections.map(s => s.id === section.id ? { ...s, iterateOverFields: val } : s)
                                             }))}
-                                            label="Repetir por Talhão"
+                                            label={t('template.form.repeatByField')}
                                         />
                                         {!readOnly && (
                                             <button
@@ -422,7 +424,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                                             className="w-full py-6 border-2 border-dashed border-slate-100 rounded-[2rem] text-slate-300 hover:text-primary hover:border-primary/20 hover:bg-primary/[0.02] transition-all flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest group"
                                         >
                                             <Plus size={18} className="group-hover:scale-110 transition-transform" />
-                                            Novo Item
+                                            {t('template.form.newItem')}
                                         </button>
                                     )}
                                 </div>
@@ -436,7 +438,7 @@ export default function TemplateForm({ initialData, mode, readOnly = false }: Te
                             className="w-full py-8 bg-slate-900 rounded-[3rem] text-white font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-4 group"
                         >
                             <Plus size={24} className="group-hover:rotate-90 transition-transform" />
-                            Adicionar Nova Seção
+                            {t('template.form.addSection')}
                         </button>
                     )}
                 </div>

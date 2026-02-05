@@ -1,6 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { hasWorkspaceAccess, getCreateWorkspaceId } from "@/lib/workspace-context";
 
 export async function POST(
     req: Request,
@@ -9,9 +10,9 @@ export async function POST(
     try {
         const params = await props.params;
         const { id } = params;
-        const { userId } = await auth();
+        const session = await auth();
 
-        if (!userId) {
+        if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -34,14 +35,21 @@ export async function POST(
             return NextResponse.json({ error: "Template not found" }, { status: 404 });
         }
 
-        // 2. Create duplicate in a transaction
+        // Check workspace access
+        if (!hasWorkspaceAccess(session, originalTemplate.workspaceId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const workspaceId = getCreateWorkspaceId(session);
+
         // 2. Create duplicate in a transaction
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const duplicate = await db.$transaction(async (tx: any) => {
             // Create the template
             const newTemplate = await tx.template.create({
                 data: {
-                    createdById: userId,
+                    workspaceId,
+                    createdById: session.user.id,
                     name: `${originalTemplate.name} (Cópia)`,
                     folder: originalTemplate.folder,
                     requiresProducerIdentification: originalTemplate.requiresProducerIdentification,
@@ -80,10 +88,11 @@ export async function POST(
         });
 
         return NextResponse.json(duplicate);
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("Duplication Error:", error?.message || error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Duplication Error:", errorMessage);
         return NextResponse.json(
-            { error: "Internal server error", details: error?.message },
+            { error: "Internal server error", details: errorMessage },
             { status: 500 }
         );
     }
