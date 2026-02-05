@@ -124,6 +124,7 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
+
         const searchFilter = search ? {
             OR: [
                 { name: { contains: search, mode: "insensitive" as const } },
@@ -219,15 +220,11 @@ export async function GET(req: Request) {
             return NextResponse.json(allTemplates);
         }
 
-        // Parent workspace or regular workspace - get own templates only
-        // If has subworkspaces, also include all subworkspace templates
-        const workspaceIds = userWorkspace.hasSubworkspaces && userWorkspace.subworkspaces.length > 0
-            ? [session.user.workspaceId, ...userWorkspace.subworkspaces.map(sw => sw.id)]
-            : [session.user.workspaceId];
-
+        // Parent workspace or regular workspace - get ONLY own templates
+        // Subworkspace templates should only appear in the subworkspace view
         const templates = await db.template.findMany({
             where: {
-                workspaceId: { in: workspaceIds },
+                workspaceId: session.user.workspaceId, // Only own workspace templates
                 ...searchFilter,
             },
             include: {
@@ -247,7 +244,7 @@ export async function GET(req: Request) {
         return NextResponse.json(templates.map(t => ({
             ...t,
             isAssigned: false,
-            isReadOnly: t.workspaceId !== session.user.workspaceId, // Read-only if from subworkspace
+            isReadOnly: false, // Own workspace templates are always editable
         })));
     } catch (error) {
         console.error("Error fetching templates:", error);

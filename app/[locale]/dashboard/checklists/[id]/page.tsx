@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { notFound, redirect } from 'next/navigation';
 import ChecklistManagementClient from './checklist-management-client';
-import { hasWorkspaceAccess } from '@/lib/workspace-context';
+import { hasWorkspaceAccessWithHierarchy } from '@/lib/workspace-context';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -67,8 +67,10 @@ export default async function ChecklistDetailPage({ params, searchParams }: Page
         notFound();
     }
 
-    // Check workspace access
-    if (!hasWorkspaceAccess(session, checklist.workspaceId)) {
+    // Check workspace access - use hierarchy check for parent workspaces viewing subworkspace data
+    const hasAccess = await hasWorkspaceAccessWithHierarchy(session, checklist.workspaceId);
+
+    if (!hasAccess) {
         redirect('/dashboard');
     }
 

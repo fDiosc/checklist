@@ -59,6 +59,7 @@ export default function ChecklistsPage() {
 
     const hasSubworkspacesEnabled = userData?.workspace?.hasSubworkspaces && !userData?.workspace?.parentWorkspaceId;
     const isReadOnly = activeTab === 'subworkspaces';
+
     
     // Helper functions for i18n
     const getStatusLabelI18n = (status: string) => {
@@ -335,8 +336,11 @@ export default function ChecklistsPage() {
     const hasSubworkspaces = hasSubworkspacesEnabled || (subworkspacesData?.parentWorkspace?.hasSubworkspaces && 
         subworkspacesData?.subworkspaces && subworkspacesData.subworkspaces.length > 0);
 
+    // Determine if user data is loaded and we know the workspace configuration
+    const isUserDataReady = !!userData?.workspace;
+    
     const { data: checklists, isLoading } = useQuery({
-        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo, subworkspaceFilter, activeTab],
+        queryKey: ['checklists', statusFilter, templateFilter, producerSearch, dateFrom, dateTo, subworkspaceFilter, activeTab, locale, hasSubworkspacesEnabled],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
@@ -345,14 +349,16 @@ export default function ChecklistsPage() {
             if (dateFrom) params.append('dateFrom', dateFrom);
             if (dateTo) params.append('dateTo', dateTo);
             if (subworkspaceFilter) params.append('subworkspaceId', subworkspaceFilter);
-            // Add scope parameter when workspace has subworkspaces enabled
-            if (hasSubworkspacesEnabled) {
-                params.append('scope', activeTab);
-            }
+            // ALWAYS add scope parameter to prevent data leakage
+            // If hasSubworkspacesEnabled is true, use activeTab; otherwise default to 'own'
+            params.append('scope', hasSubworkspacesEnabled ? activeTab : 'own');
+
             const res = await fetch(`/api/checklists?${params.toString()}`);
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
         },
+        // FIX: Only enable query when user data is ready to prevent fetching with wrong scope
+        enabled: isUserDataReady,
     });
 
     const getStatusIcon = (status: string) => {

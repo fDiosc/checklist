@@ -659,6 +659,7 @@
     "analyzingDesc": "Our Artificial Intelligence is reading your file, identifying sections and structuring the checklist..."
   },
   "audit": {
+    "status": "Audit Status",
     "auditorAction": "Auditor Action",
     "itemApproved": "Item Approved",
     "verifiedByAuditor": "Verified by auditor",
@@ -680,7 +681,9 @@
     "suggestsApproval": "Suggests Approval",
     "suggestsRejection": "Suggests Rejection",
     "confidence": "Confidence",
-    "acceptSuggestion": "Accept Suggestion and Apply"
+    "acceptSuggestion": "Accept Suggestion and Apply",
+    "pendingVerification": "Pending Verification",
+    "awaitingReview": "Awaiting review by auditor"
   },
   "supervisors": {
     "title": "Supervisors",
