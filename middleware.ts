@@ -84,12 +84,20 @@ export async function middleware(req: NextRequest) {
     const cookieNames = cookies.map(c => c.name);
     console.log('[MW] Protected route:', pathname);
     console.log('[MW] Cookies received:', cookieNames);
-    console.log('[MW] AUTH_SECRET length:', authSecret?.length);
-    console.log('[MW] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
+    
+    // Determine the correct cookie name based on environment
+    // In production with HTTPS (behind proxy), cookies use __Secure- prefix
+    const isSecure = process.env.NEXTAUTH_URL?.startsWith('https://');
+    const cookieName = isSecure 
+        ? '__Secure-authjs.session-token' 
+        : 'authjs.session-token';
+    
+    console.log('[MW] Looking for cookie:', cookieName, 'isSecure:', isSecure);
     
     const token = await getToken({ 
         req, 
-        secret: authSecret 
+        secret: authSecret,
+        cookieName: cookieName,
     });
 
     console.log('[MW] Token check:', { hasToken: !!token, email: token?.email });
