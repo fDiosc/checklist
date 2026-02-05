@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,29 +8,40 @@ const intlMiddleware = createMiddleware(routing);
 
 // Valid locales
 const locales = ['pt-BR', 'en', 'es'];
+const defaultLocale = 'pt-BR';
 
-// Public routes (no authentication required)
-const publicPatterns = [
-    /^\/$/,
-    /^\/[a-z]{2}(-[A-Z]{2})?$/,                    // /:locale
-    /^\/[a-z]{2}(-[A-Z]{2})?\/c(\/.*)?$/,          // /:locale/c/*
-    /^\/[a-z]{2}(-[A-Z]{2})?\/portal(\/.*)?$/,     // /:locale/portal/*
-    /^\/[a-z]{2}(-[A-Z]{2})?\/sign-in(\/.*)?$/,    // /:locale/sign-in/*
-    /^\/[a-z]{2}(-[A-Z]{2})?\/sign-up(\/.*)?$/,    // /:locale/sign-up/*
-    /^\/c(\/.*)?$/,                                 // /c/*
-    /^\/portal(\/.*)?$/,                            // /portal/*
-    /^\/sign-in(\/.*)?$/,                           // /sign-in/*
-    /^\/sign-up(\/.*)?$/,                           // /sign-up/*
-    /^\/api\/auth(\/.*)?$/,                         // /api/auth/* (NextAuth routes)
-    /^\/api\/c(\/.*)?$/,                            // /api/c/* (public checklist API)
-    /^\/api\/portal(\/.*)?$/,                       // /api/portal/* (public portal API)
-    /^\/api\/database-options$/,                    // /api/database-options
-    /^\/api\/integration(\/.*)?$/,                  // /api/integration/*
-    /^\/api\/lookup(\/.*)?$/,                       // /api/lookup/*
+// Public paths that don't require authentication
+const publicPaths = [
+    '/sign-in',
+    '/sign-up',
+    '/c',
+    '/portal',
 ];
 
-function isPublicRoute(pathname: string): boolean {
-    return publicPatterns.some(pattern => pattern.test(pathname));
+// Check if path is public
+function isPublicPath(pathname: string): boolean {
+    // Root is always public
+    if (pathname === '/') return true;
+
+    // Remove locale prefix if present
+    let pathToCheck = pathname;
+    for (const locale of locales) {
+        if (pathname.startsWith(`/${locale}/`)) {
+            pathToCheck = pathname.substring(locale.length + 1);
+            break;
+        } else if (pathname === `/${locale}`) {
+            return true; // Locale root is public
+        }
+    }
+
+    // Check if it starts with any public path
+    for (const publicPath of publicPaths) {
+        if (pathToCheck === publicPath || pathToCheck.startsWith(`${publicPath}/`)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function isApiRoute(pathname: string): boolean {
@@ -40,61 +51,59 @@ function isApiRoute(pathname: string): boolean {
 // Extract locale from pathname
 function getLocaleFromPath(pathname: string): string {
     const segments = pathname.split('/').filter(Boolean);
-    if (segments.length > 0) {
-        const firstSegment = segments[0];
-        if (locales.includes(firstSegment)) {
-            return firstSegment;
-        }
+    if (segments.length > 0 && locales.includes(segments[0])) {
+        return segments[0];
     }
-    return 'pt-BR'; // Default locale
+    return defaultLocale;
 }
 
 // Routes that require password change
 const changePasswordPath = '/change-password';
 
-export default auth(async (req) => {
+export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
-    const session = req.auth;
 
-    // Skip middleware for API routes - they handle auth internally
+    // 1. Skip all API routes - they handle auth internally
     if (isApiRoute(pathname)) {
         return NextResponse.next();
     }
 
-    // Check if it's a public route FIRST (before any redirects)
-    if (isPublicRoute(pathname)) {
-        // Apply i18n middleware for public routes
-        return intlMiddleware(req as unknown as NextRequest);
+    // 2. For public paths, just apply i18n middleware
+    if (isPublicPath(pathname)) {
+        return intlMiddleware(req);
     }
 
-    // Get locale from path
+    // 3. Protected routes - check authentication via JWT
+    const token = await getToken({ 
+        req, 
+        secret: process.env.AUTH_SECRET 
+    });
+
     const locale = getLocaleFromPath(pathname);
 
-    // No session - redirect to sign-in
-    if (!session?.user) {
-        const signInUrl = new URL(`/${locale}/sign-in`, req.url);
+    if (!token) {
+        // Not authenticated - redirect to sign-in
+        const signInPath = locale === defaultLocale ? '/sign-in' : `/${locale}/sign-in`;
+        const signInUrl = new URL(signInPath, req.url);
         signInUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(signInUrl);
     }
 
-    // User must change password - redirect to change password page
-    if (session.user.mustChangePassword) {
-        // Don't redirect if already on change password page
-        if (!pathname.includes(changePasswordPath)) {
-            const changePasswordUrl = new URL(`/${locale}/dashboard/change-password`, req.url);
-            return NextResponse.redirect(changePasswordUrl);
-        }
+    // 4. Check if user must change password
+    if (token.mustChangePassword && !pathname.includes(changePasswordPath)) {
+        const changePwdPath = locale === defaultLocale 
+            ? '/dashboard/change-password' 
+            : `/${locale}/dashboard/change-password`;
+        return NextResponse.redirect(new URL(changePwdPath, req.url));
     }
 
-    // Apply i18n middleware for authenticated routes
-    return intlMiddleware(req as unknown as NextRequest);
-});
+    // 5. Authenticated user - apply i18n middleware
+    return intlMiddleware(req);
+}
 
 export const config = {
     matcher: [
-        // Skip Next.js internals and all static files
+        // Skip Next.js internals and static files
         '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-        // Always run for API routes
-        '/(api|trpc)(.*)',
     ],
 };
