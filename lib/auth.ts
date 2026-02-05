@@ -108,6 +108,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user, trigger, session }) {
+            console.log('[AUTH] JWT callback:', { hasUser: !!user, trigger, tokenEmail: token.email });
+            
             // Initial sign in
             if (user) {
                 token.id = user.id;
@@ -116,6 +118,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.role = user.role;
                 token.workspaceId = user.workspaceId;
                 token.mustChangePassword = user.mustChangePassword;
+                console.log('[AUTH] JWT: User data set in token:', user.email);
             }
 
             // Update session when triggered
@@ -127,6 +130,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return token;
         },
         async session({ session, token }) {
+            console.log('[AUTH] Session callback:', { tokenEmail: token.email });
             session.user = {
                 id: token.id as string,
                 email: token.email as string,

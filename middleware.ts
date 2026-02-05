@@ -78,14 +78,21 @@ export async function middleware(req: NextRequest) {
 
     // 3. Protected routes - check authentication via JWT
     const authSecret = process.env.AUTH_SECRET;
-    console.log('[MW] Protected route:', pathname, 'hasSecret:', !!authSecret);
+    
+    // Debug: Check what cookies are being sent
+    const cookies = req.cookies.getAll();
+    const cookieNames = cookies.map(c => c.name);
+    console.log('[MW] Protected route:', pathname);
+    console.log('[MW] Cookies received:', cookieNames);
+    console.log('[MW] AUTH_SECRET length:', authSecret?.length);
+    console.log('[MW] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
     
     const token = await getToken({ 
         req, 
         secret: authSecret 
     });
 
-    console.log('[MW] Token check:', { hasToken: !!token, email: token?.email, pathname });
+    console.log('[MW] Token check:', { hasToken: !!token, email: token?.email });
 
     const locale = getLocaleFromPath(pathname);
 
