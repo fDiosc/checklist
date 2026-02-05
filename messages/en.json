@@ -56,7 +56,10 @@
     "required": "Required",
     "optional": "Optional",
     "field": "Field",
-    "retry": "Try Again"
+    "retry": "Try Again",
+    "readOnly": "Read Only",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -130,6 +133,7 @@
     "sentSuccess": "Checklist sent successfully!",
     "sendError": "Error sending WhatsApp.",
     "noPhone": "This producer does not have a registered phone number.",
+    "confirmSendWhatsApp": "Send checklist via WhatsApp to {name} ({phone})?",
     "allWorkspaces": "All workspaces",
     "tabs": {
       "own": "My Checklists",

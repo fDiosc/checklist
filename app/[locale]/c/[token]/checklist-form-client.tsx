@@ -632,14 +632,14 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                 {typeLabel && (
                                     <span className={cn(
                                         "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border flex items-center gap-1",
-                                        typeLabel === 'Correção' ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                        checklist.type === 'CORRECTION' ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
                                     )}>
-                                        {typeLabel === 'Correção' ? <XCircle size={8} /> : <ClipboardList size={8} />}
+                                        {checklist.type === 'CORRECTION' ? <XCircle size={8} /> : <ClipboardList size={8} />}
                                         {typeLabel}
                                     </span>
                                 )}
                             </div>
-                            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 opacity-90">Portal do Produtor</p>
+                            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 opacity-90">{t('publicChecklist.title')}</p>
                         </div>
                     </div>
 

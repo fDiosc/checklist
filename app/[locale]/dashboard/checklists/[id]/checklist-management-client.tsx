@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowLeft, CheckCircle, AlertCircle, Clock, XCircle, Search, Sparkles, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
-import { useTranslations, useFormatter } from 'next-intl';
+import { useTranslations, useFormatter, useLocale } from 'next-intl';
 
 // Action Plan Card Component with expandable text
 function ActionPlanCard({
@@ -117,6 +117,7 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
     const router = useRouter();
     const t = useTranslations();
     const format = useFormatter();
+    const locale = useLocale();
     // Local state for responses to allow optimistic updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [responses, setResponses] = useState<any[]>(checklist.responses?.map((r: any) => ({
@@ -478,11 +479,11 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                                 <>
                                     <span className="text-slate-300">•</span>
                                     <Link
-                                        href={`/dashboard/checklists/${checklist.parentId}`}
+                                        href={`/${locale}/dashboard/checklists/${checklist.parentId}`}
                                         className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors flex items-center gap-1"
                                     >
                                         <AlertCircle size={10} />
-                                        Filho de: {checklist.parent?.template?.name || 'Checklist Anterior'}
+                                        {t('checklistManagement.childOf')}: {checklist.parent?.template?.name || t('checklistManagement.previousChecklist')}
                                     </Link>
                                 </>
                             )}

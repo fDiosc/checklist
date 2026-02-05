@@ -56,7 +56,10 @@
     "required": "Obrigatório",
     "optional": "Opcional",
     "field": "Talhão",
-    "retry": "Tentar Novamente"
+    "retry": "Tentar Novamente",
+    "readOnly": "Somente Leitura",
+    "expand": "Expandir",
+    "collapse": "Recolher"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -130,6 +133,7 @@
     "sentSuccess": "Checklist enviado com sucesso!",
     "sendError": "Erro ao enviar WhatsApp.",
     "noPhone": "Este produtor não possui telefone cadastrado.",
+    "confirmSendWhatsApp": "Enviar checklist via WhatsApp para {name} ({phone})?",
     "allWorkspaces": "Todos os workspaces",
     "tabs": {
       "own": "Meus Checklists",

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp, XCircle, ClipboardList, CheckCircle, Clock, AlertTriangle, Calendar, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusLabel } from '@/lib/utils/status';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface ChildChecklist {
     id: string;
@@ -20,10 +21,10 @@ interface ChildChecklistsAccordionProps {
     childChecklists: ChildChecklist[];
 }
 
-function getTypeLabel(type?: string): string {
-    if (type === 'CORRECTION') return 'Correção';
-    if (type === 'COMPLETION') return 'Complemento';
-    return 'Original';
+function getTypeLabel(type: string | undefined, t: ReturnType<typeof useTranslations>): string {
+    if (type === 'CORRECTION') return t('checklistType.correction');
+    if (type === 'COMPLETION') return t('checklistType.completion');
+    return t('checklistType.original');
 }
 
 function getStatusIcon(status: string) {
@@ -57,7 +58,9 @@ function formatDate(date: string | Date | undefined | null): string {
 }
 
 function ChildChecklistRow({ child, level = 0 }: { child: ChildChecklist; level?: number }) {
-    const typeLabel = getTypeLabel(child.type);
+    const locale = useLocale();
+    const t = useTranslations();
+    const typeLabel = getTypeLabel(child.type, t);
     const isCorrection = child.type === 'CORRECTION';
     const isCompletion = child.type === 'COMPLETION';
     const stats = getProgressStats(child.responses);
@@ -66,7 +69,7 @@ function ChildChecklistRow({ child, level = 0 }: { child: ChildChecklist; level?
     return (
         <>
             <Link
-                href={`/dashboard/checklists/${child.id}`}
+                href={`/${locale}/dashboard/checklists/${child.id}`}
                 className={cn(
                     "flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group",
                     level > 0 && "ml-6 border-l-2 border-slate-200"

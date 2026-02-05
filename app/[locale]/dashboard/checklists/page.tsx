@@ -104,7 +104,7 @@ export default function ChecklistsPage() {
             const copyChildLink = (e: React.MouseEvent) => {
                 e.stopPropagation();
                 navigator.clipboard.writeText(childPublicLink);
-                alert('Link copiado!');
+                alert(t('checklists.linkCopied'));
             };
 
             const openChildLink = (e: React.MouseEvent) => {
@@ -117,11 +117,11 @@ export default function ChecklistsPage() {
                 if (sendingWhatsappId) return;
 
                 if (!parentProducer?.phone) {
-                    alert("Este produtor não possui telefone cadastrado.");
+                    alert(t('checklists.noPhone'));
                     return;
                 }
 
-                if (!confirm(`Enviar checklist de correção via WhatsApp para ${parentProducer.name} (${parentProducer.phone})?`)) return;
+                if (!confirm(t('checklists.confirmSendWhatsApp', { name: parentProducer.name, phone: parentProducer.phone }))) return;
 
                 setSendingWhatsappId(child.id);
                 try {
@@ -134,7 +134,7 @@ export default function ChecklistsPage() {
                         throw new Error(data.error || 'Falha ao enviar');
                     }
 
-                    alert('Checklist enviado com sucesso!');
+                    alert(t('checklists.sentSuccess'));
                 } catch (error: unknown) {
                     console.error(error);
                     alert(error instanceof Error ? error.message : t('checklists.sendError'));
@@ -159,7 +159,7 @@ export default function ChecklistsPage() {
                                 <button
                                     onClick={(e) => { e.stopPropagation(); toggleExpand(child.id); }}
                                     className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                                    title={isChildExpanded ? 'Recolher' : 'Expandir'}
+                                    title={isChildExpanded ? t('common.collapse') : t('common.expand')}
                                 >
                                     {isChildExpanded ? (
                                         <ChevronDown size={14} className={isCorrection ? "text-red-500" : "text-indigo-500"} />
@@ -489,7 +489,7 @@ export default function ChecklistsPage() {
                         className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/5 transition-all"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        title="Data inicial"
+                        title={t('checklists.filters.dateFrom')}
                     />
                 </div>
 
@@ -503,7 +503,7 @@ export default function ChecklistsPage() {
                         className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/5 transition-all"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        title="Data final"
+                        title={t('checklists.filters.dateTo')}
                     />
                 </div>
 
@@ -595,7 +595,7 @@ export default function ChecklistsPage() {
                                             return;
                                         }
 
-                                        if (!confirm(`Enviar checklist via WhatsApp para ${checklist.producer.name} (${checklist.producer.phone})?`)) return;
+                                        if (!confirm(t('checklists.confirmSendWhatsApp', { name: checklist.producer.name, phone: checklist.producer.phone }))) return;
 
                                         setSendingWhatsappId(checklist.id);
                                         try {
@@ -634,7 +634,7 @@ export default function ChecklistsPage() {
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); toggleExpand(checklist.id); }}
                                                                 className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                                                                title={isExpanded ? 'Recolher correções' : 'Expandir correções'}
+                                                                title={isExpanded ? t('common.collapse') : t('common.expand')}
                                                             >
                                                                 {isExpanded ? (
                                                                     <ChevronDown size={16} className="text-indigo-500" />
