@@ -2,6 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+// Extend timeout for AI processing (5 minutes)
+export const maxDuration = 300;
+export const runtime = "nodejs";
+
 // Language instructions for AI responses
 const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
     'pt-BR': 'Responda em Português do Brasil.',

@@ -2,6 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+// Extend timeout for AI processing (5 minutes)
+export const maxDuration = 300;
+export const runtime = "nodejs";
+
 // Type for the structured action plan response from AI
 interface ActionPlanResponse {
     title?: string;
