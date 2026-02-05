@@ -15,7 +15,7 @@ datasource db {
 model Workspace {
   id        String   @id @default(cuid())
   name      String
-  slug      String   @unique
+  slug      String   // Unique constraint handled via partial indexes in migration
   logoUrl   String?  @map("logo_url")
   cnpj      String?  // CNPJ for subworkspaces
   createdAt DateTime @default(now()) @map("created_at")
@@ -36,6 +36,7 @@ model Workspace {
   templateAssignments TemplateAssignment[]
 
   @@index([parentWorkspaceId])
+  @@index([slug])
   @@map("workspaces")
 }
 

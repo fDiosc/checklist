@@ -92,9 +92,13 @@ export async function POST(request: NextRequest) {
 
         const { name, slug, logoUrl } = validation.data;
 
-        // Check if slug already exists
-        const existingWorkspace = await db.workspace.findUnique({
-            where: { slug }
+        // Check if slug already exists among parent workspaces only
+        // Subworkspaces can have the same slug as a parent (different namespace)
+        const existingWorkspace = await db.workspace.findFirst({
+            where: {
+                slug,
+                parentWorkspaceId: null // Only check among parent workspaces
+            }
         });
 
         if (existingWorkspace) {

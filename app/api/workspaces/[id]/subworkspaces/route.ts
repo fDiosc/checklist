@@ -131,14 +131,18 @@ export async function POST(
             });
         }
 
-        // Check if slug is unique
-        const existingSlug = await db.workspace.findUnique({
-            where: { slug: validatedData.slug }
+        // Check if slug is unique among subworkspaces of this parent
+        // Note: Subworkspace CAN have same slug as parent workspace (same company scenario)
+        const existingSlug = await db.workspace.findFirst({
+            where: {
+                slug: validatedData.slug,
+                parentWorkspaceId: parentWorkspaceId // Only check within same parent
+            }
         });
 
         if (existingSlug) {
             return NextResponse.json(
-                { error: "Slug already in use" },
+                { error: "Slug already in use by another subworkspace" },
                 { status: 400 }
             );
         }
