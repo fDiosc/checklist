@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2 } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
@@ -44,16 +44,25 @@ const releases = [
             },
             {
                 title: "Filtro por Origem",
-                description: "Filtre checklists por workspace de origem quando há subworkspaces ativos.",
+                description: "Filtre checklists e templates por workspace de origem quando há subworkspaces ativos.",
                 icon: Filter,
                 color: "text-red-500",
                 bg: "bg-red-50/50"
+            },
+            {
+                title: "Templates Read-Only",
+                description: "Templates do workspace pai são exibidos como somente leitura com indicador de cadeado.",
+                icon: Lock,
+                color: "text-slate-500",
+                bg: "bg-slate-50/50"
             }
         ],
         bugfixes: [
             { text: "CAR não é mais obrigatório para produtores brasileiros (apenas CPF)." },
             { text: "Checklists netos e bisnetos agora aparecem corretamente no grid." },
-            { text: "Coluna 'Origem' exibida quando há subworkspaces." }
+            { text: "Coluna 'Origem' exibida em checklists e templates." },
+            { text: "CPF agora é único por workspace, permitindo mesmo produtor em diferentes ambientes." },
+            { text: "Campos vazios no cadastro de produtor não causam mais erro de validação." }
         ]
     },
     {

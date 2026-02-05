@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit, Copy, Send, Folder, Trash2, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Copy, Send, Folder, Trash2, Filter, Building2, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useFormatter } from 'next-intl';
 import SendChecklistModal from '@/components/modals/SendChecklistModal';
@@ -15,6 +15,7 @@ export default function TemplatesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [folderFilter, setFolderFilter] = useState('');
     const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
+    const [originFilter, setOriginFilter] = useState<'all' | 'own' | 'parent'>('all');
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>();
 
@@ -61,11 +62,23 @@ export default function TemplatesPage() {
         }
     });
 
-    // Filtrar por status de uso localmente
+    // Check if user is in a subworkspace by checking if any template is assigned
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isInSubworkspace = templates?.some((t: any) => t.isAssigned === true) ?? false;
+    
+    // Filtrar por status de uso e origem localmente
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filteredTemplates = templates?.filter((t: any) => {
-        if (usageFilter === 'used') return t._count?.checklists > 0;
-        if (usageFilter === 'unused') return t._count?.checklists === 0;
+        // Usage filter
+        if (usageFilter === 'used' && t._count?.checklists === 0) return false;
+        if (usageFilter === 'unused' && t._count?.checklists > 0) return false;
+        
+        // Origin filter (only applies if in subworkspace)
+        if (isInSubworkspace && originFilter !== 'all') {
+            if (originFilter === 'own' && t.isAssigned) return false;
+            if (originFilter === 'parent' && !t.isAssigned) return false;
+        }
+        
         return true;
     });
 
@@ -90,7 +103,7 @@ export default function TemplatesPage() {
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${isInSubworkspace ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-8 animate-slide-up`} style={{ animationDelay: '0.1s' }}>
                 <div className="relative group">
                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
                         <Search size={18} />
@@ -129,6 +142,22 @@ export default function TemplatesPage() {
                         <option value="unused">{t('template.withoutChecklists')}</option>
                     </select>
                 </div>
+                {isInSubworkspace && (
+                    <div className="relative group">
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors">
+                            <Building2 size={18} />
+                        </div>
+                        <select
+                            className="w-full pl-16 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-violet-500/5 transition-all appearance-none cursor-pointer"
+                            value={originFilter}
+                            onChange={(e) => setOriginFilter(e.target.value as 'all' | 'own' | 'parent')}
+                        >
+                            <option value="all">{t('template.originFilter.all')}</option>
+                            <option value="own">{t('template.originFilter.own')}</option>
+                            <option value="parent">{t('template.originFilter.parent')}</option>
+                        </select>
+                    </div>
+                )}
             </div>
 
             {isLoading ? (
@@ -144,6 +173,9 @@ export default function TemplatesPage() {
                                 <tr className="border-b border-slate-50">
                                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('template.table.name')}</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t('template.table.folder')}</th>
+                                    {isInSubworkspace && (
+                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t('template.table.origin')}</th>
+                                    )}
                                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t('template.table.sectionsItems')}</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t('template.table.usage')}</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t('common.actions')}</th>
@@ -173,6 +205,20 @@ export default function TemplatesPage() {
                                                 {template.folder}
                                             </span>
                                         </td>
+                                        {isInSubworkspace && (
+                                            <td className="px-8 py-6 text-center">
+                                                {template.isAssigned ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 text-violet-600 text-[10px] font-black uppercase tracking-widest border border-violet-100">
+                                                        <Building2 size={12} />
+                                                        {t('template.origin.parent')}
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                                        {t('template.origin.own')}
+                                                    </span>
+                                                )}
+                                            </td>
+                                        )}
                                         <td className="px-8 py-6 text-center">
                                             <span className="text-xs font-bold text-slate-600">
                                                 {template._count?.sections || 0} {t('template.stats.sections')}
@@ -185,23 +231,38 @@ export default function TemplatesPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                {/* Read-only indicator for assigned templates */}
+                                                {template.isReadOnly && (
+                                                    <span className="p-2 text-slate-300" title={t('template.readOnly')}>
+                                                        <Lock size={16} />
+                                                    </span>
+                                                )}
+                                                {/* Edit button - disabled if read-only or has checklists */}
                                                 <button
                                                     onClick={() => {
-                                                        if (template._count?.checklists > 0) return;
+                                                        if (template.isReadOnly || template._count?.checklists > 0) return;
                                                         router.push(`/dashboard/templates/${template.id}`);
                                                     }}
-                                                    disabled={template._count?.checklists > 0}
-                                                    className={`p-2 rounded-lg transition-all ${template._count?.checklists > 0
-                                                        ? 'text-slate-200 cursor-not-allowed'
-                                                        : 'text-slate-400 hover:text-primary hover:bg-primary/5'
-                                                        }`}
-                                                    title={template._count?.checklists > 0 ? "Template em uso não pode ser editado estruturalmente. Duplique para alterar." : "Editar Template"}
+                                                    disabled={template.isReadOnly || template._count?.checklists > 0}
+                                                    className={`p-2 rounded-lg transition-all ${
+                                                        template.isReadOnly || template._count?.checklists > 0
+                                                            ? 'text-slate-200 cursor-not-allowed'
+                                                            : 'text-slate-400 hover:text-primary hover:bg-primary/5'
+                                                    }`}
+                                                    title={
+                                                        template.isReadOnly 
+                                                            ? t('template.readOnlyHint')
+                                                            : template._count?.checklists > 0 
+                                                                ? t('template.inUseHint') 
+                                                                : t('template.edit')
+                                                    }
                                                 >
                                                     <Edit size={18} />
                                                 </button>
+                                                {/* Duplicate button - always available */}
                                                 <button
                                                     onClick={() => {
-                                                        if (confirm('Deseja duplicar este template?')) {
+                                                        if (confirm(t('template.confirmDuplicate'))) {
                                                             duplicateMutation.mutate(template.id);
                                                         }
                                                     }}
@@ -210,22 +271,31 @@ export default function TemplatesPage() {
                                                 >
                                                     <Copy size={18} />
                                                 </button>
+                                                {/* Delete button - disabled if read-only or has checklists */}
                                                 <button
                                                     onClick={() => {
-                                                        if (template._count?.checklists > 0) return;
-                                                        if (confirm('Tem certeza que deseja excluir este template? Esta ação não pode ser desfeita.')) {
+                                                        if (template.isReadOnly || template._count?.checklists > 0) return;
+                                                        if (confirm(t('template.confirmDelete'))) {
                                                             deleteMutation.mutate(template.id);
                                                         }
                                                     }}
-                                                    disabled={template._count?.checklists > 0}
-                                                    className={`p-2 rounded-lg transition-all ${template._count?.checklists > 0
-                                                        ? 'text-slate-200 cursor-not-allowed'
-                                                        : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                                                        }`}
-                                                    title={template._count?.checklists > 0 ? "Template em uso não pode ser excluído" : "Excluir Template"}
+                                                    disabled={template.isReadOnly || template._count?.checklists > 0}
+                                                    className={`p-2 rounded-lg transition-all ${
+                                                        template.isReadOnly || template._count?.checklists > 0
+                                                            ? 'text-slate-200 cursor-not-allowed'
+                                                            : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                    }`}
+                                                    title={
+                                                        template.isReadOnly 
+                                                            ? t('template.readOnlyHint')
+                                                            : template._count?.checklists > 0 
+                                                                ? t('template.inUseDeleteHint') 
+                                                                : t('template.delete')
+                                                    }
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
+                                                {/* Send checklist button - always available */}
                                                 <button
                                                     onClick={() => {
                                                         setSelectedTemplateId(template.id);

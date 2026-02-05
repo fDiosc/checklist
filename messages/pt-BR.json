@@ -298,9 +298,26 @@
     "table": {
       "name": "Nome do Template",
       "folder": "Pasta",
+      "origin": "Origem",
       "sectionsItems": "Seções/Itens",
       "usage": "Uso"
     },
+    "originFilter": {
+      "all": "Todas as origens",
+      "own": "Criados por mim",
+      "parent": "Do workspace pai"
+    },
+    "origin": {
+      "own": "Próprio",
+      "parent": "Workspace Pai"
+    },
+    "readOnly": "Somente leitura",
+    "readOnlyHint": "Template do workspace pai - somente leitura",
+    "inUseHint": "Template em uso não pode ser editado",
+    "edit": "Editar Template",
+    "confirmDuplicate": "Deseja duplicar este template?",
+    "confirmDelete": "Tem certeza que deseja excluir este template? Esta ação não pode ser desfeita.",
+    "inUseDeleteHint": "Template em uso não pode ser excluído",
     "stats": {
       "active": "Ativos",
       "items": "Itens",

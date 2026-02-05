@@ -10,10 +10,13 @@ export async function GET(request: Request) {
     }
 
     try {
-        // Find producer by CPF
-        const producer = await db.producer.findUnique({
+        // Find all producers with this CPF (may exist in multiple workspaces)
+        const producers = await db.producer.findMany({
             where: { cpf },
             include: {
+                workspace: {
+                    select: { name: true }
+                },
                 checklists: {
                     include: {
                         template: {
@@ -29,16 +32,29 @@ export async function GET(request: Request) {
             }
         });
 
-        if (!producer) {
+        if (producers.length === 0) {
             return NextResponse.json({ error: 'Produtor não encontrado' }, { status: 404 });
         }
 
+        // Combine checklists from all workspaces where producer exists
+        const allChecklists = producers.flatMap(p => 
+            p.checklists.map(c => ({
+                ...c,
+                workspaceName: p.workspace.name
+            }))
+        );
+
+        // Sort by date
+        allChecklists.sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
         return NextResponse.json({
             producer: {
-                name: producer.name,
-                cpf: producer.cpf
+                name: producers[0].name,
+                cpf: producers[0].cpf
             },
-            checklists: producer.checklists
+            checklists: allChecklists
         });
     } catch (error) {
         console.error('Error fetching portal checklists:', error);

@@ -153,6 +153,26 @@ POST /api/templates/[id]/assignments  - Atualiza lista de atribuições
 }
 ```
 
+### 1.7 Grid de Templates em Subworkspaces
+
+Quando o usuário está em um subworkspace, o grid de templates exibe funcionalidades adicionais:
+
+#### Coluna "Origem"
+- **Próprio**: Template criado no subworkspace (badge verde)
+- **Workspace Pai**: Template atribuído pelo workspace pai (badge violeta com ícone de prédio)
+
+#### Filtro de Origem
+- **Todas as origens**: Exibe todos os templates
+- **Criados por mim**: Apenas templates do subworkspace
+- **Do workspace pai**: Apenas templates atribuídos
+
+#### Comportamento de Botões
+- **Editar**: Desabilitado para templates read-only (do pai) ou em uso
+- **Excluir**: Desabilitado para templates read-only ou em uso
+- **Duplicar**: Sempre disponível (permite criar cópia editável)
+- **Enviar Checklist**: Sempre disponível
+- **Indicador 🔒**: Exibido para templates somente leitura
+
 ---
 
 ## 2. Autenticação e Autorização

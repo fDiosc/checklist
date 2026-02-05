@@ -298,9 +298,26 @@
     "table": {
       "name": "Nombre de la Plantilla",
       "folder": "Carpeta",
+      "origin": "Origen",
       "sectionsItems": "Secciones/Ítems",
       "usage": "Uso"
     },
+    "originFilter": {
+      "all": "Todos los orígenes",
+      "own": "Creados por mí",
+      "parent": "Del workspace padre"
+    },
+    "origin": {
+      "own": "Propio",
+      "parent": "Workspace Padre"
+    },
+    "readOnly": "Solo lectura",
+    "readOnlyHint": "Plantilla del workspace padre - solo lectura",
+    "inUseHint": "La plantilla en uso no puede ser editada",
+    "edit": "Editar Plantilla",
+    "confirmDuplicate": "¿Desea duplicar esta plantilla?",
+    "confirmDelete": "¿Está seguro de que desea eliminar esta plantilla? Esta acción no se puede deshacer.",
+    "inUseDeleteHint": "La plantilla en uso no puede ser eliminada",
     "stats": {
       "active": "Activos",
       "items": "Ítems",

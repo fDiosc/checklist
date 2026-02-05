@@ -19,11 +19,11 @@ const createProducerSchema = z.object({
     name: z.string().min(1),
     countryCode: z.string().length(2).default('BR'),
     // CPF is now optional (required for BR via application logic)
-    cpf: z.string().length(11).optional(),
-    email: z.string().email().optional(),
-    phone: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
+    cpf: z.string().length(11).optional().or(z.literal('')).transform(val => val || undefined),
+    email: z.string().email().optional().or(z.literal('')).transform(val => val || undefined),
+    phone: z.string().optional().or(z.literal('')).transform(val => val || undefined),
+    city: z.string().optional().or(z.literal('')).transform(val => val || undefined),
+    state: z.string().optional().or(z.literal('')).transform(val => val || undefined),
     // International support
     identifiers: z.array(identifierSchema).optional(),
     agriculturalRegistry: agriculturalRegistrySchema.optional(),

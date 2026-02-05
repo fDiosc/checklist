@@ -298,9 +298,26 @@
     "table": {
       "name": "Template Name",
       "folder": "Folder",
+      "origin": "Origin",
       "sectionsItems": "Sections/Items",
       "usage": "Usage"
     },
+    "originFilter": {
+      "all": "All origins",
+      "own": "Created by me",
+      "parent": "From parent workspace"
+    },
+    "origin": {
+      "own": "Own",
+      "parent": "Parent Workspace"
+    },
+    "readOnly": "Read only",
+    "readOnlyHint": "Parent workspace template - read only",
+    "inUseHint": "Template in use cannot be edited",
+    "edit": "Edit Template",
+    "confirmDuplicate": "Do you want to duplicate this template?",
+    "confirmDelete": "Are you sure you want to delete this template? This action cannot be undone.",
+    "inUseDeleteHint": "Template in use cannot be deleted",
     "stats": {
       "active": "Active",
       "items": "Items",

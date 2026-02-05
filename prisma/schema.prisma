@@ -88,7 +88,7 @@ model Producer {
   subjectType String   @default("person") // person | org
   
   // Legacy BR fields (kept for backward compatibility)
-  cpf         String?  @unique
+  cpf         String?  // Unique per workspace (constraint via index)
   email       String?
   phone       String?
   city        String?
@@ -110,6 +110,8 @@ model Producer {
   // International support
   identifiers          ProducerIdentifier[]
   agriculturalRegistry AgriculturalRegistry?
+
+  @@unique([cpf, workspaceId]) // CPF unique within workspace (allows same producer in parent + subworkspace)
 
   @@index([workspaceId])
   @@index([cpf])

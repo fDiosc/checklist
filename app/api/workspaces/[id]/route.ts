@@ -92,9 +92,18 @@ export async function PUT(
 
         const { name, slug, logoUrl } = validation.data;
 
-        // Check if slug is being changed and is unique
+        // Check if slug is being changed and is unique among peers
         if (slug && slug !== existingWorkspace.slug) {
-            const slugExists = await db.workspace.findUnique({ where: { slug } });
+            // Check uniqueness based on workspace type (parent vs subworkspace)
+            const slugExists = await db.workspace.findFirst({
+                where: {
+                    slug,
+                    id: { not: id },
+                    // If this is a parent workspace, check among other parent workspaces
+                    // If this is a subworkspace, check among siblings (same parent)
+                    parentWorkspaceId: existingWorkspace.parentWorkspaceId
+                }
+            });
             if (slugExists) {
                 return NextResponse.json({ error: "Slug já está em uso" }, { status: 400 });
             }

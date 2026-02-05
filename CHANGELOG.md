@@ -14,7 +14,10 @@ Esta versão introduz o sistema de subworkspaces para segmentação organizacion
 - **Painel de Atribuição:** Nova seção na edição de templates para selecionar quais subworkspaces terão acesso ao template.
 - **Hierarquia de Dados:** Workspace pai visualiza dados de todos os subworkspaces em tempo real. Subworkspaces não se veem entre si.
 - **Pré-preenchimento de Checklist:** Ao criar novo checklist, opção de carregar respostas aprovadas de um checklist anterior (mesmo template, finalizado).
-- **Coluna de Origem:** Grid de checklists exibe coluna "Origem" com nome do workspace quando há subworkspaces ativos.
+- **Coluna de Origem em Checklists:** Grid de checklists exibe coluna "Origem" com nome do workspace quando há subworkspaces ativos.
+- **Coluna de Origem em Templates:** Grid de templates exibe coluna "Origem" para usuários em subworkspaces (Próprio vs Workspace Pai).
+- **Filtro de Origem de Templates:** Dropdown para filtrar templates por origem (todos, próprios, do workspace pai).
+- **Indicador Read-Only:** Ícone de cadeado 🔒 exibido para templates que são somente leitura (do workspace pai).
 - **Filtro por Subworkspace:** Dropdown para filtrar checklists por workspace específico.
 - **Hierarquia Recursiva de Checklists:** Grid exibe até 4 níveis de profundidade (pai → filho → neto → bisneto).
 - **Drill-down de Usuários:** SuperAdmin pode criar usuários diretamente em subworkspaces com seleção hierárquica (Workspace → Subworkspace).
@@ -39,6 +42,8 @@ Esta versão introduz o sistema de subworkspaces para segmentação organizacion
 ### 🗃️ Migrações de Banco de Dados
 - `20260202220000_add_subworkspaces` - Adiciona campos de subworkspace à tabela workspaces
 - `template_assignments` - Nova tabela para atribuições de templates a subworkspaces
+- `20260205170000_slug_partial_unique_indexes` - Implementa unique indexes parciais para slug (por tipo de workspace)
+- `20260205171000_cpf_unique_per_workspace` - CPF único por workspace (não globalmente)
 
 ### 🐛 Correções (Bugfixes)
 - **CAR não obrigatório para Brasil:** Corrigido cadastro de produtor BR que exigia CAR incorretamente. Agora apenas CPF é obrigatório.
@@ -46,6 +51,11 @@ Esta versão introduz o sistema de subworkspaces para segmentação organizacion
 - **Indentação visual de níveis:** Cada nível de filho tem indentação progressiva para clareza visual.
 - **Estado de subworkspaces no modal:** Modal agora usa estado da API para exibir botão correto (Habilitar/Desabilitar).
 - **Validação de logoUrl vazia:** Corrigido erro Zod ao criar subworkspace sem logo.
+- **CPF único por workspace:** CPF agora é único apenas dentro do mesmo workspace, permitindo o mesmo produtor em workspaces diferentes.
+- **Slug único por tipo de workspace:** Workspaces pai e subworkspaces podem ter o mesmo slug (partial unique indexes).
+- **Templates do pai não editáveis:** Templates atribuídos do workspace pai são exibidos como read-only em subworkspaces.
+- **Campos vazios no cadastro de produtor:** Corrigido erro de validação quando email/telefone/cidade/estado são enviados como strings vazias.
+- **Portal de checklists multi-workspace:** Produtor consegue ver seus checklists de todos os workspaces onde está cadastrado.
 
 ---
 

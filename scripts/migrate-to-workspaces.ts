@@ -25,8 +25,8 @@ async function main() {
 
     // 1. Check/Create Maxsum workspace
     console.log('1. Checking Maxsum workspace...');
-    let workspace = await prisma.workspace.findUnique({
-        where: { slug: 'maxsum' }
+    let workspace = await prisma.workspace.findFirst({
+        where: { slug: 'maxsum', parentWorkspaceId: null }
     });
 
     if (!workspace) {
