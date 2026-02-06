@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock, HardDrive, Eye, ScanSearch, Loader2, PenTool, BrainCircuit, Paperclip, Wrench } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock, HardDrive, Eye, ScanSearch, Loader2, PenTool, BrainCircuit, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
