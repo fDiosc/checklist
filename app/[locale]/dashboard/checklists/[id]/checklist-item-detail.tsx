@@ -18,6 +18,9 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
     const [unit, setUnit] = useState<string>('');
     const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
     const [resolvedFileUrl, setResolvedFileUrl] = useState<string | null>(null);
+    // Separate state for attachment file (fileUrl field on response, used by requestArtifact items)
+    const [resolvedAttachmentUrl, setResolvedAttachmentUrl] = useState<string | null>(null);
+    const [isAttachmentViewerOpen, setIsAttachmentViewerOpen] = useState(false);
 
     const resolveFileUrl = useCallback(async (fileKey: string) => {
         if (fileKey.startsWith('http') || fileKey.startsWith('/')) {
@@ -38,11 +41,19 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
         return null;
     }, []);
 
+    // Resolve file URL for FILE type items (answer contains S3 key)
     useEffect(() => {
         if (response?.answer && item?.type === 'FILE') {
             resolveFileUrl(response.answer).then(url => setResolvedFileUrl(url));
         }
     }, [response?.answer, item?.type, resolveFileUrl]);
+
+    // Resolve attachment URL for non-FILE items with requestArtifact (fileUrl field on response)
+    useEffect(() => {
+        if (response?.fileUrl && item?.type !== 'FILE') {
+            resolveFileUrl(response.fileUrl).then(url => setResolvedAttachmentUrl(url));
+        }
+    }, [response?.fileUrl, item?.type, resolveFileUrl]);
 
     useEffect(() => {
         if (item?.askForQuantity && response?.answer && item?.databaseSource) {
@@ -62,6 +73,63 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
     const answer = response?.answer;
     const observation = response?.observation;
     const quantity = response?.quantity;
+
+    const renderAttachment = () => {
+        const attachmentKey = response?.fileUrl;
+        if (!attachmentKey) return null;
+
+        const isImage = typeof attachmentKey === 'string' && attachmentKey.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+
+        if (isImage && resolvedAttachmentUrl) {
+            return (
+                <div className="w-full mt-4 flex flex-col items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('checklistDetail.attachedDocument') || 'Documento Anexado'}</span>
+                    <div className="relative w-full max-w-xl h-[300px] rounded-xl overflow-hidden border border-slate-200 cursor-pointer group" onClick={() => setIsAttachmentViewerOpen(true)}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={resolvedAttachmentUrl}
+                            alt="Documento anexado"
+                            className="w-full h-full object-contain bg-white"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3 shadow-lg">
+                                <Eye size={20} className="text-slate-700" />
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsAttachmentViewerOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+                    >
+                        <Eye size={14} />
+                        {t('checklistDetail.expandView') || 'Expandir'}
+                    </button>
+                </div>
+            );
+        }
+
+        return (
+            <div className="w-full mt-4 flex flex-col items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('checklistDetail.attachedDocument') || 'Documento Anexado'}</span>
+                {resolvedAttachmentUrl ? (
+                    <button
+                        onClick={() => setIsAttachmentViewerOpen(true)}
+                        className="flex items-center gap-3 px-6 py-4 bg-white rounded-xl hover:bg-slate-100 transition-colors text-slate-700 font-medium border border-slate-200"
+                    >
+                        <Eye size={18} />
+                        {t('checklistDetail.viewDocument') || 'Visualizar Documento'}
+                    </button>
+                ) : attachmentKey.startsWith('checklist/') ? (
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin" />
+                        {t('common.loading') || 'Carregando...'}
+                    </div>
+                ) : (
+                    <p className="text-slate-500 text-sm font-medium">{attachmentKey}</p>
+                )}
+            </div>
+        );
+    };
 
     const renderContent = () => {
         // Safe check for answer type
@@ -154,13 +222,18 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
                                 {t('checklistDetail.quantity')}: {quantity} <span className="opacity-60 text-xs">{unit || t('checklistDetail.unit')}</span>
                             </div>
                         )}
+                        {/* Show attached document/photo for items with requestArtifact */}
+                        {response?.fileUrl && renderAttachment()}
                     </div>
                 );
             default:
                 return (
-                    <p className="text-xl text-slate-700 whitespace-pre-wrap leading-relaxed">
-                        {answer || <span className="text-slate-300 italic">{t('checklistManagement.noResponse')}</span>}
-                    </p>
+                    <div className="flex flex-col items-center gap-4">
+                        <p className="text-xl text-slate-700 whitespace-pre-wrap leading-relaxed">
+                            {answer || <span className="text-slate-300 italic">{t('checklistManagement.noResponse')}</span>}
+                        </p>
+                        {response?.fileUrl && renderAttachment()}
+                    </div>
                 );
         }
     };
@@ -215,13 +288,23 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
                 </div>
             )}
 
-            {/* Document Viewer Modal */}
+            {/* Document Viewer Modal - for FILE type items */}
             <DocumentViewerModal
                 isOpen={isDocViewerOpen}
                 onClose={() => setIsDocViewerOpen(false)}
                 fileUrl={answer || ''}
                 filename={typeof answer === 'string' ? answer.split('/').pop() : undefined}
             />
+
+            {/* Document Viewer Modal - for attachment (requestArtifact) items */}
+            {response?.fileUrl && (
+                <DocumentViewerModal
+                    isOpen={isAttachmentViewerOpen}
+                    onClose={() => setIsAttachmentViewerOpen(false)}
+                    fileUrl={response.fileUrl}
+                    filename={typeof response.fileUrl === 'string' ? response.fileUrl.split('/').pop() : undefined}
+                />
+            )}
         </div>
     );
 }

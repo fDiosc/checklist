@@ -62,7 +62,8 @@
     "collapse": "Contraer",
     "dismiss": "Descartar",
     "name": "Nombre",
-    "password": "Contraseña"
+    "password": "Contraseña",
+    "items": "ítems"
   },
   "navigation": {
     "dashboard": "Panel",
@@ -216,6 +217,7 @@
     "unit": "un",
     "expandView": "Expandir",
     "viewDocument": "Ver Documento",
+    "attachedDocument": "Documento Adjunto",
     "filledInternally": "Llenado Internamente",
     "producerObservation": "Observación del Productor",
     "itemTypes": {

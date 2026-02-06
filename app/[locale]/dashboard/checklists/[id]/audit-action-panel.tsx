@@ -412,7 +412,7 @@ export default function AuditActionPanel({
                                                         <label className="flex items-center gap-2 px-4 py-3 bg-white border border-indigo-100 rounded-xl text-sm text-indigo-600 hover:bg-indigo-50 cursor-pointer transition-all font-bold">
                                                             <Upload size={16} />
                                                             {t('audit.uploadFile') || 'Enviar Arquivo'}
-                                                            <input type="file" className="hidden" onChange={handleFileUpload} />
+                                                            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={handleFileUpload} />
                                                         </label>
                                                     )}
                                                 </div>
@@ -474,7 +474,7 @@ export default function AuditActionPanel({
                                         <label className="flex items-center gap-2 px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs text-indigo-600 hover:bg-indigo-50 cursor-pointer transition-all font-bold">
                                             <Upload size={14} />
                                             {t('audit.uploadFile') || 'Enviar Documento'}
-                                            <input type="file" className="hidden" onChange={handleFileUpload} />
+                                            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={handleFileUpload} />
                                         </label>
                                     </div>
                                 )}

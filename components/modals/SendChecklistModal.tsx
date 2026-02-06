@@ -55,7 +55,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
 
     const { data: producers } = useQuery({
         queryKey: ['producers-simple'],
-        queryFn: () => fetch('/api/producers').then(res => res.json()),
+        queryFn: () => fetch('/api/producers?scope=own').then(res => res.json()),
         enabled: isOpen && !initialProducerId
     });
 

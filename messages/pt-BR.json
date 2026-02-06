@@ -62,7 +62,8 @@
     "collapse": "Recolher",
     "dismiss": "Dispensar",
     "name": "Nome",
-    "password": "Senha"
+    "password": "Senha",
+    "items": "itens"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -216,6 +217,7 @@
     "unit": "un",
     "expandView": "Expandir",
     "viewDocument": "Visualizar Documento",
+    "attachedDocument": "Documento Anexado",
     "filledInternally": "Preenchido Internamente",
     "producerObservation": "Observação do Produtor",
     "itemTypes": {

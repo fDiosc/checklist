@@ -62,7 +62,8 @@
     "collapse": "Collapse",
     "dismiss": "Dismiss",
     "name": "Name",
-    "password": "Password"
+    "password": "Password",
+    "items": "items"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -216,6 +217,7 @@
     "unit": "un",
     "expandView": "Expand",
     "viewDocument": "View Document",
+    "attachedDocument": "Attached Document",
     "filledInternally": "Filled Internally",
     "producerObservation": "Producer Observation",
     "itemTypes": {

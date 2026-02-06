@@ -25,6 +25,7 @@ interface ChecklistItemProps {
     countryCode?: CountryCode;
     uploadContext?: UploadContext;
     onAiValidationResult?: (result: { valid: boolean; legible: boolean; correctType: boolean; message: string }) => void;
+    onUploadingChange?: (uploading: boolean) => void;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({
@@ -37,6 +38,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
     countryCode = 'BR',
     uploadContext,
     onAiValidationResult,
+    onUploadingChange,
 }) => {
     const t = useTranslations();
     const [showCamera, setShowCamera] = useState(false);
@@ -69,6 +71,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
         }
 
         setIsUploading(true);
+        onUploadingChange?.(true);
         setUploadError(null);
 
         try {
@@ -119,6 +122,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
             setUploadError(error instanceof Error ? error.message : 'Erro no upload');
         } finally {
             setIsUploading(false);
+            onUploadingChange?.(false);
         }
     };
 
@@ -177,6 +181,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                         <input
                             id={`file-${uniqueId}`}
                             type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx,.xls,.xlsx"
                             className="hidden"
                             onChange={handleFileChange}
                         />

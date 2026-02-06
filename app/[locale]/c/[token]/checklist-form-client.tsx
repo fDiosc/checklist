@@ -44,6 +44,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
     const [showFieldSelection, setShowFieldSelection] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [isFileUploading, setIsFileUploading] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -281,7 +282,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleNext = () => {
-        if (isSaving) return;
+        if (isSaving || isFileUploading) return;
         if (currentStep < allItems.length - 1) {
             setCurrentStep(currentStep + 1);
             setAiValidationResult(null);
@@ -756,7 +757,8 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         ...currentItem,
                                         answer: responses[currentItem.id]?.answer,
                                         quantity: responses[currentItem.id]?.quantity,
-                                        observationValue: responses[currentItem.id]?.observationValue
+                                        observationValue: responses[currentItem.id]?.observationValue,
+                                        fileUrl: responses[currentItem.id]?.fileUrl
                                     }}
                                     onUpdate={handleUpdateItem}
                                     producerIdentifier={checklist.producer?.name}
@@ -769,6 +771,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         checklistId: checklist.id,
                                     }}
                                     onAiValidationResult={(result) => setAiValidationResult(result)}
+                                    onUploadingChange={setIsFileUploading}
                                 />
 
                                 {/* AI Document Validation Feedback */}
@@ -866,7 +869,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                     {responses[currentItem.id]?.status !== 'APPROVED' ? (
                                         <button
                                             onClick={handleManualSave}
-                                            disabled={isSaving || (aiValidationResult?.mode === 'block' && !aiValidationResult?.valid)}
+                                            disabled={isSaving || isFileUploading || (aiValidationResult?.mode === 'block' && !aiValidationResult?.valid)}
                                             className={`
                                             w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all flex items-center justify-center gap-3
                                             ${saveStatus === 'success'
@@ -874,10 +877,15 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                                     : saveStatus === 'error'
                                                         ? 'bg-red-500 text-white shadow-red-200'
                                                         : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200 hover:shadow-emerald-300 active:scale-[0.99]'}
-                                            ${isSaving ? 'cursor-not-allowed' : ''}
+                                            ${(isSaving || isFileUploading) ? 'cursor-not-allowed' : ''}
                                         `}
                                         >
-                                            {saveStatus === 'saving' ? (
+                                            {isFileUploading ? (
+                                                <>
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                    {t('publicChecklist.uploading') || 'Enviando arquivo...'}
+                                                </>
+                                            ) : saveStatus === 'saving' ? (
                                                 <>
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                     {t('publicChecklist.saving')}
@@ -981,7 +989,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
                         <button
                             onClick={handleNext}
-                            disabled={isSaving}
+                            disabled={isSaving || isFileUploading}
                             className={`bg-slate-900 text-white hover:bg-slate-800 px-4 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${!responses[currentItem.id]?.answer ? 'opacity-90' : ''}`}
                         >
                             <span className="hidden md:inline">{t('publicChecklist.nextStep')}</span>
