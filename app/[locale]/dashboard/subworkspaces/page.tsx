@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import {
-    Plus, Search, Loader2, X, Check, Network, Users, ClipboardList, UserPlus, ChevronDown, ChevronUp
+    Plus, Search, Loader2, X, Check, Network, Users, ClipboardList, UserPlus, ChevronDown, ChevronUp, BrainCircuit, AlertCircle
 } from 'lucide-react';
 
 interface Subworkspace {
@@ -53,6 +53,18 @@ export default function SubworkspacesPage() {
     const [newUserRole, setNewUserRole] = useState<'ADMIN' | 'SUPERVISOR'>('ADMIN');
 
     const workspaceId = session?.user?.workspaceId;
+    const userRole = session?.user?.role;
+
+    // Fetch AI validation config for the parent workspace
+    const { data: aiConfig, refetch: refetchAiConfig } = useQuery({
+        queryKey: ['ai-doc-config', workspaceId],
+        queryFn: async () => {
+            const res = await fetch(`/api/workspaces/${workspaceId}/doc-validation-config`);
+            if (!res.ok) throw new Error('Failed to fetch AI config');
+            return res.json();
+        },
+        enabled: !!workspaceId
+    });
 
     const { data, isLoading } = useQuery({
         queryKey: ['subworkspaces', workspaceId],
@@ -238,6 +250,18 @@ export default function SubworkspacesPage() {
                 </div>
             )}
 
+            {/* AI Document Validation Config - Parent Workspace */}
+            {aiConfig && (
+                <AiValidationSection
+                    workspaceId={workspaceId!}
+                    config={aiConfig}
+                    isParent={true}
+                    userRole={userRole || ''}
+                    onUpdate={() => refetchAiConfig()}
+                    t={t}
+                />
+            )}
+
             {/* Subworkspaces List */}
             {filtered.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-3xl border border-slate-100">
@@ -312,6 +336,15 @@ export default function SubworkspacesPage() {
                                             </div>
                                         )}
 
+                                        {/* AI Validation Config for this subworkspace */}
+                                        <SubworkspaceAiConfig
+                                            subworkspaceId={sw.id}
+                                            subworkspaceName={sw.name}
+                                            parentAiConfig={aiConfig}
+                                            userRole={userRole || ''}
+                                            t={t}
+                                        />
+
                                         {/* Create User Form (inline) */}
                                         {isCreateUserOpen === sw.id && (
                                             <div className="mt-4 p-5 bg-white rounded-2xl border border-slate-200 space-y-3">
@@ -347,6 +380,228 @@ export default function SubworkspacesPage() {
                         );
                     })}
                 </div>
+            )}
+        </div>
+    );
+}
+
+// AI Validation config section for the parent workspace
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function AiValidationSection({ workspaceId, config, isParent, userRole, onUpdate, t }: { workspaceId: string; config: any; isParent: boolean; userRole: string; onUpdate: () => void; t: ReturnType<typeof useTranslations> }) {
+    const [isSaving, setIsSaving] = useState(false);
+    const [mode, setMode] = useState<'warn' | 'block'>(config?.aiDocValidationMode || 'warn');
+
+    const isEnabled = config?.aiDocValidationEnabled || false;
+    const isEnabledForSubs = config?.aiDocValidationEnabledForSubs || false;
+    const isSuperAdmin = userRole === 'SUPERADMIN';
+
+    const handleModeChange = async (newMode: 'warn' | 'block') => {
+        setMode(newMode);
+        setIsSaving(true);
+        try {
+            const res = await fetch(`/api/workspaces/${workspaceId}/doc-validation-config`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aiDocValidationMode: newMode }),
+            });
+            if (!res.ok) throw new Error('Failed to save');
+            onUpdate();
+        } catch {
+            setMode(config?.aiDocValidationMode || 'warn');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-violet-100 rounded-xl">
+                        <BrainCircuit size={18} className="text-violet-600" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-900 text-sm">
+                            {t('aiValidation.title') || 'Validação IA de Documentos'}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                            {isParent
+                                ? (t('aiValidation.parentDescription') || 'Configuração do workspace principal')
+                                : (t('aiValidation.subDescription') || 'Configuração deste subworkspace')}
+                        </p>
+                    </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    isEnabled
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-400 border border-slate-200'
+                }`}>
+                    {isEnabled ? (t('aiValidation.enabled') || 'Ativo') : (t('aiValidation.disabled') || 'Inativo')}
+                </span>
+            </div>
+
+            {isEnabled && (
+                <>
+                    {isEnabledForSubs && (
+                        <div className="flex items-center gap-2 text-xs text-violet-600 bg-violet-50 px-3 py-2 rounded-lg border border-violet-100">
+                            <Network size={14} />
+                            <span className="font-bold">{t('aiValidation.inheritedToSubs') || 'Herança habilitada para subworkspaces'}</span>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                            {t('aiValidation.modeLabel') || 'Modo de validação'}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => handleModeChange('warn')}
+                                disabled={isSaving}
+                                className={`p-3 rounded-xl border-2 transition-all text-left ${
+                                    mode === 'warn'
+                                        ? 'border-amber-400 bg-amber-50'
+                                        : 'border-slate-200 bg-white hover:border-slate-300'
+                                } disabled:opacity-50`}
+                            >
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <AlertCircle size={14} className={mode === 'warn' ? 'text-amber-500' : 'text-slate-400'} />
+                                    <span className="font-bold text-xs text-slate-900">{t('aiValidation.modeWarn') || 'Avisar'}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500">{t('aiValidation.modeWarnDesc') || 'Permite envio com aviso'}</p>
+                            </button>
+                            <button
+                                onClick={() => handleModeChange('block')}
+                                disabled={isSaving}
+                                className={`p-3 rounded-xl border-2 transition-all text-left ${
+                                    mode === 'block'
+                                        ? 'border-red-400 bg-red-50'
+                                        : 'border-slate-200 bg-white hover:border-slate-300'
+                                } disabled:opacity-50`}
+                            >
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <X size={14} className={mode === 'block' ? 'text-red-500' : 'text-slate-400'} />
+                                    <span className="font-bold text-xs text-slate-900">{t('aiValidation.modeBlock') || 'Bloquear'}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500">{t('aiValidation.modeBlockDesc') || 'Impede envio se inválido'}</p>
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {!isEnabled && !isSuperAdmin && (
+                <p className="text-xs text-slate-400 italic">
+                    {t('aiValidation.contactSuperadmin') || 'Contate o administrador do sistema para habilitar esta funcionalidade.'}
+                </p>
+            )}
+        </div>
+    );
+}
+
+// AI Validation config for individual subworkspaces (shown in expanded detail)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function SubworkspaceAiConfig({ subworkspaceId, subworkspaceName, parentAiConfig, userRole, t }: { subworkspaceId: string; subworkspaceName: string; parentAiConfig: any; userRole: string; t: ReturnType<typeof useTranslations> }) {
+    const [isSaving, setIsSaving] = useState(false);
+    const [mode, setMode] = useState<'warn' | 'block'>('warn');
+    const [isLoading, setIsLoading] = useState(true);
+    const [subConfig, setSubConfig] = useState<{
+        aiDocValidationEnabled: boolean;
+        aiDocValidationMode: string;
+        effectiveEnabled: boolean;
+    } | null>(null);
+
+    React.useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const res = await fetch(`/api/workspaces/${subworkspaceId}/doc-validation-config`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSubConfig(data);
+                    setMode(data.aiDocValidationMode || 'warn');
+                }
+            } catch {
+                console.warn('Failed to fetch sub AI config');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchConfig();
+    }, [subworkspaceId]);
+
+    const isEffectivelyEnabled = subConfig?.effectiveEnabled || false;
+
+    const handleModeChange = async (newMode: 'warn' | 'block') => {
+        setMode(newMode);
+        setIsSaving(true);
+        try {
+            const res = await fetch(`/api/workspaces/${subworkspaceId}/doc-validation-config`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aiDocValidationMode: newMode }),
+            });
+            if (!res.ok) throw new Error('Failed to save');
+        } catch {
+            setMode(subConfig?.aiDocValidationMode as 'warn' | 'block' || 'warn');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoading) return null;
+
+    return (
+        <div className="mt-4 p-4 bg-violet-50/50 rounded-xl border border-violet-100 space-y-3">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <BrainCircuit size={14} className="text-violet-500" />
+                    <span className="text-xs font-black text-violet-700 uppercase tracking-widest">
+                        {t('aiValidation.title') || 'Validação IA'}
+                    </span>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                    isEffectivelyEnabled
+                        ? 'bg-emerald-100 text-emerald-600'
+                        : 'bg-slate-100 text-slate-400'
+                }`}>
+                    {isEffectivelyEnabled ? (t('aiValidation.enabled') || 'Ativo') : (t('aiValidation.disabled') || 'Inativo')}
+                </span>
+            </div>
+
+            {isEffectivelyEnabled ? (
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => handleModeChange('warn')}
+                        disabled={isSaving}
+                        className={`p-2.5 rounded-lg border-2 transition-all text-left ${
+                            mode === 'warn'
+                                ? 'border-amber-400 bg-amber-50'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                        } disabled:opacity-50`}
+                    >
+                        <div className="flex items-center gap-1.5">
+                            <AlertCircle size={12} className={mode === 'warn' ? 'text-amber-500' : 'text-slate-400'} />
+                            <span className="font-bold text-[11px] text-slate-900">{t('aiValidation.modeWarn') || 'Avisar'}</span>
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => handleModeChange('block')}
+                        disabled={isSaving}
+                        className={`p-2.5 rounded-lg border-2 transition-all text-left ${
+                            mode === 'block'
+                                ? 'border-red-400 bg-red-50'
+                                : 'border-slate-200 bg-white hover:border-slate-300'
+                        } disabled:opacity-50`}
+                    >
+                        <div className="flex items-center gap-1.5">
+                            <X size={12} className={mode === 'block' ? 'text-red-500' : 'text-slate-400'} />
+                            <span className="font-bold text-[11px] text-slate-900">{t('aiValidation.modeBlock') || 'Bloquear'}</span>
+                        </div>
+                    </button>
+                </div>
+            ) : (
+                <p className="text-[10px] text-slate-400 italic">
+                    {t('aiValidation.notEnabledForSub') || 'Validação por IA não habilitada para este subworkspace.'}
+                </p>
             )}
         </div>
     );

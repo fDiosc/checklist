@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import {
     Plus, Search, Edit2, Trash2, Loader2, AlertCircle,
-    Building2, Users, FileText, ClipboardList, X, Check, Network, ChevronRight, Shield, Key, Eye, EyeOff
+    Building2, Users, FileText, ClipboardList, X, Check, Network, ChevronRight, Shield, Key, Eye, EyeOff, BrainCircuit
 } from 'lucide-react';
 
 interface Workspace {
@@ -54,6 +54,7 @@ export default function WorkspacesPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [subworkspaceModal, setSubworkspaceModal] = useState<Workspace | null>(null);
     const [esgConfigModal, setEsgConfigModal] = useState<Workspace | null>(null);
+    const [aiConfigModal, setAiConfigModal] = useState<Workspace | null>(null);
 
     const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
 
@@ -280,6 +281,22 @@ export default function WorkspacesPage() {
                                     </button>
                                 )}
 
+                                {/* AI Document Validation Configuration */}
+                                {!workspace.parentWorkspaceId && (
+                                    <button
+                                        onClick={() => setAiConfigModal(workspace)}
+                                        className="w-full flex items-center justify-between p-3 rounded-xl border bg-violet-50 border-violet-200 hover:bg-violet-100 transition-all mb-3"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <BrainCircuit size={16} className="text-violet-500" />
+                                            <span className="text-sm font-medium text-violet-700">
+                                                Validação IA de Documentos
+                                            </span>
+                                        </div>
+                                        <ChevronRight size={16} className="text-violet-400" />
+                                    </button>
+                                )}
+
                                 {/* Stats */}
                                 <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -324,6 +341,17 @@ export default function WorkspacesPage() {
                 <EsgConfigModal
                     workspace={esgConfigModal}
                     onClose={() => setEsgConfigModal(null)}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+                    }}
+                />
+            )}
+
+            {/* AI Config Modal */}
+            {aiConfigModal && (
+                <AiDocValidationConfigModal
+                    workspace={aiConfigModal}
+                    onClose={() => setAiConfigModal(null)}
                     onSuccess={() => {
                         queryClient.invalidateQueries({ queryKey: ['workspaces'] });
                     }}
@@ -1079,6 +1107,218 @@ function EsgConfigModal({ workspace, onClose, onSuccess }: EsgConfigModalProps) 
                                     type="submit"
                                     disabled={isSaving}
                                     className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 className="animate-spin" size={18} />
+                                            Salvando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check size={18} />
+                                            Salvar
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// AI Document Validation Configuration Modal (SuperAdmin)
+interface AiDocValidationConfigModalProps {
+    workspace: Workspace;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+function AiDocValidationConfigModal({ workspace, onClose, onSuccess }: AiDocValidationConfigModalProps) {
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [formData, setFormData] = useState({
+        aiDocValidationEnabled: false,
+        aiDocValidationEnabledForSubs: false,
+        aiDocValidationMode: 'warn' as 'warn' | 'block',
+    });
+
+    React.useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const res = await fetch(`/api/workspaces/${workspace.id}/doc-validation-config`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFormData({
+                        aiDocValidationEnabled: data.aiDocValidationEnabled || false,
+                        aiDocValidationEnabledForSubs: data.aiDocValidationEnabledForSubs || false,
+                        aiDocValidationMode: data.aiDocValidationMode || 'warn',
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching AI config:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchConfig();
+    }, [workspace.id]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsSaving(true);
+
+        try {
+            const res = await fetch(`/api/workspaces/${workspace.id}/doc-validation-config`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Erro ao salvar configuração');
+            }
+
+            onSuccess();
+            onClose();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Erro ao salvar');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="p-6 border-b border-slate-200 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-violet-100 rounded-xl">
+                            <BrainCircuit className="text-violet-600" size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900">Validação IA de Documentos</h2>
+                            <p className="text-sm text-slate-500">{workspace.name}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                        <X size={20} className="text-slate-500" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto">
+                    {isLoading ? (
+                        <div className="flex justify-center py-8">
+                            <Loader2 className="animate-spin text-slate-400" size={32} />
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {error && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700">
+                                    <AlertCircle size={20} />
+                                    <span className="text-sm font-medium">{error}</span>
+                                </div>
+                            )}
+
+                            {/* Toggles */}
+                            <div className="p-4 bg-slate-50 rounded-xl space-y-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.aiDocValidationEnabled}
+                                        onChange={(e) => setFormData({ ...formData, aiDocValidationEnabled: e.target.checked })}
+                                        className="w-5 h-5 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                                    />
+                                    <div>
+                                        <span className="font-bold text-slate-900">Habilitar Validação por IA</span>
+                                        <p className="text-xs text-slate-500">Ao enviar um documento, a IA analisa legibilidade e tipo do arquivo</p>
+                                    </div>
+                                </label>
+
+                                {workspace.hasSubworkspaces && (
+                                    <label className="flex items-center gap-3 cursor-pointer pl-8">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.aiDocValidationEnabledForSubs}
+                                            onChange={(e) => setFormData({ ...formData, aiDocValidationEnabledForSubs: e.target.checked })}
+                                            disabled={!formData.aiDocValidationEnabled}
+                                            className="w-5 h-5 rounded border-slate-300 text-violet-600 focus:ring-violet-500 disabled:opacity-50"
+                                        />
+                                        <div className={!formData.aiDocValidationEnabled ? 'opacity-50' : ''}>
+                                            <span className="font-bold text-slate-900">Herdar para Subworkspaces</span>
+                                            <p className="text-xs text-slate-500">Subworkspaces usarão esta validação automaticamente</p>
+                                        </div>
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Mode selector */}
+                            <div className={!formData.aiDocValidationEnabled ? 'opacity-50 pointer-events-none' : ''}>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+                                    Comportamento da Validação
+                                </label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, aiDocValidationMode: 'warn' })}
+                                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                                            formData.aiDocValidationMode === 'warn'
+                                                ? 'border-amber-400 bg-amber-50'
+                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <AlertCircle size={16} className={formData.aiDocValidationMode === 'warn' ? 'text-amber-500' : 'text-slate-400'} />
+                                            <span className="font-bold text-sm text-slate-900">Avisar</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500">Mostra aviso mas permite o envio do documento</p>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, aiDocValidationMode: 'block' })}
+                                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                                            formData.aiDocValidationMode === 'block'
+                                                ? 'border-red-400 bg-red-50'
+                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <X size={16} className={formData.aiDocValidationMode === 'block' ? 'text-red-500' : 'text-slate-400'} />
+                                            <span className="font-bold text-sm text-slate-900">Bloquear</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500">Impede o envio se o documento não passar na validação</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="p-4 bg-violet-50 border border-violet-200 rounded-xl">
+                                <p className="text-xs text-violet-700">
+                                    <strong>Como funciona:</strong> Quando ativada, a IA (Google Gemini) verifica se o documento enviado pelo produtor
+                                    está legível e se corresponde ao tipo solicitado no checklist. A análise é feita automaticamente após o upload.
+                                </p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="flex-1 px-4 py-3 bg-violet-600 text-white rounded-xl font-bold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {isSaving ? (
                                         <>

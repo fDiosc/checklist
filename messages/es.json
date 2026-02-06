@@ -90,6 +90,21 @@
     "noUsers": "No hay usuarios en este subworkspace. Agregue el primer administrador.",
     "newUser": "Nuevo Usuario"
   },
+  "aiValidation": {
+    "title": "Validación IA de Documentos",
+    "parentDescription": "Configuración del workspace principal",
+    "subDescription": "Configuración de este subworkspace",
+    "enabled": "Activo",
+    "disabled": "Inactivo",
+    "inheritedToSubs": "Herencia habilitada para subworkspaces",
+    "modeLabel": "Modo de validación",
+    "modeWarn": "Avisar",
+    "modeWarnDesc": "Permite envío con aviso",
+    "modeBlock": "Bloquear",
+    "modeBlockDesc": "Impide envío si es inválido",
+    "contactSuperadmin": "Contacte al administrador del sistema para habilitar esta funcionalidad.",
+    "notEnabledForSub": "Validación por IA no habilitada para este subworkspace."
+  },
   "status": {
     "draft": "Borrador",
     "sent": "Enviado",

@@ -90,6 +90,21 @@
     "noUsers": "No users in this subworkspace. Add the first administrator.",
     "newUser": "New User"
   },
+  "aiValidation": {
+    "title": "AI Document Validation",
+    "parentDescription": "Main workspace configuration",
+    "subDescription": "This subworkspace configuration",
+    "enabled": "Active",
+    "disabled": "Inactive",
+    "inheritedToSubs": "Inheritance enabled for subworkspaces",
+    "modeLabel": "Validation mode",
+    "modeWarn": "Warn",
+    "modeWarnDesc": "Allows submission with warning",
+    "modeBlock": "Block",
+    "modeBlockDesc": "Prevents submission if invalid",
+    "contactSuperadmin": "Contact the system administrator to enable this feature.",
+    "notEnabledForSub": "AI validation not enabled for this subworkspace."
+  },
   "status": {
     "draft": "Draft",
     "sent": "Sent",
