@@ -28,7 +28,24 @@ export async function GET() {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const workspaceFilter = isSuperAdmin(session) ? {} : getWorkspaceFilter(session);
+        // SuperAdmin sees all users. Admin sees users in their workspace + subworkspaces.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let workspaceFilter: any = {};
+        if (isSuperAdmin(session)) {
+            workspaceFilter = {};
+        } else {
+            // Fetch subworkspaces of admin's workspace
+            const adminWs = await db.workspace.findUnique({
+                where: { id: session.user.workspaceId! },
+                select: { hasSubworkspaces: true, subworkspaces: { select: { id: true } } }
+            });
+            if (adminWs?.hasSubworkspaces && adminWs.subworkspaces.length > 0) {
+                const allIds = [session.user.workspaceId!, ...adminWs.subworkspaces.map(s => s.id)];
+                workspaceFilter = { workspaceId: { in: allIds } };
+            } else {
+                workspaceFilter = getWorkspaceFilter(session);
+            }
+        }
 
         const users = await db.user.findMany({
             where: workspaceFilter,
@@ -106,8 +123,22 @@ export async function POST(request: NextRequest) {
                 targetWorkspaceId = workspaceId;
             }
             // SuperAdmin can create global users (no workspace)
+        } else if (workspaceId && workspaceId !== session.user.workspaceId) {
+            // Admin wants to create a user in a different workspace.
+            // Allowed only if the target is a subworkspace of the admin's workspace.
+            const targetWs = await db.workspace.findUnique({
+                where: { id: workspaceId },
+                select: { id: true, parentWorkspaceId: true }
+            });
+            if (!targetWs || targetWs.parentWorkspaceId !== session.user.workspaceId) {
+                return NextResponse.json(
+                    { error: "Você só pode criar usuários no seu workspace ou em subworkspaces" },
+                    { status: 403 }
+                );
+            }
+            targetWorkspaceId = workspaceId;
         } else {
-            // Admin can only create users in their own workspace
+            // Admin creating in their own workspace (default)
             targetWorkspaceId = session.user.workspaceId;
         }
 

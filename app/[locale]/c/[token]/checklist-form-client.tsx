@@ -38,6 +38,9 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     const [isChangelogOpen, setIsChangelogOpen] = useState(false);
     const [isActionPlanModalOpen, setIsActionPlanModalOpen] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [aiValidationResult, setAiValidationResult] = useState<{
+        valid: boolean; legible: boolean; correctType: boolean; message: string; mode?: string;
+    } | null>(null);
     const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
     const [showFieldSelection, setShowFieldSelection] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -275,16 +278,22 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
         });
     };
 
+    const [isSaving, setIsSaving] = useState(false);
+
     const handleNext = () => {
+        if (isSaving) return;
         if (currentStep < allItems.length - 1) {
             setCurrentStep(currentStep + 1);
+            setAiValidationResult(null);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
     const handlePrevious = () => {
+        if (isSaving) return;
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
+            setAiValidationResult(null);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
@@ -318,6 +327,8 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
     const handleManualSave = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
         setSaveStatus('saving');
         try {
             const res = await fetch(`/api/c/${checklist.publicToken}/save`, {
@@ -329,12 +340,17 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
             setSaveStatus('success');
             setSavedItems(prev => new Set(prev).add(currentItem.id));
-            setTimeout(() => setSaveStatus('idle'), 2000);
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setIsSaving(false);
+            }, 1200);
         } catch (error) {
             console.error("Manual save failed", error);
             setSaveStatus('error');
-            alert("Erro ao salvar. Verifique sua conexão.");
-            setSaveStatus('idle');
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setIsSaving(false);
+            }, 2000);
         }
     };
 
@@ -667,7 +683,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         return (
                                             <button
                                                 key={item.id}
-                                                onClick={() => { setCurrentStep(globalIdx); setIsSidebarOpen(false); }}
+                                                onClick={() => { if (isSaving) return; setCurrentStep(globalIdx); setIsSidebarOpen(false); }}
                                                 className={`
                                                 w-full flex items-center gap-4 p-4 rounded-2xl transition-all group text-left
                                                 ${isActive ? 'bg-emerald-500 text-white shadow-2xl shadow-emerald-500/20 scale-[1.02]' : 'hover:bg-white/5 text-slate-400'}
@@ -747,7 +763,53 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                     producerMaps={checklist.producer?.maps}
                                     readOnly={isReadOnly || responses[currentItem.id]?.status === 'APPROVED'}
                                     countryCode={checklist.producer?.countryCode || 'BR'}
+                                    uploadContext={{
+                                        workspaceId: checklist.workspaceId,
+                                        subworkspaceId: checklist.subworkspaceId,
+                                        checklistId: checklist.id,
+                                    }}
+                                    onAiValidationResult={(result) => setAiValidationResult(result)}
                                 />
+
+                                {/* AI Document Validation Feedback */}
+                                {aiValidationResult && !aiValidationResult.valid && (
+                                    <div className={`rounded-2xl p-5 flex flex-col gap-2 animate-slide-up ${
+                                        aiValidationResult.mode === 'block'
+                                            ? 'bg-red-50 border border-red-200'
+                                            : 'bg-amber-50 border border-amber-200'
+                                    }`}>
+                                        <div className={`flex items-center gap-2 font-bold uppercase tracking-wider text-xs ${
+                                            aiValidationResult.mode === 'block' ? 'text-red-600' : 'text-amber-600'
+                                        }`}>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                            {aiValidationResult.mode === 'block'
+                                                ? (t('publicChecklist.aiValidation.blocked') || 'Documento não aprovado pela validação')
+                                                : (t('publicChecklist.aiValidation.warning') || 'Aviso sobre o documento')}
+                                        </div>
+                                        <p className={`text-sm font-medium ${
+                                            aiValidationResult.mode === 'block' ? 'text-red-800' : 'text-amber-800'
+                                        }`}>
+                                            {aiValidationResult.message}
+                                        </p>
+                                        {!aiValidationResult.legible && (
+                                            <p className="text-xs text-slate-500">{t('publicChecklist.aiValidation.notLegible') || 'O documento pode não estar legível.'}</p>
+                                        )}
+                                        {!aiValidationResult.correctType && (
+                                            <p className="text-xs text-slate-500">{t('publicChecklist.aiValidation.wrongType') || 'O documento pode não ser do tipo esperado.'}</p>
+                                        )}
+                                        {aiValidationResult.mode === 'block' && (
+                                            <p className="text-xs text-red-600 font-bold mt-1">{t('publicChecklist.aiValidation.mustReupload') || 'Faça o upload novamente com um documento válido para continuar.'}</p>
+                                        )}
+                                        <button
+                                            onClick={() => setAiValidationResult(null)}
+                                            className="self-end text-xs text-slate-400 hover:text-slate-600 mt-1"
+                                        >
+                                            {t('common.dismiss') || 'Dispensar'}
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Approval Notice */}
                                 {responses[currentItem.id]?.status === 'APPROVED' && (
@@ -804,12 +866,15 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                     {responses[currentItem.id]?.status !== 'APPROVED' ? (
                                         <button
                                             onClick={handleManualSave}
-                                            disabled={saveStatus === 'saving'}
+                                            disabled={isSaving || (aiValidationResult?.mode === 'block' && !aiValidationResult?.valid)}
                                             className={`
                                             w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all flex items-center justify-center gap-3
                                             ${saveStatus === 'success'
                                                     ? 'bg-emerald-500 text-white shadow-emerald-200'
-                                                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200 hover:shadow-emerald-300 active:scale-[0.99]'}
+                                                    : saveStatus === 'error'
+                                                        ? 'bg-red-500 text-white shadow-red-200'
+                                                        : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200 hover:shadow-emerald-300 active:scale-[0.99]'}
+                                            ${isSaving ? 'cursor-not-allowed' : ''}
                                         `}
                                         >
                                             {saveStatus === 'saving' ? (
@@ -823,6 +888,13 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                                         <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                                                     </svg>
                                                     {t('publicChecklist.saved')}
+                                                </>
+                                            ) : saveStatus === 'error' ? (
+                                                <>
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                    {t('publicChecklist.saveError') || 'Erro ao salvar - tente novamente'}
                                                 </>
                                             ) : (
                                                 <>
@@ -868,12 +940,22 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                     </div>
                 </div>
 
+                {/* Saving overlay */}
+                {isSaving && (
+                    <div className="fixed inset-0 md:left-[380px] bg-white/60 backdrop-blur-[2px] z-30 flex items-center justify-center pointer-events-auto transition-opacity">
+                        <div className="flex flex-col items-center gap-3 animate-pulse">
+                            <div className="w-10 h-10 border-3 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+                            <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">{t('publicChecklist.saving')}</span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Sticky Bottom Navigation Footer */}
                 {currentItem && (
                     <div className="fixed bottom-0 left-0 md:left-[380px] right-0 bg-white/90 backdrop-blur-lg border-t border-slate-100 p-4 md:px-8 z-40 flex items-center justify-between gap-2 shadow-[0_-15px_50px_-15px_rgba(0,0,0,0.08)]">
                         <button
                             onClick={handlePrevious}
-                            disabled={currentStep === 0}
+                            disabled={currentStep === 0 || isSaving}
                             className="bg-slate-50 text-slate-600 hover:bg-slate-100 px-4 md:px-8 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed flex items-center gap-2 border border-slate-100"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
@@ -899,7 +981,8 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
                         <button
                             onClick={handleNext}
-                            className={`bg-slate-900 text-white hover:bg-slate-800 px-4 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] ${!responses[currentItem.id]?.answer ? 'opacity-90' : ''}`}
+                            disabled={isSaving}
+                            className={`bg-slate-900 text-white hover:bg-slate-800 px-4 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] md:tracking-[0.2em] transition-all shadow-xl shadow-slate-900/10 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${!responses[currentItem.id]?.answer ? 'opacity-90' : ''}`}
                         >
                             <span className="hidden md:inline">{t('publicChecklist.nextStep')}</span>
                             <span className="md:hidden">{t('publicChecklist.next')}</span>

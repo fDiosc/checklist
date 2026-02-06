@@ -59,7 +59,10 @@
     "retry": "Try Again",
     "readOnly": "Read Only",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "dismiss": "Dismiss",
+    "name": "Name",
+    "password": "Password"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -69,8 +72,22 @@
     "supervisors": "Supervisors",
     "users": "Users",
     "workspaces": "Workspaces",
+    "subworkspaces": "Subworkspaces",
     "settings": "Settings",
     "logout": "Logout"
+  },
+  "subworkspaces": {
+    "title": "Subworkspaces",
+    "description": "Manage your organization's subworkspaces",
+    "create": "New Subworkspace",
+    "createTitle": "Create Subworkspace",
+    "search": "Search subworkspaces...",
+    "empty": "No subworkspaces found",
+    "emptyHint": "Create the first subworkspace to get started.",
+    "users": "Users",
+    "addUser": "Add User",
+    "noUsers": "No users in this subworkspace. Add the first administrator.",
+    "newUser": "New User"
   },
   "status": {
     "draft": "Draft",
@@ -184,9 +201,12 @@
     "aiAnalysisFailed": "AI analysis failed.",
     "confirmFinalizeWithRejected": "This checklist contains REJECTED items. Upon finalization, these items will be marked as REJECTED in the main checklist. Do you want to proceed?",
     "confirmFinalize": "Are you sure you want to finalize this checklist? This action is irreversible and will lock edits.",
+    "cannotFinalizeOpenChildren": "Cannot finalize: there are open child checklists that must be finalized first.",
     "finalizeSuccess": "Checklist finalized successfully!",
     "partialFinalizeSuccess": "Checklist partially finalized successfully!",
-    "noAiSuggestion": "No AI suggestion available"
+    "noAiSuggestion": "No AI suggestion available",
+    "correction": "Correction",
+    "completion": "Completion"
   },
   "checklistDetail": {
     "invalidFormat": "Invalid response format",
@@ -194,6 +214,8 @@
     "downloadFile": "Download File",
     "quantity": "Quantity",
     "unit": "un",
+    "expandView": "Expand",
+    "viewDocument": "View Document",
     "filledInternally": "Filled Internally",
     "producerObservation": "Producer Observation",
     "itemTypes": {
@@ -477,8 +499,16 @@
     "confirm": "Confirm",
     "attachFile": "Attach Document",
     "fileUploaded": "File Uploaded",
+    "uploading": "Uploading file...",
     "file": "File",
     "camera": "Camera",
+    "aiValidation": {
+      "blocked": "Document rejected by automatic validation",
+      "warning": "Warning about the uploaded document",
+      "notLegible": "The document may not be legible.",
+      "wrongType": "The document may not be the expected type for this item.",
+      "mustReupload": "Please upload a valid document to continue."
+    },
     "selectOption": "Select an option...",
     "typeAnswer": "Type your answer...",
     "typeDetailedAnswer": "Type your detailed answer...",
@@ -594,18 +624,6 @@
       "prefillFromPrevious": "Pre-fill from previous checklist",
       "noPreviousChecklists": "No previous checklists available for this template"
     },
-    "partialFinalize": {
-      "title": "Partial Finalization",
-      "description": "Capture a status and create corrective actions",
-      "createCorrection": "Generate Correction Checklist",
-      "createCorrectionDesc": "Includes only items that were rejected in this analysis.",
-      "createCompletion": "Generate Completion Checklist",
-      "createCompletionDesc": "Includes items that were not answered or are pending.",
-      "generateActionPlan": "Generate Action Plan (AI)",
-      "generateActionPlanDesc": "Artificial Intelligence will analyze failures and create a correction guide.",
-      "cancel": "Cancel",
-      "finalize": "Partial Finalize"
-    },
     "changelog": {
       "title": "What's New",
       "version": "Version"
@@ -676,6 +694,7 @@
     "fillItem": "Fill Item",
     "pasteFileLinkPlaceholder": "Paste the file link or describe...",
     "typeResponsePlaceholder": "Type the producer's response...",
+    "uploadFile": "Upload File",
     "saveFill": "Save Fill",
     "aiAnalysis": "AI Analysis",
     "suggestsApproval": "Suggests Approval",

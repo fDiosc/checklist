@@ -8,6 +8,12 @@ import FieldSelectorInput from './FieldSelectorInput';
 import { useTranslations } from 'next-intl';
 import { CountryCode } from '@/lib/countries';
 
+interface UploadContext {
+    workspaceId: string;
+    subworkspaceId?: string | null;
+    checklistId: string;
+}
+
 interface ChecklistItemProps {
     item: DocumentItem;
     idSuffix?: string;
@@ -17,6 +23,8 @@ interface ChecklistItemProps {
     producerMaps?: any[];
     readOnly?: boolean;
     countryCode?: CountryCode;
+    uploadContext?: UploadContext;
+    onAiValidationResult?: (result: { valid: boolean; legible: boolean; correctType: boolean; message: string }) => void;
 }
 
 const ChecklistItem: React.FC<ChecklistItemProps> = ({
@@ -26,13 +34,17 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
     producerIdentifier,
     producerMaps,
     readOnly = false,
-    countryCode = 'BR'
+    countryCode = 'BR',
+    uploadContext,
+    onAiValidationResult,
 }) => {
     const t = useTranslations();
     const [showCamera, setShowCamera] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [dbOptions, setDbOptions] = useState<any[]>([]);
     const [isLoadingDb, setIsLoadingDb] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const uniqueId = `${item.id}${idSuffix}`;
 
     React.useEffect(() => {
@@ -49,10 +61,71 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
         }
     }, [item.databaseSource]);
 
+    const uploadFile = async (file: File) => {
+        if (!uploadContext) {
+            // Fallback to old behavior if no upload context provided
+            onUpdate({ fileUrl: file.name, status: item.status });
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('workspaceId', uploadContext.workspaceId);
+            if (uploadContext.subworkspaceId) formData.append('subworkspaceId', uploadContext.subworkspaceId);
+            formData.append('checklistId', uploadContext.checklistId);
+            formData.append('itemId', item.id);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Upload failed');
+            }
+
+            const data = await res.json();
+            onUpdate({ fileUrl: data.key, status: item.status });
+
+            // Trigger AI validation if callback provided
+            if (onAiValidationResult) {
+                try {
+                    const valRes = await fetch('/api/ai/validate-document', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            s3Key: data.key,
+                            itemName: item.name,
+                            itemType: item.type,
+                            workspaceId: uploadContext.workspaceId,
+                        }),
+                    });
+                    if (valRes.ok) {
+                        const valData = await valRes.json();
+                        onAiValidationResult(valData);
+                    }
+                } catch {
+                    // AI validation is optional, don't block the upload
+                    console.warn('AI validation failed, continuing');
+                }
+            }
+        } catch (error) {
+            console.error('File upload error:', error);
+            setUploadError(error instanceof Error ? error.message : 'Erro no upload');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            onUpdate({ fileUrl: file.name, status: item.status }); // Simple mock for file handling
+            uploadFile(file);
         }
     };
 
@@ -66,7 +139,12 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     <span className="text-[10px] font-black uppercase tracking-widest">{t('publicChecklist.attachFile')}</span>
                 </div>
 
-                {item.fileUrl ? (
+                {isUploading ? (
+                    <div className="flex items-center gap-3 bg-blue-50 px-6 py-4 rounded-2xl text-blue-600 border border-blue-100 animate-pulse">
+                        <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                        <span className="text-xs font-bold">{t('publicChecklist.uploading') || 'Enviando arquivo...'}</span>
+                    </div>
+                ) : item.fileUrl ? (
                     <div className="flex items-center gap-3 bg-emerald-50 px-6 py-3 rounded-2xl text-emerald-700 border border-emerald-100 animate-fade-in">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                             <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
@@ -105,7 +183,15 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                     </div>
                 )}
             </div>
-            {showCamera && <CameraCapture onCapture={(file) => { onUpdate({ fileUrl: file.name }); setShowCamera(false); }} onClose={() => setShowCamera(false)} />}
+            {uploadError && (
+                <div className="mt-3 flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 px-4 py-2 rounded-xl border border-red-100">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {uploadError}
+                </div>
+            )}
+            {showCamera && <CameraCapture onCapture={(file) => { uploadFile(file); setShowCamera(false); }} onClose={() => setShowCamera(false)} />}
         </div>
     );
 

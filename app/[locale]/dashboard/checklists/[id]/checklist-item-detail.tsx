@@ -1,10 +1,10 @@
 'use client';
 
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye } from 'lucide-react';
 import PropertyMapInput from '@/components/PropertyMapInput';
-import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import DocumentViewerModal from '@/components/modals/DocumentViewerModal';
 
 interface ChecklistItemDetailProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +16,33 @@ interface ChecklistItemDetailProps {
 export default function ChecklistItemDetail({ item, response }: ChecklistItemDetailProps) {
     const t = useTranslations();
     const [unit, setUnit] = useState<string>('');
+    const [isDocViewerOpen, setIsDocViewerOpen] = useState(false);
+    const [resolvedFileUrl, setResolvedFileUrl] = useState<string | null>(null);
+
+    const resolveFileUrl = useCallback(async (fileKey: string) => {
+        if (fileKey.startsWith('http') || fileKey.startsWith('/')) {
+            return fileKey;
+        }
+        // It's an S3 key, get presigned URL
+        if (fileKey.startsWith('checklist/')) {
+            try {
+                const res = await fetch(`/api/upload/presigned-url?key=${encodeURIComponent(fileKey)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.url as string;
+                }
+            } catch {
+                console.warn('Failed to resolve S3 URL');
+            }
+        }
+        return null;
+    }, []);
+
+    useEffect(() => {
+        if (response?.answer && item?.type === 'FILE') {
+            resolveFileUrl(response.answer).then(url => setResolvedFileUrl(url));
+        }
+    }, [response?.answer, item?.type, resolveFileUrl]);
 
     useEffect(() => {
         if (item?.askForQuantity && response?.answer && item?.databaseSource) {
@@ -54,41 +81,54 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
             case 'FILE':
                 if (!answer) return <p className="text-slate-400 italic">{t('checklistDetail.noFileSent')}</p>;
 
-                // Ensure answer is a string and looks like a URL/Path
                 const isImage = typeof answer === 'string' && answer.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+                const displayUrl = resolvedFileUrl;
 
-                // If it's a file but not obviously an image, or if we want to be safe
-                // We'll trust next/image only if we are relatively sure, or use standard img tag as fallback to avoid constructor errors?
-                // next/image requires absolute source or imported. if "answer" is just "foo.jpg", it fails.
-                // Let's assume valid URL if it starts with http or /
-                const isValidUrl = typeof answer === 'string' && (answer.startsWith('http') || answer.startsWith('/'));
-
-                if (isImage && isValidUrl) {
+                if (isImage && displayUrl) {
                     return (
-                        <div className="flex flex-col items-center">
-                            <div className="relative w-full max-w-2xl h-[400px] rounded-2xl overflow-hidden border border-slate-200">
-                                <Image
-                                    src={answer}
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="relative w-full max-w-2xl h-[400px] rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group" onClick={() => setIsDocViewerOpen(true)}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={displayUrl}
                                     alt="Arquivo enviado"
-                                    fill
-                                    className="object-contain bg-slate-50"
-                                    onError={() => { /* Fallback or suppress? */ }}
+                                    className="w-full h-full object-contain bg-slate-50"
                                 />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3 shadow-lg">
+                                        <Eye size={20} className="text-slate-700" />
+                                    </div>
+                                </div>
                             </div>
+                            <button
+                                onClick={() => setIsDocViewerOpen(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+                            >
+                                <Eye size={14} />
+                                {t('checklistDetail.expandView') || 'Expandir'}
+                            </button>
                         </div>
                     );
                 }
 
                 return (
-                    <div className="flex flex-col items-center">
-                        <a
-                            href={answer}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-6 py-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-slate-700 font-medium"
-                        >
-                            🔗 Baixar Arquivo
-                        </a>
+                    <div className="flex flex-col items-center gap-4">
+                        {displayUrl ? (
+                            <button
+                                onClick={() => setIsDocViewerOpen(true)}
+                                className="flex items-center gap-3 px-6 py-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors text-slate-700 font-medium border border-slate-200"
+                            >
+                                <Eye size={18} />
+                                {t('checklistDetail.viewDocument') || 'Visualizar Documento'}
+                            </button>
+                        ) : answer.startsWith('checklist/') ? (
+                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin" />
+                                Carregando...
+                            </div>
+                        ) : (
+                            <p className="text-slate-500 text-sm font-medium">{answer}</p>
+                        )}
                     </div>
                 );
 
@@ -174,6 +214,14 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
                     <p className="text-sm leading-relaxed">{observation}</p>
                 </div>
             )}
+
+            {/* Document Viewer Modal */}
+            <DocumentViewerModal
+                isOpen={isDocViewerOpen}
+                onClose={() => setIsDocViewerOpen(false)}
+                fileUrl={answer || ''}
+                filename={typeof answer === 'string' ? answer.split('/').pop() : undefined}
+            />
         </div>
     );
 }

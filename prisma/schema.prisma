@@ -33,6 +33,11 @@ model Workspace {
   esgApiEnabled            Boolean  @default(false) @map("esg_api_enabled")  // Is ESG/CAR analysis enabled for this workspace
   esgEnabledForSubworkspaces Boolean @default(false) @map("esg_enabled_for_subworkspaces") // Allow subworkspaces to use parent's token
 
+  // AI Document Validation settings
+  aiDocValidationEnabled           Boolean @default(false) @map("ai_doc_validation_enabled")
+  aiDocValidationEnabledForSubs    Boolean @default(false) @map("ai_doc_validation_enabled_for_subs")
+  aiDocValidationMode              String  @default("warn") @map("ai_doc_validation_mode") // "warn" | "block"
+
   users               User[]
   producers           Producer[]
   templates           Template[]

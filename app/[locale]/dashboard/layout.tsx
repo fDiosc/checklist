@@ -54,6 +54,8 @@ export default function DashboardLayout({
 
     const isAdmin = userData?.role === 'ADMIN' || session?.user?.role === 'SUPERADMIN';
     const isSuperAdmin = session?.user?.role === 'SUPERADMIN';
+    const hasSubworkspaces = userData?.workspace?.hasSubworkspaces === true;
+    const isParentWorkspaceAdmin = isAdmin && !isSuperAdmin && hasSubworkspaces;
     
     // Workspace branding
     const workspace = userData?.workspace;
@@ -91,6 +93,13 @@ export default function DashboardLayout({
                 name: t('users') || 'Usuários',
                 href: "/dashboard/users",
                 icon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 2a5 5 0 015 5v2a5 5 0 01-10 0V7a5 5 0 015-5z" /><path d="M19 21H5a2 2 0 01-2-2v-1a7 7 0 0114 0v1a2 2 0 01-2 2z" /></svg>
+            }
+        ] : []),
+        ...(isParentWorkspaceAdmin ? [
+            {
+                name: t('subworkspaces') || 'Subworkspaces',
+                href: "/dashboard/subworkspaces",
+                icon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 10h-4V6" /><path d="M14 10l6.1-6.1" /><path d="M22 2L14 10" /><path d="M22 12v7a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h7" /></svg>
             }
         ] : []),
         ...(isSuperAdmin ? [

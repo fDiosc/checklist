@@ -59,7 +59,10 @@
     "retry": "Tentar Novamente",
     "readOnly": "Somente Leitura",
     "expand": "Expandir",
-    "collapse": "Recolher"
+    "collapse": "Recolher",
+    "dismiss": "Dispensar",
+    "name": "Nome",
+    "password": "Senha"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -69,8 +72,22 @@
     "supervisors": "Supervisores",
     "users": "Usuários",
     "workspaces": "Workspaces",
+    "subworkspaces": "Subworkspaces",
     "settings": "Configurações",
     "logout": "Sair"
+  },
+  "subworkspaces": {
+    "title": "Subworkspaces",
+    "description": "Gerencie os subworkspaces da sua organização",
+    "create": "Novo Subworkspace",
+    "createTitle": "Criar Subworkspace",
+    "search": "Buscar subworkspaces...",
+    "empty": "Nenhum subworkspace encontrado",
+    "emptyHint": "Crie o primeiro subworkspace para começar.",
+    "users": "Usuários",
+    "addUser": "Adicionar Usuário",
+    "noUsers": "Nenhum usuário neste subworkspace. Adicione o primeiro administrador.",
+    "newUser": "Novo Usuário"
   },
   "status": {
     "draft": "Rascunho",
@@ -184,9 +201,12 @@
     "aiAnalysisFailed": "Falha na análise da IA.",
     "confirmFinalizeWithRejected": "Este checklist contém itens REJEITADOS. Ao finalizar, esses itens serão levados como REJEITADOS para o checklist principal. Deseja prosseguir?",
     "confirmFinalize": "Tem certeza que deseja finalizar este checklist? A ação é irreversível e bloqueará edições.",
+    "cannotFinalizeOpenChildren": "Não é possível finalizar: existem checklists filhos em aberto que precisam ser finalizados primeiro.",
     "finalizeSuccess": "Checklist finalizado com sucesso!",
     "partialFinalizeSuccess": "Checklist finalizado parcialmente com sucesso!",
-    "noAiSuggestion": "Sem sugestão de IA disponível"
+    "noAiSuggestion": "Sem sugestão de IA disponível",
+    "correction": "Correção",
+    "completion": "Complemento"
   },
   "checklistDetail": {
     "invalidFormat": "Formato de resposta inválido",
@@ -194,6 +214,8 @@
     "downloadFile": "Baixar Arquivo",
     "quantity": "Quantidade",
     "unit": "un",
+    "expandView": "Expandir",
+    "viewDocument": "Visualizar Documento",
     "filledInternally": "Preenchido Internamente",
     "producerObservation": "Observação do Produtor",
     "itemTypes": {
@@ -477,8 +499,16 @@
     "confirm": "Confirmar",
     "attachFile": "Anexar Comprovante",
     "fileUploaded": "Arquivo Enviado",
+    "uploading": "Enviando arquivo...",
     "file": "Arquivo",
     "camera": "Câmera",
+    "aiValidation": {
+      "blocked": "Documento não aprovado pela validação automática",
+      "warning": "Aviso sobre o documento enviado",
+      "notLegible": "O documento pode não estar legível.",
+      "wrongType": "O documento pode não ser do tipo esperado para este item.",
+      "mustReupload": "Faça o upload novamente com um documento válido para continuar."
+    },
     "selectOption": "Selecione uma opção...",
     "typeAnswer": "Digite sua resposta...",
     "typeDetailedAnswer": "Digite sua resposta detalhada...",
@@ -664,6 +694,7 @@
     "fillItem": "Preencher Item",
     "pasteFileLinkPlaceholder": "Cole o link do arquivo ou descreva...",
     "typeResponsePlaceholder": "Digite a resposta do produtor...",
+    "uploadFile": "Enviar Arquivo",
     "saveFill": "Salvar Preenchimento",
     "aiAnalysis": "Análise da IA",
     "suggestsApproval": "Sugere Aprovação",

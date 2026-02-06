@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { isSuperAdmin, hasWorkspaceAccess } from "@/lib/workspace-context";
+import { isSuperAdmin, isAdmin, hasWorkspaceAccess } from "@/lib/workspace-context";
 
 const createSubworkspaceSchema = z.object({
     name: z.string().min(1),
@@ -78,7 +78,7 @@ export async function GET(
     }
 }
 
-// POST - Create a new subworkspace (SuperAdmin only)
+// POST - Create a new subworkspace (SuperAdmin or Admin of the parent workspace)
 export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -89,15 +89,20 @@ export async function POST(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Only SuperAdmin can create subworkspaces
-        if (!isSuperAdmin(session)) {
+        const { id: parentWorkspaceId } = await params;
+
+        // SuperAdmin can create subworkspaces for any workspace.
+        // Admin can create subworkspaces only under their own workspace.
+        const canCreate = isSuperAdmin(session) || (
+            isAdmin(session) && session.user.workspaceId === parentWorkspaceId
+        );
+
+        if (!canCreate) {
             return NextResponse.json(
-                { error: "Only SuperAdmin can create subworkspaces" },
+                { error: "Only SuperAdmin or Admin of this workspace can create subworkspaces" },
                 { status: 403 }
             );
         }
-
-        const { id: parentWorkspaceId } = await params;
         const body = await req.json();
         const validatedData = createSubworkspaceSchema.parse(body);
 

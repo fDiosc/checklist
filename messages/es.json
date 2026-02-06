@@ -59,7 +59,10 @@
     "retry": "Intentar Nuevamente",
     "readOnly": "Solo Lectura",
     "expand": "Expandir",
-    "collapse": "Contraer"
+    "collapse": "Contraer",
+    "dismiss": "Descartar",
+    "name": "Nombre",
+    "password": "Contraseña"
   },
   "navigation": {
     "dashboard": "Panel",
@@ -69,8 +72,22 @@
     "supervisors": "Supervisores",
     "users": "Usuarios",
     "workspaces": "Workspaces",
+    "subworkspaces": "Subworkspaces",
     "settings": "Configuración",
     "logout": "Salir"
+  },
+  "subworkspaces": {
+    "title": "Subworkspaces",
+    "description": "Administre los subworkspaces de su organización",
+    "create": "Nuevo Subworkspace",
+    "createTitle": "Crear Subworkspace",
+    "search": "Buscar subworkspaces...",
+    "empty": "No se encontraron subworkspaces",
+    "emptyHint": "Cree el primer subworkspace para comenzar.",
+    "users": "Usuarios",
+    "addUser": "Agregar Usuario",
+    "noUsers": "No hay usuarios en este subworkspace. Agregue el primer administrador.",
+    "newUser": "Nuevo Usuario"
   },
   "status": {
     "draft": "Borrador",
@@ -184,9 +201,12 @@
     "aiAnalysisFailed": "Falló el análisis de IA.",
     "confirmFinalizeWithRejected": "Este checklist contiene ítems RECHAZADOS. Al finalizar, estos ítems se marcarán como RECHAZADOS en el checklist principal. ¿Deseas continuar?",
     "confirmFinalize": "¿Estás seguro de que deseas finalizar este checklist? Esta acción es irreversible y bloqueará las ediciones.",
+    "cannotFinalizeOpenChildren": "No se puede finalizar: existen checklists hijos abiertos que deben ser finalizados primero.",
     "finalizeSuccess": "¡Checklist finalizado con éxito!",
     "partialFinalizeSuccess": "¡Checklist parcialmente finalizado con éxito!",
-    "noAiSuggestion": "Sin sugerencia de IA disponible"
+    "noAiSuggestion": "Sin sugerencia de IA disponible",
+    "correction": "Corrección",
+    "completion": "Complemento"
   },
   "checklistDetail": {
     "invalidFormat": "Formato de respuesta inválido",
@@ -194,6 +214,8 @@
     "downloadFile": "Descargar Archivo",
     "quantity": "Cantidad",
     "unit": "un",
+    "expandView": "Expandir",
+    "viewDocument": "Ver Documento",
     "filledInternally": "Llenado Internamente",
     "producerObservation": "Observación del Productor",
     "itemTypes": {
@@ -477,8 +499,16 @@
     "confirm": "Confirmar",
     "attachFile": "Adjuntar Comprobante",
     "fileUploaded": "Archivo Subido",
+    "uploading": "Subiendo archivo...",
     "file": "Archivo",
     "camera": "Cámara",
+    "aiValidation": {
+      "blocked": "Documento no aprobado por la validación automática",
+      "warning": "Aviso sobre el documento subido",
+      "notLegible": "El documento puede no ser legible.",
+      "wrongType": "El documento puede no ser del tipo esperado para este ítem.",
+      "mustReupload": "Sube nuevamente un documento válido para continuar."
+    },
     "selectOption": "Selecciona una opción...",
     "typeAnswer": "Escribe tu respuesta...",
     "typeDetailedAnswer": "Escribe tu respuesta detallada...",
@@ -594,18 +624,6 @@
       "prefillFromPrevious": "Pre-llenar con checklist anterior",
       "noPreviousChecklists": "No hay checklists anteriores disponibles para esta plantilla"
     },
-    "partialFinalize": {
-      "title": "Finalización Parcial",
-      "description": "Captura un estado y crea acciones correctivas",
-      "createCorrection": "Generar Checklist de Corrección",
-      "createCorrectionDesc": "Incluye solo los ítems que fueron rechazados en este análisis.",
-      "createCompletion": "Generar Checklist de Complemento",
-      "createCompletionDesc": "Incluye los ítems que no fueron respondidos o están pendientes.",
-      "generateActionPlan": "Generar Plan de Acción (IA)",
-      "generateActionPlanDesc": "La Inteligencia Artificial analizará las fallas y creará una guía de corrección.",
-      "cancel": "Cancelar",
-      "finalize": "Finalizar Parcial"
-    },
     "changelog": {
       "title": "Novedades",
       "version": "Versión"
@@ -676,6 +694,7 @@
     "fillItem": "Llenar Ítem",
     "pasteFileLinkPlaceholder": "Pega el enlace del archivo o describe...",
     "typeResponsePlaceholder": "Escribe la respuesta del productor...",
+    "uploadFile": "Subir Archivo",
     "saveFill": "Guardar Llenado",
     "aiAnalysis": "Análisis de IA",
     "suggestsApproval": "Sugiere Aprobación",

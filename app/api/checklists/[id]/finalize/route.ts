@@ -27,6 +27,22 @@ export async function POST(
             return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
         }
 
+        // Block finalization if there are open (non-finalized) child checklists
+        const openChildren = await db.checklist.findMany({
+            where: {
+                parentId: id,
+                status: { notIn: ['FINALIZED', 'APPROVED'] }
+            },
+            select: { id: true, type: true, status: true }
+        });
+
+        if (openChildren.length > 0) {
+            return NextResponse.json({
+                error: "Não é possível finalizar: existem checklists filhos em aberto que precisam ser finalizados primeiro.",
+                openChildren
+            }, { status: 400 });
+        }
+
         // If this is a child checklist, sync responses to parent (AS IS)
         if (checklist.parentId) {
             await syncResponsesToParent(checklist.parentId, checklist.responses);

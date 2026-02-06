@@ -396,7 +396,17 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
 
         try {
             const res = await fetch(`/api/checklists/${checklist.id}/finalize`, { method: 'POST' });
-            if (!res.ok) throw new Error('Failed');
+            if (!res.ok) {
+                const data = await res.json();
+                if (res.status === 400 && data.openChildren) {
+                    const childTypes = data.openChildren.map((c: { type: string; status: string }) =>
+                        `${c.type === 'CORRECTION' ? t('checklistManagement.correction') : t('checklistManagement.completion')} (${t('status.' + c.status.toLowerCase().replace('_', ''))})`
+                    ).join(', ');
+                    alert(`${t('checklistManagement.cannotFinalizeOpenChildren') || 'Não é possível finalizar: existem checklists filhos em aberto.'}\n\n${childTypes}`);
+                    return;
+                }
+                throw new Error(data.error || 'Failed');
+            }
             alert(t('checklistManagement.finalizeSuccess'));
             router.refresh();
         } catch (error) {
@@ -769,6 +779,17 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                                 rejectionReason={selectedItem.response?.rejectionReason}
                                 aiSuggestion={selectedItem.response?.aiSuggestion /* Mock for now */}
                                 itemType={selectedItem.item.type}
+                                itemOptions={selectedItem.item.options || []}
+                                databaseSource={selectedItem.item.databaseSource}
+                                askForQuantity={selectedItem.item.askForQuantity}
+                                observationEnabled={selectedItem.item.observationEnabled}
+                                requestArtifact={selectedItem.item.requestArtifact}
+                                uploadContext={{
+                                    workspaceId: checklist.workspaceId,
+                                    subworkspaceId: checklist.subworkspaceId,
+                                    checklistId: checklist.id,
+                                    itemId: selectedItem.item.originalId || selectedItem.item.id,
+                                }}
                                 readOnly={readOnly}
                                 onApprove={() => {
                                     const nextStatus = selectedItem.response?.status === 'APPROVED' ? 'PENDING_VERIFICATION' : 'APPROVED';
