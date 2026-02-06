@@ -37,12 +37,12 @@ const releases = [
             }
         ],
         bugfixes: [
-            "DocumentViewerModal renderizado via Portal para evitar problemas de overlay",
-            "Nome do documento limpo sem caminho S3 e timestamp",
-            "Workspace pai não pode mais enviar checklists para produtores de subworkspaces",
-            "Botão salvar bloqueado durante upload de arquivo na visão do produtor",
-            "Attachments visíveis na visão do supervisor para itens com requestArtifact",
-            "Correções de chaves i18n (common.items, attachedDocument, viewTemplate)"
+            { text: "DocumentViewerModal renderizado via Portal para evitar problemas de overlay." },
+            { text: "Nome do documento limpo sem caminho S3 e timestamp." },
+            { text: "Workspace pai não pode mais enviar checklists para produtores de subworkspaces." },
+            { text: "Botão salvar bloqueado durante upload de arquivo na visão do produtor." },
+            { text: "Attachments visíveis na visão do supervisor para itens com requestArtifact." },
+            { text: "Correções de chaves i18n (common.items, attachedDocument, viewTemplate)." }
         ]
     },
     {
