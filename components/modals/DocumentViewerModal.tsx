@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { isS3Key } from '@/lib/s3';
 
@@ -72,7 +73,7 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
         }
     };
 
-    return (
+    const modalContent = (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
             <div
                 className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
@@ -80,10 +81,10 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-slate-900 text-sm truncate max-w-md">{cleanFilename}</h3>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <h3 className="font-bold text-slate-900 text-sm truncate">{cleanFilename}</h3>
                         {isImage && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 flex-shrink-0">
                                 <button
                                     onClick={() => setZoom(z => Math.max(0.25, z - 0.25))}
                                     className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
@@ -102,7 +103,7 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
                             </div>
                         )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                         <button
                             onClick={handleDownload}
                             className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors"
@@ -170,4 +171,11 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
             </div>
         </div>
     );
+
+    // Use portal to render at document.body to avoid stacking context issues
+    // from parent containers with transforms/animations
+    if (typeof document !== 'undefined') {
+        return createPortal(modalContent, document.body);
+    }
+    return modalContent;
 }
