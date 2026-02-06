@@ -1,7 +1,7 @@
 # Modelo de Dados - MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026  
+> **Versão:** 5.0  
+> **Última atualização:** 06 Fevereiro 2026  
 > **ORM:** Prisma 5.22.0  
 > **Banco:** PostgreSQL (Neon.db)
 
@@ -121,6 +121,11 @@ model Workspace {
   esgApiEnabled              Boolean   @default(false) @map("esg_api_enabled")
   esgEnabledForSubworkspaces Boolean   @default(false) @map("esg_enabled_for_subworkspaces")
 
+  // Validação de Documentos por IA
+  aiDocValidationEnabled         Boolean  @default(false) @map("ai_doc_validation_enabled")
+  aiDocValidationEnabledForSubs  Boolean  @default(false) @map("ai_doc_validation_enabled_for_subs")
+  aiDocValidationMode            String   @default("warn") @map("ai_doc_validation_mode")
+
   users      User[]
   producers  Producer[]
   templates  Template[]
@@ -141,6 +146,11 @@ model Workspace {
 - `carCooperativeId`: ID da Cooperativa
 - `esgApiEnabled`: Habilita integração ESG para o workspace
 - `esgEnabledForSubworkspaces`: Permite subworkspaces usarem a integração do pai
+
+**Campos de Validação de Documentos por IA:**
+- `aiDocValidationEnabled`: Habilita validação automática de documentos via Gemini
+- `aiDocValidationEnabledForSubs`: Permite subworkspaces herdarem a configuração
+- `aiDocValidationMode`: Modo de comportamento (`warn` = apenas avisa, `block` = impede envio)
 
 ### 2.1 User (Usuários)
 

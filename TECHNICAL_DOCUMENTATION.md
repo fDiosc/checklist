@@ -1,7 +1,7 @@
 # Documentação Técnica: MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026  
+> **Versão:** 5.0  
+> **Última atualização:** 06 Fevereiro 2026  
 > **Documentação completa:** [docs/](./docs/)
 
 Este documento descreve a implementação técnica do MerX Platform, incluindo multi-tenancy, autenticação, hierarquia de checklists e internacionalização.
@@ -70,13 +70,42 @@ if (session.user.role === "SUPERADMIN") return {};
 return { workspaceId: session.user.workspaceId };
 ```
 
-### 1.5 Subworkspaces
+### 1.5 Validação de Documentos por IA
+
+O sistema suporta validação automática de documentos enviados por produtores usando Google Gemini.
+
+#### Campos do Workspace:
+```prisma
+model Workspace {
+  // ... outros campos ...
+  
+  // Validação de Documentos por IA
+  aiDocValidationEnabled         Boolean  @default(false) @map("ai_doc_validation_enabled")
+  aiDocValidationEnabledForSubs  Boolean  @default(false) @map("ai_doc_validation_enabled_for_subs")
+  aiDocValidationMode            String   @default("warn") @map("ai_doc_validation_mode") // "warn" | "block"
+}
+```
+
+#### Hierarquia de Configuração:
+1. **SuperAdmin** habilita/desabilita a feature por workspace (`aiDocValidationEnabled`)
+2. **SuperAdmin** pode habilitar herança para subworkspaces (`aiDocValidationEnabledForSubs`)
+3. **Admin** do workspace escolhe o modo de comportamento (`aiDocValidationMode`): `warn` (apenas avisa) ou `block` (impede envio)
+
+#### APIs:
+```
+GET  /api/workspaces/[id]/doc-validation-config  - Obtém configuração (SUPERADMIN/ADMIN)
+PUT  /api/workspaces/[id]/doc-validation-config  - Atualiza configuração
+GET  /api/workspaces/doc-validation-status       - Status efetivo para workspace atual
+POST /api/ai/validate-document                   - Validar documento via Gemini
+```
+
+### 1.6 Subworkspaces
 
 O sistema suporta hierarquia de workspaces com até 2 níveis (workspace pai → subworkspaces).
 
 #### Características:
 - **Ativação:** SuperAdmin ativa `hasSubworkspaces` para um workspace
-- **Criação:** Apenas SuperAdmin pode criar subworkspaces
+- **Criação:** SuperAdmin ou Admin do workspace pai pode criar subworkspaces
 - **Isolamento:** Subworkspaces não veem dados uns dos outros
 - **Visibilidade:** Workspace pai vê todos os dados de seus subworkspaces
 - **Propriedades:** Cada subworkspace tem nome, slug, logo e CNPJ próprios
@@ -390,7 +419,32 @@ A barra lateral de itens (`ChecklistManagementClient`) utiliza um sistema de có
 - `bg-amber-50`: Respondido (Aguardando Verificação)
 - `bg-slate-100`: Não Respondido (Vazio)
 
-### 3.5 Segurança e Confirmação
+### 3.5 Bloqueio de Finalização com Filhos Abertos
+
+O sistema impede a finalização de um checklist pai se existirem checklists filhos que ainda não foram finalizados.
+
+#### Validação Server-side:
+```typescript
+// app/api/checklists/[id]/finalize/route.ts
+const openChildren = await db.checklist.findMany({
+  where: {
+    parentId: checklistId,
+    status: { notIn: ['FINALIZED', 'APPROVED'] }
+  }
+});
+
+if (openChildren.length > 0) {
+  return NextResponse.json({
+    error: 'Cannot finalize: open child checklists exist',
+    openChildren: openChildren.map(c => ({ id: c.id, type: c.type, status: c.status }))
+  }, { status: 400 });
+}
+```
+
+#### Feedback no Frontend:
+O `checklist-management-client.tsx` trata o erro 400 e exibe um alert com a lista de checklists filhos em aberto (tipo e status).
+
+### 3.6 Segurança e Confirmação
 Implementamos um guard rails no `handleFinalize` para evitar sincronizações acidentais de erros:
 - Se existirem itens `REJECTED`, um `window.confirm` solicita autorização explícita do supervisor informando que esses itens serão marcados como falhas no checklist master.
 
@@ -605,4 +659,77 @@ No dashboard do portal, um dropdown no cabeçalho permite alternar entre workspa
 localStorage.setItem('merx_portal_workspace', workspaceId);
 // Refaz a busca com novo workspace
 await fetchData(cpf, workspaceId);
+```
+
+---
+
+## 10. Armazenamento de Arquivos (AWS S3)
+
+### 10.1 Conceito
+O sistema utiliza AWS S3 (bucket `pocs-merxlabs`) para armazenamento de documentos e fotos enviados por produtores. A estrutura do bucket é compartilhada entre projetos, com segregação por prefixo.
+
+### 10.2 Estrutura do Path
+```
+checklist/{workspaceId}/{subworkspaceId|_root}/{checklistId}/{itemId}/{fieldId}/{timestamp}_{filename}
+```
+
+- `_root` é usado quando o workspace não possui subworkspace (é raiz)
+- `timestamp` é o epoch em milissegundos para evitar colisões de nome
+
+### 10.3 Utilitário S3 (`lib/s3.ts`)
+
+```typescript
+// Funções disponíveis
+export const s3Client: S3Client;
+export function buildS3Key(params): string;
+export async function uploadToS3(key, buffer, contentType): Promise<void>;
+export async function getPresignedUrl(key, expiresIn?): Promise<string>;
+export async function getPresignedUploadUrl(key, contentType, expiresIn?): Promise<string>;
+export async function deleteFromS3(key): Promise<void>;
+```
+
+### 10.4 APIs de Upload
+
+```
+POST /api/upload                    - Upload via multipart/form-data
+GET  /api/upload/presigned-url?s3Key=xxx  - Gerar URL temporária de leitura
+```
+
+### 10.5 Visualização pelo Supervisor
+
+O componente `DocumentViewerModal` permite visualizar documentos inline:
+- **Imagens:** Exibição com controles de zoom (25% - 300%)
+- **PDFs:** Embedding via iframe
+- **Resolução automática:** S3 keys são convertidas em presigned URLs transparentemente
+
+### 10.6 Validação de Documentos por IA
+
+Fluxo de validação no upload do produtor:
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Produtor    │────▶│  Upload S3   │────▶│  Gemini AI   │
+│  faz upload  │     │  /api/upload │     │  /api/ai/    │
+│              │     │              │     │  validate-   │
+└──────────────┘     └──────────────┘     │  document    │
+                                          └──────┬───────┘
+                                                 │
+                              ┌───────────────────┤
+                              │                   │
+                              ▼                   ▼
+                    ┌──────────────┐     ┌──────────────┐
+                    │  Mode: WARN  │     │ Mode: BLOCK  │
+                    │  Banner de   │     │ Impede envio │
+                    │  aviso       │     │ do checklist │
+                    └──────────────┘     └──────────────┘
+```
+
+### 10.7 Variáveis de Ambiente S3
+
+```env
+S3_BUCKET=pocs-merxlabs
+S3_REGION=us-east-1
+S3_ACCESS_KEY=<access-key>
+S3_SECRET_KEY=<secret-key>
+# S3_ENDPOINT=  # Opcional, para S3-compatible storage
 ```

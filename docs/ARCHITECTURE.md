@@ -1,7 +1,7 @@
 # Arquitetura Técnica - MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026  
+> **Versão:** 5.0  
+> **Última atualização:** 06 Fevereiro 2026  
 > **Status:** Produção
 
 ## Índice
@@ -59,8 +59,8 @@ O MerX Platform é um sistema de **gestão de compliance e auditoria digital par
 ┌───────────────────────────────────────────────────────┐
 │                    DATA LAYER                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│  │ Prisma ORM  │  │ Supabase    │  │ External APIs │  │
-│  │ (Neon.db)   │  │ Storage     │  │ (CAR, ESG)    │  │
+│  │ Prisma ORM  │  │  AWS S3     │  │ External APIs │  │
+│  │ (Neon.db)   │  │  Storage    │  │ (CAR, ESG)    │  │
 │  └─────────────┘  └─────────────┘  └───────────────┘  │
 └───────────────────────────────────────────────────────┘
 ```
@@ -93,8 +93,8 @@ O MerX Platform é um sistema de **gestão de compliance e auditoria digital par
 | Neon.db | - | PostgreSQL serverless |
 | NextAuth.js | 5.0.0-beta.30 | Autenticação própria |
 | bcryptjs | 3.0.3 | Hash de senhas |
-| Supabase | 2.90.0 | Storage de arquivos |
-| Google Gemini | 1.34.0 | IA para análise |
+| AWS S3 SDK | 3.x | Storage de arquivos (bucket pocs-merxlabs) |
+| Google Gemini | 1.34.0 | IA para análise e validação de documentos |
 | Resend | 6.6.0 | Envio de emails |
 
 ### Infraestrutura
@@ -103,7 +103,7 @@ O MerX Platform é um sistema de **gestão de compliance e auditoria digital par
 |---------|-----------|
 | CapRover | Hospedagem (Docker) |
 | Neon.db | Banco de dados PostgreSQL |
-| Supabase | Storage S3-compatible |
+| AWS S3 (pocs-merxlabs) | Storage de documentos e fotos |
 
 ---
 
@@ -114,7 +114,7 @@ merx-platform/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API Routes
 │   │   ├── action-plans/         # Endpoints de planos de ação
-│   │   ├── ai/                   # Endpoints de IA (analyze, generate)
+│   │   ├── ai/                   # Endpoints de IA (analyze, generate, validate-document)
 │   │   ├── c/[token]/            # API pública (save, submit)
 │   │   ├── checklists/           # CRUD de checklists
 │   │   ├── dashboard/            # Estatísticas
@@ -124,13 +124,16 @@ merx-platform/
 │   │   ├── portal/               # API do portal do produtor
 │   │   ├── producers/            # CRUD de produtores
 │   │   ├── templates/            # CRUD de templates
-│   │   └── users/                # Onboarding, supervisores
+│   │   ├── upload/               # Upload de arquivos (S3)
+│   │   ├── users/                # Onboarding, supervisores
+│   │   └── workspaces/           # Workspaces, subworkspaces, configs
 │   │
 │   └── [locale]/                 # Rotas internacionalizadas (pt-BR, en, es)
 │       ├── c/[token]/            # Página pública de checklist
 │       ├── dashboard/            # Dashboard do supervisor
 │       │   ├── checklists/       # Gerenciamento de checklists
 │       │   ├── produtores/       # Cadastro de produtores
+│       │   ├── subworkspaces/   # Gestão de subworkspaces (Admin)
 │       │   ├── supervisores/     # Gestão de supervisores
 │       │   └── templates/        # Editor de templates
 │       ├── portal/               # Portal do produtor
@@ -155,6 +158,7 @@ merx-platform/
 │   ├── db.ts                     # Cliente Prisma
 │   ├── evolution.ts              # API WhatsApp
 │   ├── geo.ts                    # Utilitários geográficos
+│   ├── s3.ts                     # Client AWS S3 e funções utilitárias
 │   └── utils.ts                  # Utilitários gerais
 │
 ├── messages/                     # Arquivos de internacionalização
@@ -199,7 +203,7 @@ merx-platform/
 ### 4.4 Data Layer
 
 - **Prisma ORM**: Type-safe queries ao PostgreSQL
-- **Supabase Storage**: Upload e download de arquivos
+- **AWS S3**: Upload e download de arquivos (lib/s3.ts)
 - **External APIs**: CAR, ESG, Evolution (WhatsApp)
 
 ### 4.5 Internacionalização (i18n)

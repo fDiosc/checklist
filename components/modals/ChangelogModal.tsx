@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock, HardDrive, Eye, ScanSearch, Loader2, PenTool } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
@@ -10,6 +10,60 @@ interface ChangelogModalProps {
 }
 
 const releases = [
+    {
+        version: "V 0.5.0",
+        date: "06 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Gestão de Subworkspaces (Admin)",
+                description: "ADMINs agora podem criar subworkspaces, gerenciar usuários e visualizar toda a hierarquia.",
+                icon: Network,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            },
+            {
+                title: "Integração AWS S3",
+                description: "Documentos e fotos armazenados no S3 com estrutura organizada por workspace e checklist.",
+                icon: HardDrive,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Visualizador de Documentos",
+                description: "Supervisores podem ver fotos e documentos de dentro do checklist em modal com zoom e navegação.",
+                icon: Eye,
+                color: "text-purple-500",
+                bg: "bg-purple-50/50"
+            },
+            {
+                title: "Validação de Documentos por IA",
+                description: "Gemini analisa legibilidade e tipo dos documentos enviados. Modo aviso ou bloqueio configurável.",
+                icon: ScanSearch,
+                color: "text-amber-500",
+                bg: "bg-amber-50/50"
+            },
+            {
+                title: "UX de Salvamento Melhorada",
+                description: "Loading overlay, navegação bloqueada durante save e feedback visual completo para o produtor.",
+                icon: Loader2,
+                color: "text-red-500",
+                bg: "bg-red-50/50"
+            },
+            {
+                title: "Preenchimento Interno Type-Aware",
+                description: "Preencher Internamente agora adapta o input ao tipo: dropdown, múltipla escolha, arquivo, data, etc.",
+                icon: PenTool,
+                color: "text-slate-500",
+                bg: "bg-slate-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "Checklist pai não pode mais ser finalizado se houver filhos em aberto." },
+            { text: "Chaves i18n duplicadas corrigidas em en.json e es.json (modals.partialFinalize)." },
+            { text: "8 chaves de tradução faltantes adicionadas nos 3 locales." },
+            { text: "611 chaves de tradução sincronizadas entre pt-BR, en e es." }
+        ]
+    },
     {
         version: "V 0.4.1",
         date: "05 de Fevereiro, 2026",

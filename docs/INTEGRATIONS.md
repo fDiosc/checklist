@@ -1,14 +1,14 @@
 # Integrações Externas - MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026
+> **Versão:** 5.0  
+> **Última atualização:** 06 Fevereiro 2026
 
 ## Índice
 
 1. [Visão Geral](#1-visão-geral)
 2. [Google Gemini (IA)](#2-google-gemini-ia)
 3. [NextAuth (Autenticação)](#3-nextauth-autenticação)
-4. [Supabase (Storage)](#4-supabase-storage)
+4. [AWS S3 (Storage)](#4-aws-s3-storage)
 5. [Evolution API (WhatsApp)](#5-evolution-api-whatsapp)
 6. [CAR API (Cadastro Ambiental Rural)](#6-car-api-cadastro-ambiental-rural)
 7. [ESG API](#7-esg-api)
@@ -28,7 +28,7 @@ O MerX Platform integra com diversos serviços externos:
           │         │         │         │         │
           ▼         ▼         ▼         ▼         ▼
      ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-     │ Gemini │ │NextAuth│ │Supabase│ │Evolution│ │ CAR/ESG│
+     │ Gemini │ │NextAuth│ │ AWS S3 │ │Evolution│ │ CAR/ESG│
      │  (IA)  │ │ (Auth) │ │(Storage)│ │(WhatsApp)│ │ (Geo) │
      └────────┘ └────────┘ └────────┘ └────────┘ └────────┘
 ```
@@ -86,6 +86,7 @@ const result = await ai.models.generateContent({
 | `POST /api/ai/analyze` | Analisa resposta individual |
 | `POST /api/ai/generate-action-plan` | Gera plano de ação |
 | `POST /api/ai/generate-template` | Gera template de checklist |
+| `POST /api/ai/validate-document` | Valida legibilidade e tipo de documento |
 
 ### Prompts Configuráveis
 
@@ -211,48 +212,70 @@ export async function GET() {
 
 ---
 
-## 4. Supabase (Storage)
+## 4. AWS S3 (Storage)
 
 ### Propósito
 
-- Armazenamento de arquivos (documentos, imagens)
-- CDN para distribuição
+- Armazenamento de documentos e fotos de checklists
+- Bucket compartilhado entre projetos com segregação por prefixo
+- Acesso via presigned URLs (temporárias)
 
 ### Configuração
 
 ```bash
 # .env.local
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+S3_BUCKET=pocs-merxlabs
+S3_REGION=us-east-1
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+# S3_ENDPOINT=  # Opcional, para S3-compatible storage
 ```
 
-### Buckets
+### Estrutura do Path
 
-| Bucket | Uso |
-|--------|-----|
-| `checklist-files` | Arquivos de respostas |
-| `producer-documents` | Documentos de produtores |
+```
+checklist/{workspaceId}/{subworkspaceId|_root}/{checklistId}/{itemId}/{fieldId}/{timestamp}_{filename}
+```
+
+- `_root` para workspaces sem subworkspace
+- `timestamp` em milissegundos para evitar colisões
 
 ### Implementação
 
 ```typescript
-import { createClient } from '@supabase/supabase-js';
+// lib/s3.ts
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const s3Client = new S3Client({
+  region: process.env.S3_REGION!,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY!,
+    secretAccessKey: process.env.S3_SECRET_KEY!,
+  },
+});
 
-// Upload
-const { data, error } = await supabase.storage
-  .from('checklist-files')
-  .upload(`${checklistId}/${itemId}/${fileName}`, file);
-
-// URL pública
-const { data: { publicUrl } } = supabase.storage
-  .from('checklist-files')
-  .getPublicUrl(path);
+// Funções disponíveis
+export function buildS3Key(params): string;
+export async function uploadToS3(key, buffer, contentType): Promise<void>;
+export async function getPresignedUrl(key, expiresIn?): Promise<string>;  // Default: 1 hora
+export async function getPresignedUploadUrl(key, contentType, expiresIn?): Promise<string>;
+export async function deleteFromS3(key): Promise<void>;
 ```
+
+### APIs
+
+| Endpoint | Função |
+|----------|--------|
+| `POST /api/upload` | Upload via multipart/form-data |
+| `GET /api/upload/presigned-url` | Gerar URL temporária de leitura |
+
+### Visualização de Documentos
+
+O componente `DocumentViewerModal` permite supervisores visualizar documentos inline:
+- **Imagens:** Zoom controls (25% - 300%), pan
+- **PDFs:** Embedding via iframe
+- **Resolução automática:** S3 keys → presigned URLs
 
 ---
 
@@ -469,10 +492,13 @@ NEXTAUTH_URL="http://localhost:3000"       # URL base da aplicação
 GEMINI_API_KEY=your-gemini-api-key
 
 # ===========================================
-# STORAGE (Supabase)
+# STORAGE (AWS S3)
 # ===========================================
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+S3_BUCKET=pocs-merxlabs
+S3_REGION=us-east-1
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+# S3_ENDPOINT=  # Opcional, para S3-compatible storage
 
 # ===========================================
 # WHATSAPP (Evolution API)
@@ -520,7 +546,7 @@ model Workspace {
        │
        ▼
 ┌─────────────┐     ┌─────────────┐
-│  Supabase   │◀────│   Upload    │
+│   AWS S3    │◀────│   Upload    │
 │  Storage    │     │   arquivo   │
 └─────────────┘     └─────────────┘
        │

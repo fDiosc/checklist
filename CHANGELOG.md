@@ -2,6 +2,90 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.5.0] - 2026-02-06
+
+### 🚀 Gestão de Subworkspaces por Admin, S3 Storage, Validação de Documentos por IA e Melhorias de UX
+
+Esta versão implementa 5 grandes funcionalidades: gestão de subworkspaces por admins, bloqueio de finalização com filhos abertos, integração S3, validação de documentos por IA e melhorias na experiência do produtor.
+
+### ✨ Novas Funcionalidades
+
+#### 1. Gestão de Subworkspaces por Admin
+- **Admin pode ver subworkspaces:** Usuários ADMIN de workspaces com subworkspaces habilitados agora veem o menu "Subworkspaces" no dashboard.
+- **Criar subworkspaces:** ADMINs podem criar novos subworkspaces dentro de sua hierarquia (nome, slug, CNPJ, logo).
+- **Gerenciar usuários:** ADMINs podem criar e visualizar usuários dentro de cada subworkspace.
+- **Listagem de usuários expandida:** API GET `/api/users` agora retorna usuários de todos os subworkspaces para ADMINs.
+
+#### 2. Bloqueio de Finalização com Filhos Abertos
+- **Validação server-side:** Um checklist pai não pode ser finalizado se possuir checklists filhos em aberto (não finalizados).
+- **Feedback no frontend:** Mensagem de erro clara com lista dos checklists filhos em aberto (tipo e status) quando a finalização é bloqueada.
+
+#### 3. Integração com AWS S3
+- **Bucket `pocs-merxlabs`:** Todo armazenamento de documentos e fotos migrado de Supabase para AWS S3.
+- **Estrutura organizada:** Path `checklist/{workspaceId}/{subworkspaceId|_root}/{checklistId}/{itemId}/{fieldId}/{timestamp}_{filename}`.
+- **Upload API:** Novo endpoint `POST /api/upload` para upload de arquivos via `multipart/form-data`.
+- **Presigned URLs:** Novo endpoint `GET /api/upload/presigned-url` para acesso temporário a objetos S3.
+- **Utilitário centralizado:** `lib/s3.ts` com funções `uploadToS3`, `getPresignedUrl`, `getPresignedUploadUrl`, `deleteFromS3`, `buildS3Key`.
+
+#### 4. Visualização de Documentos pelo Supervisor
+- **DocumentViewerModal:** Novo componente modal para visualizar documentos e fotos de dentro do checklist.
+- **Suporte a imagens:** Zoom, pan e controles visuais para análise de fotos.
+- **Suporte a PDFs:** Embedding via iframe para documentos PDF.
+- **Resolução de S3 keys:** URLs presigned geradas automaticamente para objetos S3.
+- **Integração no checklist-item-detail:** Botões "Expandir" para imagens e "Visualizar Documento" para outros arquivos.
+
+#### 5. Validação de Documentos por IA (Gemini)
+- **Análise automática:** Ao fazer upload, o documento pode ser analisado pela IA para verificar legibilidade e tipo correto.
+- **Controle por workspace:** SuperAdmin habilita/desabilita a feature por workspace e subworkspaces.
+- **Modo warn/block:** Admin do workspace escolhe se a IA apenas avisa (warn) ou bloqueia o envio (block).
+- **Herança de configuração:** Subworkspaces herdam configuração do workspace pai quando habilitado.
+- **Novos endpoints:**
+  - `GET/PUT /api/workspaces/[id]/doc-validation-config` - Configurar validação de documentos
+  - `GET /api/workspaces/doc-validation-status` - Status efetivo da validação
+  - `POST /api/ai/validate-document` - Validar documento via Gemini
+
+#### 6. Melhorias na Experiência do Produtor (Save State)
+- **Loading overlay:** Tela semi-transparente com spinner durante operações de salvamento, bloqueando interação.
+- **Navegação bloqueada:** Botões Anterior/Próximo desabilitados enquanto está salvando.
+- **Feedback visual:** Botão de salvar com estados visuais (salvando, sucesso, erro) com cores distintas.
+- **AI validation feedback:** Banners de aviso ou bloqueio após upload de documentos validados por IA.
+
+#### 7. Preenchimento Interno Type-Aware (Audit Panel)
+- **Inputs dinâmicos:** "Preencher Internamente" agora adapta a interface ao tipo do item:
+  - Escolha única (radio buttons)
+  - Múltipla escolha (checkboxes)
+  - Dropdown (select)
+  - Data (date picker)
+  - Arquivo (upload com integração S3)
+  - Texto/Texto Longo (input/textarea)
+  - Número (input numérico)
+- **Quantidade e observação:** Campos opcionais quando habilitados no template.
+- **Upload de arquivos:** Integração direta com S3 no painel de auditoria.
+
+### 🔧 Melhorias Técnicas
+- **Novos campos no Workspace (Prisma):**
+  - `aiDocValidationEnabled` - Habilita validação IA de documentos
+  - `aiDocValidationEnabledForSubs` - Permite subworkspaces usarem a validação
+  - `aiDocValidationMode` - Modo de comportamento (`warn` ou `block`)
+- **Novo pacote `@aws-sdk/client-s3` e `@aws-sdk/s3-request-presigner`**
+- **Novo arquivo `lib/s3.ts`** com client S3 e funções utilitárias
+- **Nova página `app/[locale]/dashboard/subworkspaces/page.tsx`**
+- **Novo componente `components/modals/DocumentViewerModal.tsx`**
+- **Autorização expandida:** ADMINs agora podem criar subworkspaces e usuários dentro de sua hierarquia
+- **API de usuários expandida:** GET retorna usuários de subworkspaces; POST permite criação em subworkspaces do admin
+
+### 🌐 Internacionalização
+- Chaves i18n adicionadas para todas as novas funcionalidades em pt-BR, en e es
+- Correção de chaves duplicadas `modals.partialFinalize` em en.json e es.json
+- Novas chaves: `common.dismiss`, `common.name`, `common.password`, `audit.uploadFile`, `checklistDetail.expandView`, `checklistDetail.viewDocument`, `checklistManagement.correction`, `checklistManagement.completion`
+- Total de 611 chaves sincronizadas entre os 3 locales
+
+### 🐛 Correções
+- **i18n duplicata corrigida:** `modals.partialFinalize` estava definido duas vezes em en.json e es.json (segunda definição sobrescrevia a primeira com chaves diferentes)
+- **Chaves i18n faltantes:** 8 chaves adicionadas que estavam referenciadas no código mas ausentes nos arquivos de tradução
+
+---
+
 ## [V 0.4.1] - 2026-02-05
 
 ### 🔐 Configuração ESG por Workspace

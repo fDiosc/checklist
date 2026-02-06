@@ -1,7 +1,7 @@
 # Fluxos de Negócio - MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026
+> **Versão:** 5.0  
+> **Última atualização:** 06 Fevereiro 2026
 
 ## Índice
 
@@ -435,11 +435,58 @@ Consulta status ESG de produtores e propriedades.
 |-------|--------|-----------|
 | Envio de Checklist | Supervisor → Produtor | Link público gerado |
 | Preenchimento | Produtor | Respostas salvas |
+| Upload de Documentos | Produtor | Arquivo no S3 + validação IA |
 | Auditoria | Supervisor + IA | Items aprovados/rejeitados |
+| Preenchimento Interno | Supervisor | Resposta type-aware preenchida |
+| Finalização | Supervisor | Bloqueada se filhos abertos |
 | Finalização Parcial | Supervisor | Checklists filhos criados |
 | Correção | Produtor | Itens corrigidos |
 | Sincronização | Sistema | Pai atualizado |
 | Plano de Ação | IA | Guia de correções |
+| Gestão de Subworkspaces | Admin | Subworkspaces e usuários gerenciados |
+
+---
+
+## 9. Upload e Validação de Documentos
+
+### 9.1 Fluxo de Upload (Produtor)
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Produtor    │────▶│  Upload via  │────▶│  AWS S3      │
+│  seleciona   │     │  /api/upload │     │  pocs-merxlabs│
+│  arquivo     │     └──────────────┘     └──────┬───────┘
+└──────────────┘                                  │
+                                                  ▼
+                                         ┌──────────────┐
+                                         │  Validação   │
+                                         │  Gemini IA   │
+                                         └──────┬───────┘
+                                                 │
+                              ┌──────────────────┤
+                              │                  │
+                              ▼                  ▼
+                     ┌──────────────┐    ┌──────────────┐
+                     │ Mode: WARN   │    │ Mode: BLOCK  │
+                     │ Banner aviso │    │ Impede envio │
+                     └──────────────┘    └──────────────┘
+```
+
+### 9.2 Visualização pelo Supervisor
+
+O supervisor pode visualizar documentos e fotos diretamente do checklist usando o `DocumentViewerModal`:
+- Botão "Expandir" para imagens (com zoom 25%-300%)
+- Botão "Visualizar Documento" para PDFs e outros formatos
+- S3 keys são resolvidas automaticamente em presigned URLs
+
+### 9.3 Preenchimento Interno Type-Aware
+
+Ao usar "Preencher Internamente", o formulário se adapta ao tipo do item:
+- **Escolha Única / Múltipla / Dropdown:** Exibe as opções do template
+- **Data:** Date picker
+- **Arquivo:** Upload direto ao S3
+- **Texto / Número:** Input adequado
+- **Quantidade / Observação:** Campos adicionais quando habilitados
 
 ---
 

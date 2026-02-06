@@ -2,7 +2,7 @@
 ## Cadastro Internacional de Produtores e Propriedades
 
 > **Status:** ✅ IMPLEMENTADO (Fase 1 Completa)
-> **Última atualização:** 2026-02-05
+> **Última atualização:** 2026-02-06
 
 ---
 
@@ -10,7 +10,8 @@
 
 A partir da versão 0.3.0, o cadastro de produtores está integrado ao sistema de multi-tenancy.
 A versão 0.4.0 adiciona suporte a subworkspaces.
-A versão 0.4.1 adiciona configuração de ESG por workspace:
+A versão 0.4.1 adiciona configuração de ESG por workspace.
+A versão 0.5.0 adiciona integração S3, validação de documentos por IA, gestão de subworkspaces por admin, e melhorias de UX:
 
 - **Segregação por Workspace:** Cada produtor pertence a um workspace específico
 - **CPF/DNI por Workspace:** O mesmo documento pode existir em workspaces diferentes
@@ -20,6 +21,10 @@ A versão 0.4.1 adiciona configuração de ESG por workspace:
 - **Herança de ESG:** Subworkspaces podem herdar configuração ESG do workspace pai
 - **Subworkspaces:** Produtores de subworkspaces são visíveis pelo workspace pai
 - **Filtro por Origem:** Grids permitem filtrar por subworkspace específico
+- **AWS S3:** Armazenamento de documentos e fotos migrado para S3 (bucket pocs-merxlabs)
+- **Validação IA:** Documentos validados por Gemini com controle por workspace (warn/block)
+- **Admin Subworkspaces:** ADMINs podem criar e gerenciar subworkspaces e seus usuários
+- **i18n Completa:** 611 chaves sincronizadas entre pt-BR, en e es
 
 ---
 
@@ -41,10 +46,13 @@ A versão 0.4.1 adiciona configuração de ESG por workspace:
 - [x] **CPF único por workspace:** Mesmo CPF pode existir em workspaces diferentes
 - [x] **ESG por Workspace:** Credenciais CAR/ESG configuradas por workspace (v0.4.1)
 - [x] **Herança de ESG:** Subworkspaces podem usar credenciais do workspace pai
+- [x] **AWS S3:** Integração com bucket pocs-merxlabs para armazenamento de documentos (v0.5.0)
+- [x] **Validação de Documentos por IA:** Gemini analisa legibilidade e tipo de documentos (v0.5.0)
+- [x] **Admin Subworkspaces:** ADMINs podem criar e gerenciar subworkspaces e usuários (v0.5.0)
+- [x] **i18n 611 chaves:** Todas as chaves sincronizadas entre os 3 locales (v0.5.0)
 
 ### ⏳ Próximas Fases
 - [ ] Integração RENSPA (Argentina)
-- [ ] Validação automática de documentos
 - [ ] Catastros provinciais
 
 ---

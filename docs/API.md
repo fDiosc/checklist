@@ -1,7 +1,7 @@
 # Documentação da API - MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026  
+> **Versão:** 5.0  
+> **Última atualização:** 06 Fevereiro 2026  
 > **Base URL:** `/api`
 
 ## Índice
@@ -16,7 +16,8 @@
 8. [IA](#8-ia)
 9. [Integrações](#9-integrações)
 10. [Planos de Ação](#10-planos-de-ação)
-11. [Utilitários](#11-utilitários)
+11. [Upload e Storage (S3)](#11-upload-e-storage-s3)
+12. [Utilitários](#12-utilitários)
 
 ---
 
@@ -109,7 +110,7 @@ Response:
 
 ```http
 POST /api/workspaces/[id]/subworkspaces
-Authorization: SUPERADMIN
+Authorization: SUPERADMIN ou ADMIN do workspace
 Content-Type: application/json
 
 {
@@ -276,13 +277,26 @@ POST /api/checklists/[id]/finalize
 
 Finaliza completamente o checklist. Se for um checklist filho, sincroniza respostas com o pai.
 
-**Response:**
+**Validação:** Se o checklist possuir filhos em aberto (não finalizados), retorna erro 400.
+
+**Response (sucesso):**
 
 ```json
 {
   "id": "clx123...",
   "status": "FINALIZED",
   "finalizedAt": "2026-01-20T15:00:00Z"
+}
+```
+
+**Response (erro - filhos abertos):**
+
+```json
+{
+  "error": "Cannot finalize: open child checklists exist",
+  "openChildren": [
+    { "id": "clx456...", "type": "CORRECTION", "status": "SENT" }
+  ]
 }
 ```
 
@@ -779,7 +793,37 @@ Gera template de checklist baseado em descrição.
 }
 ```
 
-### 8.4 Gerenciar Prompts
+### 8.4 Validar Documento (IA)
+
+```http
+POST /api/ai/validate-document
+Content-Type: application/json
+
+{
+  "s3Key": "checklist/ws123/sub456/cl789/item1/field1/1707200000000_doc.pdf",
+  "itemName": "Licença Ambiental",
+  "itemType": "FILE",
+  "workspaceId": "ws123"
+}
+```
+
+Analisa um documento enviado via S3 usando Google Gemini para verificar legibilidade e tipo correto.
+
+**Response:**
+
+```json
+{
+  "valid": true,
+  "legible": true,
+  "correctType": true,
+  "message": "Document is legible and matches the expected type.",
+  "mode": "warn"
+}
+```
+
+**Nota:** Se a validação IA estiver desabilitada para o workspace, retorna `{ valid: true, bypassed: true }`.
+
+### 8.5 Gerenciar Prompts
 
 ```http
 GET /api/ai/prompts
@@ -907,7 +951,107 @@ Publica plano de ação para o produtor visualizar.
 
 ---
 
-## 11. Utilitários
+## 11. Upload e Storage (S3)
+
+### 11.1 Upload de Arquivo
+
+```http
+POST /api/upload
+Content-Type: multipart/form-data
+
+Fields:
+  file: <binary>
+  workspaceId: "ws123"
+  checklistId: "cl456"
+  itemId: "item789"
+  fieldId: "__global__"          // opcional, default "__global__"
+  subworkspaceId: "sub123"       // opcional
+```
+
+**Response:**
+
+```json
+{
+  "s3Key": "checklist/ws123/sub123/cl456/item789/__global__/1707200000000_document.pdf",
+  "success": true
+}
+```
+
+**Validações:**
+- Tamanho máximo: 10MB
+- Tipos aceitos: imagens (jpeg, png, gif, webp), PDFs, documentos comuns
+
+### 11.2 Gerar Presigned URL
+
+```http
+GET /api/upload/presigned-url?s3Key=checklist/ws123/...
+```
+
+Gera URL temporária (1 hora) para acesso de leitura ao arquivo no S3.
+
+**Response:**
+
+```json
+{
+  "url": "https://pocs-merxlabs.s3.amazonaws.com/checklist/...?X-Amz-Algorithm=..."
+}
+```
+
+### 11.3 Configuração de Validação de Documentos por IA
+
+#### Buscar Configuração
+
+```http
+GET /api/workspaces/[id]/doc-validation-config
+Authorization: SUPERADMIN ou ADMIN
+```
+
+**Response:**
+
+```json
+{
+  "aiDocValidationEnabled": true,
+  "aiDocValidationEnabledForSubs": false,
+  "aiDocValidationMode": "warn"
+}
+```
+
+#### Atualizar Configuração
+
+```http
+PUT /api/workspaces/[id]/doc-validation-config
+Authorization: SUPERADMIN (todos os campos) ou ADMIN (apenas mode)
+Content-Type: application/json
+
+{
+  "aiDocValidationEnabled": true,
+  "aiDocValidationEnabledForSubs": true,
+  "aiDocValidationMode": "block"
+}
+```
+
+**Nota:** ADMINs só podem alterar `aiDocValidationMode` para seu workspace ou subworkspaces diretos.
+
+### 11.4 Status Efetivo de Validação de Documentos
+
+```http
+GET /api/workspaces/doc-validation-status?workspaceId=ws123
+```
+
+Retorna o status efetivo considerando herança do workspace pai.
+
+**Response:**
+
+```json
+{
+  "enabled": true,
+  "mode": "warn"
+}
+```
+
+---
+
+## 12. Utilitários
 
 ### 11.1 Estatísticas do Dashboard
 
