@@ -268,6 +268,8 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                                 </div>
                             </div>
                         )}
+
+                        {item.requestArtifact && item.answer && renderFileUpload()}
                     </div>
                 );
             }
@@ -292,7 +294,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             </button>
                         );
                     })}
-                    {item.requestArtifact && item.answer === 'Sim' && renderFileUpload()}
+                    {item.requestArtifact && item.answer && item.answer === item.options?.[0] && renderFileUpload()}
                 </div>
             );
 
@@ -326,6 +328,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             </button>
                         );
                     })}
+                    {item.requestArtifact && Array.isArray(item.answer) && item.answer.length > 0 && renderFileUpload()}
                 </div>
             );
 

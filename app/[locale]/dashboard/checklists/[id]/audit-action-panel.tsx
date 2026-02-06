@@ -468,8 +468,12 @@ export default function AuditActionPanel({
                                     </div>
                                 )}
 
-                                {/* File upload for requestArtifact on single_choice */}
-                                {requestArtifact && answer === 'Sim' && !fileUrl && itemType?.toUpperCase() !== 'FILE' && (
+                                {/* File upload for requestArtifact */}
+                                {requestArtifact && answer && itemType?.toUpperCase() !== 'FILE' && !fileUrl && (
+                                    itemType?.toUpperCase() === 'SINGLE_CHOICE' ? answer === itemOptions?.[0] :
+                                    itemType?.toUpperCase() === 'MULTIPLE_CHOICE' ? (Array.isArray(answer) && answer.length > 0) :
+                                    true
+                                ) && (
                                     <div className="mt-2">
                                         <label className="flex items-center gap-2 px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs text-indigo-600 hover:bg-indigo-50 cursor-pointer transition-all font-bold">
                                             <Upload size={14} />
