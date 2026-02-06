@@ -500,7 +500,7 @@ function AiValidationSection({ workspaceId, config, isParent, userRole, onUpdate
 
 // AI Validation config for individual subworkspaces (shown in expanded detail)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SubworkspaceAiConfig({ subworkspaceId, subworkspaceName, parentAiConfig, userRole, t }: { subworkspaceId: string; subworkspaceName: string; parentAiConfig: any; userRole: string; t: ReturnType<typeof useTranslations> }) {
+function SubworkspaceAiConfig({ subworkspaceId, t }: { subworkspaceId: string; subworkspaceName?: string; parentAiConfig?: any; userRole?: string; t: ReturnType<typeof useTranslations> }) {
     const [isSaving, setIsSaving] = useState(false);
     const [mode, setMode] = useState<'warn' | 'block'>('warn');
     const [isLoading, setIsLoading] = useState(true);
