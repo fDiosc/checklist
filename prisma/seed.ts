@@ -24,7 +24,7 @@ async function upsertGlobalPrompt(slug: string, data: {
         slug,
         workspaceId: null,
         description: data.description,
-        model: data.model || 'gemini-2.5-flash',
+        model: data.model || 'gemini-3-flash-preview',
         temperature: data.temperature || 0.3,
         template: data.template
       }
@@ -63,7 +63,7 @@ Responda EXCLUSIVAMENTE em JSON:
   // Default action plan prompt
   await upsertGlobalPrompt('generate-action-plan-default', {
     description: 'Prompt padrão para geração de planos de ação estruturados',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.3,
     template: `
 Você é um consultor especialista em regularização socioambiental rural.
@@ -99,7 +99,7 @@ Retorne EXCLUSIVAMENTE um JSON no formato:
   // Prompt for CORRECTION type - focuses on rejected items
   await upsertGlobalPrompt('generate-action-plan-default-correction', {
     description: 'Prompt para plano de ação focado em itens rejeitados (CORREÇÃO)',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.3,
     template: `
 Você é um consultor especialista em regularização socioambiental rural.
@@ -137,7 +137,7 @@ Retorne EXCLUSIVAMENTE um JSON no formato:
   // Prompt for COMPLETION type - focuses on pending items to help level up
   await upsertGlobalPrompt('generate-action-plan-default-completion', {
     description: 'Prompt para plano de ação focado em itens pendentes (COMPLEMENTO/Evolução)',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     temperature: 0.4,
     template: `
 Você é um consultor especialista em certificações e níveis de conformidade rural.

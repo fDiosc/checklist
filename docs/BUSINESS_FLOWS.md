@@ -1,6 +1,6 @@
 # Fluxos de Negócio - MerX Platform
 
-> **Versão:** 5.1  
+> **Versão:** 5.2  
 > **Última atualização:** 06 Fevereiro 2026
 
 ## Índice
@@ -505,10 +505,17 @@ Ao usar "Preencher Internamente", o formulário se adapta ao tipo do item:
 2. Modal com toggles: Habilitar IA, Herdar para Subworkspaces
 3. Seletor de modo: Avisar (warn) ou Bloquear (block)
 
-#### Admin (Página Subworkspaces)
-1. Seção no topo mostra status do workspace pai e permite alterar modo
-2. Ao expandir subworkspace, seção mostra status efetivo e permite alterar modo
-3. Admin não pode habilitar/desabilitar, apenas escolher modo
+#### Admin (Página Settings `/dashboard/settings`)
+1. Toggle on/off para habilitar/desabilitar validação IA no workspace
+2. Seletor de modo: Avisar (warn) ou Bloquear (block)
+3. Info de herança para subworkspaces (somente leitura)
+4. Configuração de modo individual por subworkspace (cards expandíveis)
+5. Feedback visual "Salvando..." e "Salvo" em todas as ações
+
+#### Modelo de IA
+- Todos os endpoints usam `gemini-3-flash-preview` (Gemini 3 Flash)
+- Arquivo enviado como base64 inline (não via URL)
+- Fallback para `gemini-1.5-flash` em caso de erro
 
 ### 9.5 Restrição de Envio de Checklist
 

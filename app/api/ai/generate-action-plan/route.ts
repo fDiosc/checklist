@@ -184,7 +184,7 @@ export async function POST(req: Request) {
         }
 
         const ai = new GoogleGenAI({ apiKey });
-        const modelName = promptConfig.model || 'gemini-2.5-flash';
+        const modelName = promptConfig.model || 'gemini-3-flash-preview';
 
         // Prepare prompt with context
         let prompt = promptConfig.template

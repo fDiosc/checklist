@@ -63,7 +63,8 @@ export async function POST(req: Request) {
             });
         }
 
-        // Get a URL for the file so the AI can access it
+        // Download file from S3 and convert to base64 for Gemini inline data
+        // (Gemini does not accept presigned S3 URLs as fileUri)
         let fileUrl: string;
         if (isS3Key(s3Key)) {
             fileUrl = await getPresignedUrl(s3Key, 300); // 5 min expiry
@@ -75,6 +76,40 @@ export async function POST(req: Request) {
                 legible: true,
                 correctType: true,
                 message: "Cannot validate this file format.",
+                mode: validationMode,
+            });
+        }
+
+        // Detect MIME type from file extension
+        const extension = s3Key.split('.').pop()?.toLowerCase() || '';
+        const mimeMap: Record<string, string> = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'pdf': 'application/pdf',
+            'doc': 'application/msword',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls': 'application/vnd.ms-excel',
+            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        };
+        const mimeType = mimeMap[extension] || 'application/octet-stream';
+
+        // Download file content
+        let fileBase64: string;
+        try {
+            const fileResponse = await fetch(fileUrl);
+            if (!fileResponse.ok) throw new Error(`Failed to download file: ${fileResponse.status}`);
+            const buffer = Buffer.from(await fileResponse.arrayBuffer());
+            fileBase64 = buffer.toString('base64');
+        } catch (downloadError) {
+            console.error("Failed to download file for AI validation:", downloadError);
+            return NextResponse.json({
+                valid: true,
+                legible: true,
+                correctType: true,
+                message: "Não foi possível acessar o arquivo para validação.",
                 mode: validationMode,
             });
         }
@@ -94,16 +129,16 @@ Responda APENAS com o JSON, sem markdown ou formatação adicional.`;
 
         try {
             const response = await ai.models.generateContent({
-                model: "gemini-2.0-flash",
+                model: "gemini-3-flash-preview",
                 contents: [
                     {
                         role: "user",
                         parts: [
                             { text: prompt },
                             {
-                                fileData: {
-                                    fileUri: fileUrl,
-                                    mimeType: "image/jpeg",
+                                inlineData: {
+                                    data: fileBase64,
+                                    mimeType,
                                 }
                             }
                         ]

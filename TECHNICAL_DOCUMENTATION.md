@@ -1,6 +1,6 @@
 # Documentação Técnica: MerX Platform
 
-> **Versão:** 5.1  
+> **Versão:** 5.2  
 > **Última atualização:** 06 Fevereiro 2026  
 > **Documentação completa:** [docs/](./docs/)
 
@@ -87,14 +87,19 @@ model Workspace {
 ```
 
 #### Hierarquia de Configuração:
-1. **SuperAdmin** habilita/desabilita a feature por workspace (`aiDocValidationEnabled`)
-2. **SuperAdmin** pode habilitar herança para subworkspaces (`aiDocValidationEnabledForSubs`)
-3. **Admin** do workspace escolhe o modo de comportamento (`aiDocValidationMode`): `warn` (apenas avisa) ou `block` (impede envio)
+1. **SuperAdmin** habilita/desabilita a feature por workspace (`aiDocValidationEnabled`) e herança (`aiDocValidationEnabledForSubs`)
+2. **Admin** pode habilitar/desabilitar a feature para seu workspace (`aiDocValidationEnabled`) e escolher o modo (`aiDocValidationMode`): `warn` ou `block`
+3. **Admin** não pode alterar `aiDocValidationEnabledForSubs` (somente SuperAdmin)
 
 #### UI de Configuração:
 - **SuperAdmin** (Workspaces page): Modal `AiDocValidationConfigModal` com toggles e seletor de modo
-- **Admin** (Subworkspaces page): Componentes `AiValidationSection` (workspace pai) e `SubworkspaceAiConfig` (por subworkspace)
-- Permissões respeitadas: Admin só altera `aiDocValidationMode`, SuperAdmin altera tudo
+- **Admin** (Settings page `/dashboard/settings`): Toggle on/off, seletor de modo, e config por subworkspace
+- Permissões respeitadas: Admin altera `aiDocValidationEnabled` e `aiDocValidationMode`, SuperAdmin altera tudo
+
+#### Modelo de IA:
+- Modelo padrão: `gemini-3-flash-preview` (Gemini 3 Flash, dez/2025)
+- Fallback: `gemini-1.5-flash` em caso de falha
+- Arquivo enviado como `inlineData` (base64) ao Gemini, não via URL
 
 #### APIs:
 ```
@@ -723,22 +728,27 @@ O campo `requestArtifact` em um item de template indica que o item solicita um d
 Fluxo de validação no upload do produtor:
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Produtor    │────▶│  Upload S3   │────▶│  Gemini AI   │
-│  faz upload  │     │  /api/upload │     │  /api/ai/    │
-│              │     │              │     │  validate-   │
-└──────────────┘     └──────────────┘     │  document    │
-                                          └──────┬───────┘
-                                                 │
-                              ┌───────────────────┤
-                              │                   │
-                              ▼                   ▼
-                    ┌──────────────┐     ┌──────────────┐
-                    │  Mode: WARN  │     │ Mode: BLOCK  │
-                    │  Banner de   │     │ Impede envio │
-                    │  aviso       │     │ do checklist │
-                    └──────────────┘     └──────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Produtor    │────▶│  Upload S3   │────▶│  Download +  │────▶│  Gemini 3    │
+│  faz upload  │     │  /api/upload │     │  Base64      │     │  Flash       │
+│              │     │              │     │  Encoding    │     │  (inlineData)│
+└──────────────┘     └──────────────┘     └──────────────┘     └──────┬───────┘
+                                                                      │
+                                                   ┌──────────────────┤
+                                                   │                  │
+                                                   ▼                  ▼
+                                         ┌──────────────┐   ┌──────────────┐
+                                         │  Mode: WARN  │   │ Mode: BLOCK  │
+                                         │  Banner de   │   │ Impede envio │
+                                         │  aviso       │   │ do checklist │
+                                         └──────────────┘   └──────────────┘
 ```
+
+**Detalhes técnicos:**
+- Arquivo baixado do S3 via presigned URL e convertido para base64
+- MIME type detectado automaticamente pela extensão do arquivo
+- Enviado como `inlineData` (não `fileUri`, que rejeita URLs externas)
+- Modelo: `gemini-3-flash-preview`
 
 ### 10.7 Variáveis de Ambiente S3
 

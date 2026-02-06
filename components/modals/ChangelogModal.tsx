@@ -11,6 +11,39 @@ interface ChangelogModalProps {
 
 const releases = [
     {
+        version: "V 0.5.2",
+        date: "06 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Página Settings",
+                description: "Nova página de configurações para Admin do workspace, centralizando controle de validação IA.",
+                icon: Settings,
+                color: "text-slate-500",
+                bg: "bg-slate-50/50"
+            },
+            {
+                title: "Gemini 3 Flash",
+                description: "Todos os endpoints de IA atualizados para o modelo mais recente do Google: gemini-3-flash-preview.",
+                icon: Zap,
+                color: "text-amber-500",
+                bg: "bg-amber-50/50"
+            },
+            {
+                title: "Toggle Admin IA",
+                description: "Admin pode habilitar/desabilitar validação por IA do seu workspace diretamente na página Settings.",
+                icon: BrainCircuit,
+                color: "text-violet-500",
+                bg: "bg-violet-50/50"
+            }
+        ],
+        bugfixes: [
+            { text: "Validação de documentos agora envia arquivo como base64 inline ao Gemini (corrige erro com presigned URLs)." },
+            { text: "MIME type detectado automaticamente pela extensão do arquivo." },
+            { text: "Erro de locale navigation.settings.title corrigido no sidebar." },
+            { text: "Novas chaves i18n: settings.*, common.saved, common.saving." }
+        ]
+    },
+    {
         version: "V 0.5.1",
         date: "06 de Fevereiro, 2026",
         features: [

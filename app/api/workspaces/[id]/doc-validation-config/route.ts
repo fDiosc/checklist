@@ -97,7 +97,7 @@ export async function PUT(
             return NextResponse.json(updated);
         }
 
-        // Admin can only change mode (not enable/disable)
+        // Admin can change mode and enable/disable for their own workspace (not enabledForSubs)
         if (isAdmin(session)) {
             const isOwnWorkspace = session.user.workspaceId === id;
             const isOwnSubworkspace = workspace.parentWorkspaceId === session.user.workspaceId;
@@ -106,14 +106,23 @@ export async function PUT(
                 return NextResponse.json({ error: "Forbidden" }, { status: 403 });
             }
 
-            // Admin can only set mode, not enable/disable
-            if (validated.aiDocValidationEnabled !== undefined || validated.aiDocValidationEnabledForSubs !== undefined) {
-                return NextResponse.json({ error: "Only SuperAdmin can enable/disable AI validation" }, { status: 403 });
+            // Admin cannot change enabledForSubs (only SuperAdmin)
+            if (validated.aiDocValidationEnabledForSubs !== undefined) {
+                return NextResponse.json({ error: "Only SuperAdmin can change inheritance settings" }, { status: 403 });
+            }
+
+            // Build update data: mode and enabled toggle
+            const updateData: Record<string, unknown> = {};
+            if (validated.aiDocValidationMode !== undefined) {
+                updateData.aiDocValidationMode = validated.aiDocValidationMode;
+            }
+            if (validated.aiDocValidationEnabled !== undefined) {
+                updateData.aiDocValidationEnabled = validated.aiDocValidationEnabled;
             }
 
             const updated = await db.workspace.update({
                 where: { id },
-                data: { aiDocValidationMode: validated.aiDocValidationMode },
+                data: updateData,
             });
             return NextResponse.json(updated);
         }

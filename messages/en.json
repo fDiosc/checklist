@@ -63,7 +63,9 @@
     "dismiss": "Dismiss",
     "name": "Name",
     "password": "Password",
-    "items": "items"
+    "items": "items",
+    "saved": "Saved",
+    "saving": "Saving..."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -89,6 +91,14 @@
     "addUser": "Add User",
     "noUsers": "No users in this subworkspace. Add the first administrator.",
     "newUser": "New User"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your workspace settings",
+    "featureStatus": "AI Validation",
+    "enabledDesc": "Documents will be validated by AI when submitted",
+    "disabledDesc": "AI validation disabled for this workspace",
+    "subworkspacesConfig": "Configuration per Subworkspace"
   },
   "aiValidation": {
     "title": "AI Document Validation",

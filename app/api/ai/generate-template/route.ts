@@ -30,7 +30,7 @@ export async function POST(req: Request) {
                 data: {
                     slug: 'generate-template-structure',
                     description: 'Extracts checklist structure from document images/PDFs',
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3-flash-preview',
                     temperature: 0.1,
                     template: `
                         Você é um especialista em Compliance e Auditoria do Agronegócio (PAGR, ISO, etc).
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
         const ai = new GoogleGenAI({ apiKey });
 
         // Use configured model or fallback/update to 2.5
-        const modelName = promptConfig.model || 'gemini-2.5-flash';
+        const modelName = promptConfig.model || 'gemini-3-flash-preview';
 
         try {
             const result = await ai.models.generateContent({

@@ -2,6 +2,35 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.5.2] - 2026-02-06
+
+### 🔧 Página Settings, Toggle Admin IA e Gemini 3 Flash
+
+#### ✨ Novas Funcionalidades
+
+- **Página Settings:** Nova página `/dashboard/settings` para Admin do workspace pai, removendo configuração de IA da página de Subworkspaces.
+- **Toggle Admin IA:** Admin pode habilitar/desabilitar a validação por IA do seu workspace (com toggle switch), além de selecionar o modo warn/block.
+- **Feedback de salvamento:** Indicadores visuais "Salvando..." e "Salvo" ao alterar configurações na página Settings.
+- **Subworkspaces expandíveis:** Configuração de IA por subworkspace com cards expandíveis na página Settings.
+
+#### 🐛 Correções
+
+- **Gemini inlineData:** Validação de documentos agora baixa o arquivo do S3 e envia como base64 inline ao Gemini, corrigindo erro `Invalid or unsupported file uri` com presigned URLs.
+- **Detecção de MIME type:** MIME type detectado automaticamente pela extensão do arquivo (era hardcoded `image/jpeg`).
+- **Erro de locale:** Corrigido `navigation.settings.title` para `navigation.settings` no sidebar.
+
+#### 🔧 Melhorias Técnicas
+
+- **Gemini 3 Flash:** Todos os endpoints de IA padronizados para `gemini-3-flash-preview` (era mix de 2.0-flash, 2.5-flash e 3-flash-preview).
+- **API doc-validation-config:** Admin agora pode alterar `aiDocValidationEnabled` (antes restrito a SuperAdmin). `aiDocValidationEnabledForSubs` permanece SuperAdmin only.
+
+#### 🌐 Internacionalização
+
+- Novas chaves `settings.*` (title, description, featureStatus, enabledDesc, disabledDesc, subworkspacesConfig) nos 3 locales.
+- Novas chaves `common.saved` e `common.saving` nos 3 locales.
+
+---
+
 ## [V 0.5.1] - 2026-02-06
 
 ### 🔧 UI de Configuração IA, Melhorias no Viewer e Correções de Attachment

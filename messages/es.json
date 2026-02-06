@@ -63,7 +63,9 @@
     "dismiss": "Descartar",
     "name": "Nombre",
     "password": "Contraseña",
-    "items": "ítems"
+    "items": "ítems",
+    "saved": "Guardado",
+    "saving": "Guardando..."
   },
   "navigation": {
     "dashboard": "Panel",
@@ -89,6 +91,14 @@
     "addUser": "Agregar Usuario",
     "noUsers": "No hay usuarios en este subworkspace. Agregue el primer administrador.",
     "newUser": "Nuevo Usuario"
+  },
+  "settings": {
+    "title": "Configuraciones",
+    "description": "Gestione las configuraciones de su workspace",
+    "featureStatus": "Validación por IA",
+    "enabledDesc": "Los documentos serán validados por IA al ser enviados",
+    "disabledDesc": "Validación por IA deshabilitada para este workspace",
+    "subworkspacesConfig": "Configuración por Subworkspace"
   },
   "aiValidation": {
     "title": "Validación IA de Documentos",

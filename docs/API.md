@@ -1,6 +1,6 @@
 # Documentação da API - MerX Platform
 
-> **Versão:** 5.1  
+> **Versão:** 5.2  
 > **Última atualização:** 06 Fevereiro 2026  
 > **Base URL:** `/api`
 
@@ -1033,11 +1033,11 @@ Content-Type: application/json
 }
 ```
 
-**Nota:** ADMINs só podem alterar `aiDocValidationMode` para seu workspace ou subworkspaces diretos.
+**Nota:** ADMINs podem alterar `aiDocValidationEnabled` e `aiDocValidationMode` para seu workspace ou subworkspaces diretos. Apenas SuperAdmin pode alterar `aiDocValidationEnabledForSubs`.
 
 #### UI de Configuração:
 - **SuperAdmin:** Modal `AiDocValidationConfigModal` na página Workspaces (`/dashboard/workspaces`)
-- **Admin:** Seções `AiValidationSection` e `SubworkspaceAiConfig` na página Subworkspaces (`/dashboard/subworkspaces`)
+- **Admin:** Página Settings (`/dashboard/settings`) com toggle on/off, seletor de modo e config por subworkspace
 
 ### 11.4 Status Efetivo de Validação de Documentos
 
