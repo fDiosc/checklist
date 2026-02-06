@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock, HardDrive, Eye, ScanSearch, Loader2, PenTool } from 'lucide-react';
+import { X, Sparkles, Layers, ListRestart, Languages, Rocket, Zap, Bug, LayoutList, BarChart3, FileText, Settings, Smartphone, EyeOff, Globe, MapPin, Upload, Palette, Building2, Users, Shield, Network, ClipboardCopy, GitBranch, Filter, Share2, Lock, HardDrive, Eye, ScanSearch, Loader2, PenTool, BrainCircuit, Paperclip, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChangelogModalProps {
@@ -10,6 +10,41 @@ interface ChangelogModalProps {
 }
 
 const releases = [
+    {
+        version: "V 0.5.1",
+        date: "06 de Fevereiro, 2026",
+        features: [
+            {
+                title: "Configuração de Validação IA",
+                description: "SuperAdmin e Admin podem configurar validação por IA de documentos diretamente pela interface, com toggles e seletor de modo.",
+                icon: BrainCircuit,
+                color: "text-violet-500",
+                bg: "bg-violet-50/50"
+            },
+            {
+                title: "requestArtifact Universal",
+                description: "Upload de documentos aparece sempre que habilitado no item, independente da resposta, em todos os tipos de item.",
+                icon: Paperclip,
+                color: "text-emerald-500",
+                bg: "bg-emerald-50/50"
+            },
+            {
+                title: "Template View-Only",
+                description: "Templates já utilizados agora mostram ícone de olho para visualização em modo leitura.",
+                icon: Eye,
+                color: "text-indigo-500",
+                bg: "bg-indigo-50/50"
+            }
+        ],
+        bugfixes: [
+            "DocumentViewerModal renderizado via Portal para evitar problemas de overlay",
+            "Nome do documento limpo sem caminho S3 e timestamp",
+            "Workspace pai não pode mais enviar checklists para produtores de subworkspaces",
+            "Botão salvar bloqueado durante upload de arquivo na visão do produtor",
+            "Attachments visíveis na visão do supervisor para itens com requestArtifact",
+            "Correções de chaves i18n (common.items, attachedDocument, viewTemplate)"
+        ]
+    },
     {
         version: "V 0.5.0",
         date: "06 de Fevereiro, 2026",

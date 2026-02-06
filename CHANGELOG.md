@@ -2,6 +2,34 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.5.1] - 2026-02-06
+
+### 🔧 UI de Configuração IA, Melhorias no Viewer e Correções de Attachment
+
+#### ✨ Novas Funcionalidades
+
+- **UI de Configuração de Validação IA (SuperAdmin):** Modal dedicado na página de Workspaces para habilitar/desabilitar validação por IA, configurar herança para subworkspaces e selecionar modo (avisar/bloquear).
+- **UI de Configuração de Validação IA (Admin):** Seção de configuração de IA na página de Subworkspaces com status do workspace pai e seletor de modo por subworkspace.
+- **Visualização de Template (Eye icon):** Templates já utilizados agora mostram ícone de olho para navegação em modo read-only, substituindo o botão de edição desabilitado.
+- **requestArtifact universal:** Upload de documentos agora aparece sempre que `requestArtifact=true`, independente da resposta selecionada e em todos os tipos de item (single_choice, multiple_choice, dropdown_select).
+
+#### 🐛 Correções
+
+- **DocumentViewerModal via Portal:** Modal agora renderizado via `createPortal(document.body)` para evitar problemas de stacking context causados por containers com `transform`/`animation`.
+- **Nome limpo do documento:** Removido caminho S3 e prefixo de timestamp do nome exibido no viewer (ex: `1770401230265_doc.pdf` → `doc.pdf`).
+- **Restrição de envio de checklist:** Workspace pai não pode mais enviar checklists para produtores de subworkspaces (`?scope=own`).
+- **Upload bloqueando save:** Botão "Salvar Resposta" e "Próximo" desabilitados durante upload de arquivo na visão do produtor.
+- **File state no produtor:** `fileUrl` agora corretamente passado para `ChecklistItem` mostrando badge "Arquivo enviado" após upload.
+- **Attachment no supervisor:** Documentos anexados (requestArtifact) agora visíveis na visão do supervisor para itens não-FILE.
+- **Correção de locale:** Adicionadas chaves faltantes `common.items`, `checklistDetail.attachedDocument`, `template.viewTemplate`.
+
+#### 🌐 Internacionalização
+
+- Novas chaves `aiValidation.*` (14 chaves) em pt-BR, en e es para configurações de validação por IA.
+- Nova chave `template.viewTemplate` em todos os locales.
+
+---
+
 ## [V 0.5.0] - 2026-02-06
 
 ### 🚀 Gestão de Subworkspaces por Admin, S3 Storage, Validação de Documentos por IA e Melhorias de UX

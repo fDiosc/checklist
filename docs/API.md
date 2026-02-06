@@ -1,6 +1,6 @@
 # Documentação da API - MerX Platform
 
-> **Versão:** 5.0  
+> **Versão:** 5.1  
 > **Última atualização:** 06 Fevereiro 2026  
 > **Base URL:** `/api`
 
@@ -569,6 +569,9 @@ GET /api/producers
 | Parâmetro | Tipo | Descrição |
 |-----------|------|-----------|
 | `search` | string | Busca por nome, CPF ou email |
+| `scope` | string | `own` (apenas workspace atual), `subworkspaces` (apenas subworkspaces), ou vazio (todos acessíveis) |
+
+**Nota:** O modal de envio de checklist usa `scope=own` para garantir que o workspace pai não envie checklists para produtores de subworkspaces.
 
 **Response:**
 
@@ -1031,6 +1034,10 @@ Content-Type: application/json
 ```
 
 **Nota:** ADMINs só podem alterar `aiDocValidationMode` para seu workspace ou subworkspaces diretos.
+
+#### UI de Configuração:
+- **SuperAdmin:** Modal `AiDocValidationConfigModal` na página Workspaces (`/dashboard/workspaces`)
+- **Admin:** Seções `AiValidationSection` e `SubworkspaceAiConfig` na página Subworkspaces (`/dashboard/subworkspaces`)
 
 ### 11.4 Status Efetivo de Validação de Documentos
 

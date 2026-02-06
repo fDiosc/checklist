@@ -1,6 +1,6 @@
 # Arquitetura Técnica - MerX Platform
 
-> **Versão:** 5.0  
+> **Versão:** 5.1  
 > **Última atualização:** 06 Fevereiro 2026  
 > **Status:** Produção
 

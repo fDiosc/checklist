@@ -1,6 +1,6 @@
 # Fluxos de Negócio - MerX Platform
 
-> **Versão:** 5.0  
+> **Versão:** 5.1  
 > **Última atualização:** 06 Fevereiro 2026
 
 ## Índice
@@ -478,6 +478,15 @@ O supervisor pode visualizar documentos e fotos diretamente do checklist usando 
 - Botão "Expandir" para imagens (com zoom 25%-300%)
 - Botão "Visualizar Documento" para PDFs e outros formatos
 - S3 keys são resolvidas automaticamente em presigned URLs
+- Modal renderizado via Portal (evita problemas de stacking context)
+- Nome do arquivo exibido sem caminho S3 e timestamp
+
+### 9.2.1 Attachments (requestArtifact)
+
+Itens com `requestArtifact=true` permitem anexar documentos/fotos independente do tipo de item:
+- **Visão do produtor:** Upload visível a qualquer momento, independente da resposta selecionada
+- **Visão do supervisor:** Attachments visíveis para itens não-FILE com documento anexado
+- **Tipos suportados:** JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, XLS, XLSX
 
 ### 9.3 Preenchimento Interno Type-Aware
 
@@ -487,6 +496,33 @@ Ao usar "Preencher Internamente", o formulário se adapta ao tipo do item:
 - **Arquivo:** Upload direto ao S3
 - **Texto / Número:** Input adequado
 - **Quantidade / Observação:** Campos adicionais quando habilitados
+- **requestArtifact:** Upload disponível para todos os tipos quando habilitado
+
+### 9.4 Configuração de Validação IA
+
+#### SuperAdmin (Página Workspaces)
+1. Clica no botão "Validação IA de Documentos" no card do workspace
+2. Modal com toggles: Habilitar IA, Herdar para Subworkspaces
+3. Seletor de modo: Avisar (warn) ou Bloquear (block)
+
+#### Admin (Página Subworkspaces)
+1. Seção no topo mostra status do workspace pai e permite alterar modo
+2. Ao expandir subworkspace, seção mostra status efetivo e permite alterar modo
+3. Admin não pode habilitar/desabilitar, apenas escolher modo
+
+### 9.5 Restrição de Envio de Checklist
+
+O workspace pai não pode enviar checklists para produtores de subworkspaces:
+- Modal de envio usa `GET /api/producers?scope=own`
+- Produtores de subworkspaces não aparecem na lista de seleção
+- Garante que cada subworkspace controle seus próprios checklists
+
+### 9.6 Template View-Only
+
+Templates que já foram utilizados em checklists podem ser visualizados em modo read-only:
+- Ícone de olho (Eye) substitui o botão de edição desabilitado na listagem
+- Navegação para página de template com `readOnly=true`
+- Edição estrutural bloqueada, apenas visualização
 
 ---
 

@@ -11,7 +11,8 @@
 A partir da versão 0.3.0, o cadastro de produtores está integrado ao sistema de multi-tenancy.
 A versão 0.4.0 adiciona suporte a subworkspaces.
 A versão 0.4.1 adiciona configuração de ESG por workspace.
-A versão 0.5.0 adiciona integração S3, validação de documentos por IA, gestão de subworkspaces por admin, e melhorias de UX:
+A versão 0.5.0 adiciona integração S3, validação de documentos por IA, gestão de subworkspaces por admin, e melhorias de UX.
+A versão 0.5.1 adiciona UI de configuração de IA, melhorias no viewer de documentos, requestArtifact universal e correções:
 
 - **Segregação por Workspace:** Cada produtor pertence a um workspace específico
 - **CPF/DNI por Workspace:** O mesmo documento pode existir em workspaces diferentes
@@ -24,7 +25,10 @@ A versão 0.5.0 adiciona integração S3, validação de documentos por IA, gest
 - **AWS S3:** Armazenamento de documentos e fotos migrado para S3 (bucket pocs-merxlabs)
 - **Validação IA:** Documentos validados por Gemini com controle por workspace (warn/block)
 - **Admin Subworkspaces:** ADMINs podem criar e gerenciar subworkspaces e seus usuários
-- **i18n Completa:** 611 chaves sincronizadas entre pt-BR, en e es
+- **UI Config IA:** SuperAdmin e Admin podem configurar validação IA via interface gráfica
+- **requestArtifact universal:** Upload de documentos aparece sempre quando habilitado, em todos os tipos de item
+- **Template View-Only:** Ícone de olho para visualizar templates já utilizados
+- **i18n Completa:** 625+ chaves sincronizadas entre pt-BR, en e es
 
 ---
 

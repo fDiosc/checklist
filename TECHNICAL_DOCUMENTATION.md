@@ -1,6 +1,6 @@
 # Documentação Técnica: MerX Platform
 
-> **Versão:** 5.0  
+> **Versão:** 5.1  
 > **Última atualização:** 06 Fevereiro 2026  
 > **Documentação completa:** [docs/](./docs/)
 
@@ -90,6 +90,11 @@ model Workspace {
 1. **SuperAdmin** habilita/desabilita a feature por workspace (`aiDocValidationEnabled`)
 2. **SuperAdmin** pode habilitar herança para subworkspaces (`aiDocValidationEnabledForSubs`)
 3. **Admin** do workspace escolhe o modo de comportamento (`aiDocValidationMode`): `warn` (apenas avisa) ou `block` (impede envio)
+
+#### UI de Configuração:
+- **SuperAdmin** (Workspaces page): Modal `AiDocValidationConfigModal` com toggles e seletor de modo
+- **Admin** (Subworkspaces page): Componentes `AiValidationSection` (workspace pai) e `SubworkspaceAiConfig` (por subworkspace)
+- Permissões respeitadas: Admin só altera `aiDocValidationMode`, SuperAdmin altera tudo
 
 #### APIs:
 ```
@@ -701,6 +706,17 @@ O componente `DocumentViewerModal` permite visualizar documentos inline:
 - **Imagens:** Exibição com controles de zoom (25% - 300%)
 - **PDFs:** Embedding via iframe
 - **Resolução automática:** S3 keys são convertidas em presigned URLs transparentemente
+- **Portal rendering:** Modal renderizado via `createPortal(document.body)` para evitar problemas de stacking context
+- **Nome limpo:** Timestamp e caminho S3 removidos do nome exibido (regex `^\d+_`)
+- **Attachments (requestArtifact):** Para itens não-FILE com `requestArtifact=true`, documentos anexados são visíveis via `renderAttachment()` em `checklist-item-detail.tsx`
+
+### 10.5.1 requestArtifact
+
+O campo `requestArtifact` em um item de template indica que o item solicita um documento/foto anexo:
+- **Visão do produtor** (`ChecklistItem.tsx`): Upload aparece sempre que `requestArtifact=true`, independente da resposta
+- **Visão do supervisor** (`audit-action-panel.tsx`): Upload disponível para preenchimento interno
+- **Tipos suportados:** `single_choice`, `multiple_choice`, `dropdown_select` e todos os demais
+- **Tipos aceitos para upload:** JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, XLS, XLSX
 
 ### 10.6 Validação de Documentos por IA
 
