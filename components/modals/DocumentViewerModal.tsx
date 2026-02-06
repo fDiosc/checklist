@@ -17,6 +17,16 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
     const [error, setError] = useState<string | null>(null);
     const [zoom, setZoom] = useState(1);
 
+    // Extract clean filename from S3 key or raw filename
+    // S3 keys look like: checklist/{ws}/{sub}/{cl}/{item}/{field}/{timestamp}_{filename}
+    const cleanFilename = (() => {
+        const raw = filename || fileUrl || 'Documento';
+        // Get last segment of path
+        const lastSegment = raw.split('/').pop() || raw;
+        // Remove leading timestamp prefix (digits followed by underscore)
+        return lastSegment.replace(/^\d+_/, '');
+    })();
+
     useEffect(() => {
         if (!isOpen || !fileUrl) return;
 
@@ -49,14 +59,14 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
 
     if (!isOpen) return null;
 
-    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(fileUrl) || /\.(jpeg|jpg|gif|png|webp)$/i.test(filename || '');
-    const isPdf = /\.pdf$/i.test(fileUrl) || /\.pdf$/i.test(filename || '');
+    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(fileUrl) || /\.(jpeg|jpg|gif|png|webp)$/i.test(cleanFilename);
+    const isPdf = /\.pdf$/i.test(fileUrl) || /\.pdf$/i.test(cleanFilename);
 
     const handleDownload = () => {
         if (resolvedUrl) {
             const a = document.createElement('a');
             a.href = resolvedUrl;
-            a.download = filename || 'download';
+            a.download = cleanFilename;
             a.target = '_blank';
             a.click();
         }
@@ -71,7 +81,7 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
                     <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-slate-900 text-sm truncate max-w-md">{filename || 'Documento'}</h3>
+                        <h3 className="font-bold text-slate-900 text-sm truncate max-w-md">{cleanFilename}</h3>
                         {isImage && (
                             <div className="flex items-center gap-1">
                                 <button
@@ -127,7 +137,7 @@ export default function DocumentViewerModal({ isOpen, onClose, fileUrl, filename
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={resolvedUrl}
-                                    alt={filename || 'Documento'}
+                                    alt={cleanFilename}
                                     className="transition-transform duration-200"
                                     style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
                                 />

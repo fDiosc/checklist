@@ -356,6 +356,7 @@
     "readOnly": "Solo lectura",
     "readOnlyHint": "Plantilla del workspace padre - solo lectura",
     "inUseHint": "La plantilla en uso no puede ser editada",
+    "viewTemplate": "Ver Plantilla",
     "edit": "Editar Plantilla",
     "confirmDuplicate": "¿Desea duplicar esta plantilla?",
     "confirmDelete": "¿Está seguro de que desea eliminar esta plantilla? Esta acción no se puede deshacer.",

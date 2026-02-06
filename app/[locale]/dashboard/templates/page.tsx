@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit, Copy, Send, Folder, Trash2, Filter, Building2, Lock } from 'lucide-react';
+import { Plus, Search, Edit, Copy, Send, Folder, Trash2, Filter, Building2, Lock, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useFormatter } from 'next-intl';
 import SendChecklistModal from '@/components/modals/SendChecklistModal';
@@ -237,28 +237,26 @@ export default function TemplatesPage() {
                                                         <Lock size={16} />
                                                     </span>
                                                 )}
+                                                {/* View button - shown when template has been used (read-only) */}
+                                                {(template.isReadOnly || template._count?.checklists > 0) && (
+                                                    <button
+                                                        onClick={() => router.push(`/dashboard/templates/${template.id}`)}
+                                                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                        title={t('template.viewTemplate') || 'Visualizar Template'}
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                )}
                                                 {/* Edit button - disabled if read-only or has checklists */}
-                                                <button
-                                                    onClick={() => {
-                                                        if (template.isReadOnly || template._count?.checklists > 0) return;
-                                                        router.push(`/dashboard/templates/${template.id}`);
-                                                    }}
-                                                    disabled={template.isReadOnly || template._count?.checklists > 0}
-                                                    className={`p-2 rounded-lg transition-all ${
-                                                        template.isReadOnly || template._count?.checklists > 0
-                                                            ? 'text-slate-200 cursor-not-allowed'
-                                                            : 'text-slate-400 hover:text-primary hover:bg-primary/5'
-                                                    }`}
-                                                    title={
-                                                        template.isReadOnly 
-                                                            ? t('template.readOnlyHint')
-                                                            : template._count?.checklists > 0 
-                                                                ? t('template.inUseHint') 
-                                                                : t('template.edit')
-                                                    }
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
+                                                {!template.isReadOnly && template._count?.checklists === 0 && (
+                                                    <button
+                                                        onClick={() => router.push(`/dashboard/templates/${template.id}`)}
+                                                        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                                                        title={t('template.edit')}
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                )}
                                                 {/* Duplicate button - always available */}
                                                 <button
                                                     onClick={() => {

@@ -356,6 +356,7 @@
     "readOnly": "Somente leitura",
     "readOnlyHint": "Template do workspace pai - somente leitura",
     "inUseHint": "Template em uso não pode ser editado",
+    "viewTemplate": "Visualizar Template",
     "edit": "Editar Template",
     "confirmDuplicate": "Deseja duplicar este template?",
     "confirmDelete": "Tem certeza que deseja excluir este template? Esta ação não pode ser desfeita.",

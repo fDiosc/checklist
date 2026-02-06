@@ -356,6 +356,7 @@
     "readOnly": "Read only",
     "readOnlyHint": "Parent workspace template - read only",
     "inUseHint": "Template in use cannot be edited",
+    "viewTemplate": "View Template",
     "edit": "Edit Template",
     "confirmDuplicate": "Do you want to duplicate this template?",
     "confirmDelete": "Are you sure you want to delete this template? This action cannot be undone.",
