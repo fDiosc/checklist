@@ -26,13 +26,21 @@ export default async function ChecklistDetailPage({ params, searchParams }: Page
                     sections: {
                         include: {
                             items: {
-                                orderBy: { order: 'asc' }
-                            }
+                                include: { conditions: true },
+                                orderBy: { order: 'asc' },
+                            },
+                            level: true,
                         },
-                        orderBy: { order: 'asc' }
-                    }
+                        orderBy: { order: 'asc' },
+                    },
+                    levels: { orderBy: { order: 'asc' } },
+                    classifications: { orderBy: { order: 'asc' } },
+                    scopeFields: { orderBy: { order: 'asc' } },
                 }
             },
+            targetLevel: true,
+            achievedLevel: true,
+            scopeAnswers: true,
             responses: true,
             actionPlans: true,
             parent: {
@@ -40,7 +48,8 @@ export default async function ChecklistDetailPage({ params, searchParams }: Page
                     id: true,
                     publicToken: true,
                     template: { select: { name: true } },
-                    actionPlans: true
+                    actionPlans: true,
+                    scopeAnswers: true,
                 }
             },
             children: {
@@ -85,8 +94,13 @@ export default async function ChecklistDetailPage({ params, searchParams }: Page
         })
         : [];
 
+    // For child checklists, inherit scope answers from parent
+    const clientChecklist = checklist.parentId && checklist.parent?.scopeAnswers
+        ? { ...checklist, scopeAnswers: checklist.parent.scopeAnswers }
+        : checklist;
+
     return <ChecklistManagementClient 
-        checklist={checklist} 
+        checklist={clientChecklist} 
         producerMaps={producerMaps}
         readOnly={isReadOnly}
     />;

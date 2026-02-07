@@ -1,7 +1,7 @@
 # Modelo de Dados - MerX Platform
 
-> **Versão:** 5.2  
-> **Última atualização:** 06 Fevereiro 2026  
+> **Versão:** 6.0  
+> **Última atualização:** 07 Fevereiro 2026  
 > **ORM:** Prisma 5.22.0  
 > **Banco:** PostgreSQL (Neon.db)
 
@@ -89,6 +89,22 @@
 │ emeCode         │
 │ ruralRegionCode │
 └─────────────────┘
+
+── Level-Based Entities (Templates level-based) ──
+
+┌─────────────────┐    ┌───────────────────────┐    ┌─────────────────┐
+│  TemplateLevel  │    │TemplateClassification │    │   ScopeField    │
+├─────────────────┤    ├───────────────────────┤    ├─────────────────┤
+│ id (PK)         │    │ id (PK)               │    │ id (PK)         │
+│ templateId (FK) │    │ templateId (FK)        │    │ templateId (FK) │
+│ name            │    │ name, code            │    │ label, type     │
+│ order           │    │ requiredPercentage    │    │ options, order  │
+└─────────────────┘    └───────────────────────┘    └─────────────────┘
+        │                        │                          │
+        ▼                        ▼                          ▼
+  Section.levelId          Item.classifId            ItemCondition
+  Checklist.targetLevelId                            ScopeAnswer
+  Checklist.achievedLevelId
 ```
 
 ---
@@ -242,7 +258,7 @@ model AgriculturalRegistry {
 
 ### 2.3 Template (Templates de Checklist)
 
-Modelos de checklist reutilizáveis.
+Modelos de checklist reutilizáveis. Suporta templates baseados em nível com classificações e perguntas de escopo.
 
 ```prisma
 model Template {
@@ -253,6 +269,10 @@ model Template {
   requiresProducerIdentification  Boolean        @default(false)
   isContinuous                    Boolean        @default(false)
   
+  // Level-based checklist fields
+  isLevelBased                    Boolean        @default(false)
+  levelAccumulative               Boolean        @default(false)
+  
   // AI Prompts
   actionPlanPromptId              String?
   correctionActionPlanPromptId    String?
@@ -262,15 +282,127 @@ model Template {
   createdAt                       DateTime       @default(now())
   updatedAt                       DateTime       @updatedAt
 
-  createdBy  User       @relation(fields: [createdById], references: [id])
+  createdBy       User                    @relation(fields: [createdById], references: [id])
+  sections        Section[]
+  checklists      Checklist[]
+  levels          TemplateLevel[]
+  classifications TemplateClassification[]
+  scopeFields     ScopeField[]
+}
+```
+
+**Campos de Nível:**
+- `isLevelBased`: Se `true`, o template usa o sistema de níveis com classificações e escopo.
+- `levelAccumulative`: Se `true`, cada nível inclui os itens de todos os níveis anteriores. Se `false`, cada nível é independente.
+
+### 2.3.1 TemplateLevel (Níveis do Template)
+
+Níveis hierárquicos dentro de um template level-based.
+
+```prisma
+model TemplateLevel {
+  id         String @id @default(cuid())
+  templateId String @map("template_id")
+  name       String
+  order      Int
+
+  template   Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
   sections   Section[]
-  checklists Checklist[]
+  targetChecklists  Checklist[] @relation("TargetLevel")
+  achievedChecklists Checklist[] @relation("AchievedLevel")
+  blockedItems Item[] @relation("BlocksAdvancementToLevel")
+
+  @@index([templateId])
+  @@map("template_levels")
+}
+```
+
+### 2.3.2 TemplateClassification (Classificações de Itens)
+
+Classificações que determinam o peso de cada item na avaliação de nível (ex: Essencial, Importante, Aspiracional).
+
+```prisma
+model TemplateClassification {
+  id                 String @id @default(cuid())
+  templateId         String @map("template_id")
+  name               String
+  code               String   // Ex: "E", "I", "A"
+  requiredPercentage Float    // Ex: 100, 80, 50
+  order              Int
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items    Item[]
+
+  @@index([templateId])
+  @@map("template_classifications")
+}
+```
+
+### 2.3.3 ScopeField (Perguntas de Escopo)
+
+Campos dinâmicos respondidos antes do checklist para determinar quais itens se aplicam.
+
+```prisma
+model ScopeField {
+  id         String @id @default(cuid())
+  templateId String @map("template_id")
+  label      String
+  type       String // "NUMBER", "TEXT", "SELECT"
+  options    Json?  // Para tipo SELECT: [{ label, value }]
+  order      Int
+
+  template   Template       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  conditions ItemCondition[]
+  answers    ScopeAnswer[]
+
+  @@index([templateId])
+  @@map("scope_fields")
+}
+```
+
+### 2.3.4 ItemCondition (Condições de Item)
+
+Regras que removem ou tornam opcional um item com base nas respostas de escopo.
+
+```prisma
+model ItemCondition {
+  id           String @id @default(cuid())
+  itemId       String @map("item_id")
+  scopeFieldId String @map("scope_field_id")
+  operator     String // "EQ", "NEQ", "GT", "LT", "GTE", "LTE"
+  value        String
+  action       String // "REMOVE" | "OPTIONAL"
+
+  item       Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  scopeField ScopeField @relation(fields: [scopeFieldId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("item_conditions")
+}
+```
+
+### 2.3.5 ScopeAnswer (Respostas de Escopo)
+
+Respostas de escopo por checklist. Para checklists filhos, as respostas são herdadas do pai (não possuem registros próprios).
+
+```prisma
+model ScopeAnswer {
+  id           String @id @default(cuid())
+  checklistId  String @map("checklist_id")
+  scopeFieldId String @map("scope_field_id")
+  value        String
+
+  checklist  Checklist  @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  scopeField ScopeField @relation(fields: [scopeFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([checklistId, scopeFieldId])
+  @@map("scope_answers")
 }
 ```
 
 ### 2.4 Section (Seções)
 
-Grupos de itens dentro de um template.
+Grupos de itens dentro de um template. Pode pertencer a um nível específico ou ser global.
 
 ```prisma
 model Section {
@@ -279,40 +411,60 @@ model Section {
   name              String
   order             Int
   iterateOverFields Boolean @default(false)  // Repete por talhão
+  levelId           String? @map("level_id") // null = seção global (aparece em todos os níveis)
 
-  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template Template       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  level    TemplateLevel? @relation(fields: [levelId], references: [id])
   items    Item[]
+
+  @@index([levelId])
 }
 ```
+
+**Campo `levelId`:**
+- `null`: Seção global, aparece em todos os checklists independente do nível alvo.
+- ID de um `TemplateLevel`: Seção pertence a esse nível. Em modo acumulativo, aparece em checklists com nível alvo >= ao nível da seção.
 
 ### 2.5 Item (Itens/Perguntas)
 
-Campos individuais do checklist.
+Campos individuais do checklist. Pode ter classificação (E/I/A), condições baseadas em escopo e regras de bloqueio de avanço.
 
 ```prisma
 model Item {
-  id                 String   @id @default(cuid())
-  sectionId          String
-  name               String
-  type               ItemType
-  order              Int
-  required           Boolean  @default(true)
-  validityControl    Boolean  @default(false)
-  observationEnabled Boolean  @default(false)
-  requestArtifact    Boolean  @default(false)
-  artifactRequired   Boolean  @default(false)
-  askForQuantity     Boolean  @default(false)
-  options            String[]                      // Para choice types
-  databaseSource     String?                       // Ex: 'fertilizers'
+  id                          String   @id @default(cuid())
+  sectionId                   String
+  name                        String
+  type                        ItemType
+  order                       Int
+  required                    Boolean  @default(true)
+  validityControl             Boolean  @default(false)
+  observationEnabled          Boolean  @default(false)
+  requestArtifact             Boolean  @default(false)
+  artifactRequired            Boolean  @default(false)
+  askForQuantity              Boolean  @default(false)
+  options                     String[]                      // Para choice types
+  databaseSource              String?                       // Ex: 'fertilizers'
   
-  section   Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  responses Response[]
+  // Level-based fields
+  classificationId            String?  @map("classification_id")
+  blocksAdvancementToLevelId  String?  @map("blocks_advancement_to_level_id")
+  
+  section          Section                 @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  classification   TemplateClassification? @relation(fields: [classificationId], references: [id])
+  blocksAdvancementToLevel TemplateLevel?  @relation("BlocksAdvancementToLevel", fields: [blocksAdvancementToLevelId], references: [id])
+  conditions       ItemCondition[]
+  responses        Response[]
 }
 ```
 
+**Campos de Nível:**
+- `classificationId`: Classificação do item (E/I/A) que define o percentual exigido para aprovação.
+- `blocksAdvancementToLevelId`: Se preenchido, este item bloqueia o avanço para o nível indicado quando não está aprovado.
+- `conditions`: Lista de condições que podem remover ou tornar o item opcional baseado em respostas de escopo.
+
 ### 2.6 Checklist (Instâncias)
 
-Instância de um template enviada a um produtor.
+Instância de um template enviada a um produtor. Para templates level-based, inclui nível alvo e nível atingido.
 
 ```prisma
 model Checklist {
@@ -337,17 +489,29 @@ model Checklist {
   parentId    String?
   parent      Checklist?  @relation("ChecklistHistory", fields: [parentId], references: [id])
   children    Checklist[] @relation("ChecklistHistory")
+  
+  // Level-based fields
+  targetLevelId   String? @map("target_level_id")
+  achievedLevelId String? @map("achieved_level_id")
 
-  template    Template    @relation(fields: [templateId], references: [id])
-  producer    Producer?   @relation(fields: [producerId], references: [id])
-  subUser     SubUser?    @relation(fields: [subUserId], references: [id])
-  createdBy   User        @relation(fields: [createdById], references: [id])
-  responses   Response[]
-  auditLogs   AuditLog[]
-  reports     Report[]
-  actionPlans ActionPlan[]
+  template      Template       @relation(fields: [templateId], references: [id])
+  producer      Producer?      @relation(fields: [producerId], references: [id])
+  subUser       SubUser?       @relation(fields: [subUserId], references: [id])
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  targetLevel   TemplateLevel? @relation("TargetLevel", fields: [targetLevelId], references: [id])
+  achievedLevel TemplateLevel? @relation("AchievedLevel", fields: [achievedLevelId], references: [id])
+  responses     Response[]
+  scopeAnswers  ScopeAnswer[]
+  auditLogs     AuditLog[]
+  reports       Report[]
+  actionPlans   ActionPlan[]
 }
 ```
+
+**Campos de Nível:**
+- `targetLevelId`: Nível alvo selecionado pelo supervisor. Define quais itens são exibidos ao produtor.
+- `achievedLevelId`: Nível atingido calculado pelo sistema com base nas respostas e classificações.
+- `scopeAnswers`: Respostas de escopo. Para checklists filhos, são herdadas do pai (API retorna as do pai, UI esconde edição).
 
 ### 2.7 Response (Respostas)
 
@@ -625,6 +789,18 @@ enum ResponseStatus {
 | Checklist | Response | 1:N | Checklist tem respostas |
 | Checklist | ActionPlan | 1:N | Checklist pode ter planos de ação |
 | Checklist | Checklist | Self (pai-filho) | Hierarquia de correção |
+| Checklist | ScopeAnswer | 1:N | Respostas de escopo |
+| Checklist | TemplateLevel | N:1 | Nível alvo (targetLevel) |
+| Checklist | TemplateLevel | N:1 | Nível atingido (achievedLevel) |
+| Template | TemplateLevel | 1:N | Níveis do template |
+| Template | TemplateClassification | 1:N | Classificações (E/I/A) |
+| Template | ScopeField | 1:N | Perguntas de escopo |
+| Section | TemplateLevel | N:1 | Seção pertence a um nível |
+| Item | TemplateClassification | N:1 | Classificação do item |
+| Item | TemplateLevel | N:1 | Bloqueia avanço para nível |
+| Item | ItemCondition | 1:N | Condições baseadas em escopo |
+| ScopeField | ItemCondition | 1:N | Condições referenciam campo |
+| ScopeField | ScopeAnswer | 1:N | Respostas referenciam campo |
 
 ### 4.2 Hierarquia de Checklists
 

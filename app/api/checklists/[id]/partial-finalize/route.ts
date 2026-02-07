@@ -16,7 +16,7 @@ export async function POST(
         }
 
         const { id } = await params;
-        const { createCorrection, createCompletion, generateActionPlan } = await req.json();
+        const { createCorrection, createCompletion, generateActionPlan, completionTargetLevelId } = await req.json();
 
         const checklist = await db.checklist.findUnique({
             where: { id },
@@ -25,9 +25,11 @@ export async function POST(
                     include: {
                         sections: {
                             include: {
-                                items: true
+                                items: true,
+                                level: true,
                             }
-                        }
+                        },
+                        levels: { orderBy: { order: 'asc' } },
                     }
                 },
                 responses: true,
@@ -131,6 +133,8 @@ export async function POST(
                     createdById: session.user.id,
                     parentId: checklist.id,
                     type: 'CORRECTION',
+                    // Correction inherits same target level as parent
+                    targetLevelId: checklist.targetLevelId,
                 }
             });
             childChecklists.push(child);
@@ -153,6 +157,9 @@ export async function POST(
 
         // 5. Create Completion Checklist if requested
         if (createCompletion && completionItems.length > 0) {
+            // Determine the target level for the completion checklist
+            const effectiveTargetLevelId = completionTargetLevelId || checklist.targetLevelId;
+
             const publicToken = nanoid(32);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const child = await (db.checklist as any).create({
@@ -167,10 +174,12 @@ export async function POST(
                     createdById: session.user.id,
                     parentId: checklist.id,
                     type: 'COMPLETION',
+                    targetLevelId: effectiveTargetLevelId,
                 }
             });
             childChecklists.push(child);
 
+            // Create responses for missing/pending items from original levels
             for (const item of completionItems) {
                 const resp = item.resp;
                 await db.response.create({
@@ -184,6 +193,75 @@ export async function POST(
                     }
                 });
             }
+
+            // If level escalation: add items from new levels that don't have responses yet
+            if (completionTargetLevelId && completionTargetLevelId !== checklist.targetLevelId) {
+                const currentTargetLevel = checklist.template.levels.find(
+                    (l: { id: string }) => l.id === checklist.targetLevelId
+                );
+                const newTargetLevel = checklist.template.levels.find(
+                    (l: { id: string }) => l.id === completionTargetLevelId
+                );
+
+                if (currentTargetLevel && newTargetLevel && newTargetLevel.order > currentTargetLevel.order) {
+                    // Find sections that belong to levels above current target but up to new target
+                    const newLevelSections = checklist.template.sections.filter((section: { levelId: string | null; level: { order: number } | null }) => {
+                        if (!section.levelId || !section.level) return false;
+                        return section.level.order > currentTargetLevel.order && section.level.order <= newTargetLevel.order;
+                    });
+
+                    // Track items already added to avoid duplicates
+                    const addedItemKeys = new Set(
+                        completionItems.map((ci: { itemId: string; fieldId: string }) => `${ci.itemId}_${ci.fieldId}`)
+                    );
+
+                    for (const section of newLevelSections) {
+                        if (section.iterateOverFields && fieldIds.length > 0) {
+                            for (const fieldId of fieldIds) {
+                                for (const item of section.items) {
+                                    const key = `${item.id}_${fieldId}`;
+                                    if (!addedItemKeys.has(key)) {
+                                        addedItemKeys.add(key);
+                                        await db.response.create({
+                                            data: {
+                                                checklistId: child.id,
+                                                itemId: item.id,
+                                                fieldId: fieldId,
+                                                status: 'MISSING',
+                                                answer: null,
+                                                observation: null,
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        } else {
+                            for (const item of section.items) {
+                                const key = `${item.id}___global__`;
+                                if (!addedItemKeys.has(key)) {
+                                    addedItemKeys.add(key);
+                                    await db.response.create({
+                                        data: {
+                                            checklistId: child.id,
+                                            itemId: item.id,
+                                            fieldId: '__global__',
+                                            status: 'MISSING',
+                                            answer: null,
+                                            observation: null,
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    // Update parent checklist's targetLevelId immediately
+                    await db.checklist.update({
+                        where: { id },
+                        data: { targetLevelId: completionTargetLevelId },
+                    });
+                }
+            }
         }
 
         await db.auditLog.create({
@@ -195,6 +273,7 @@ export async function POST(
                 details: {
                     correctionId: childChecklists.find((c: { type: ChecklistType }) => c.type === 'CORRECTION')?.id || null,
                     completionId: childChecklists.find((c: { type: ChecklistType }) => c.type === 'COMPLETION')?.id || null,
+                    completionTargetLevelId: completionTargetLevelId || null,
                 }
             }
         });

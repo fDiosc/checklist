@@ -30,6 +30,8 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
     // Pre-fill state
     const [enablePrefill, setEnablePrefill] = useState(false);
     const [prefillChecklistId, setPrefillChecklistId] = useState('');
+    // Level target state
+    const [targetLevelId, setTargetLevelId] = useState('');
 
     // Final IDs to use (prioritizing props)
     const activeTemplateId = initialTemplateId || templateId;
@@ -42,6 +44,7 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
             setIsCopied(false);
             setEnablePrefill(false);
             setPrefillChecklistId('');
+            setTargetLevelId('');
             if (!initialTemplateId) setTemplateId('');
             if (!initialProducerId) setProducerId('');
         }
@@ -58,6 +61,21 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
         queryFn: () => fetch('/api/producers?scope=own').then(res => res.json()),
         enabled: isOpen && !initialProducerId
     });
+
+    // Query template details (for level-based info)
+    const { data: templateDetails } = useQuery({
+        queryKey: ['template-details', activeTemplateId],
+        queryFn: async () => {
+            const res = await fetch(`/api/templates/${activeTemplateId}`);
+            if (!res.ok) throw new Error('Failed to fetch template');
+            return res.json();
+        },
+        enabled: isOpen && !!activeTemplateId,
+    });
+
+    const isLevelBased = templateDetails?.isLevelBased ?? false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const templateLevels = (templateDetails?.levels || []) as { id: string; name: string; order: number }[];
 
     // Query for available checklists to prefill from
     const { data: availableForPrefill, isLoading: loadingPrefill } = useQuery({
@@ -106,7 +124,8 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
             templateId: activeTemplateId,
             producerId: activeProducerId,
             sentVia: sentVia === 'LINK' ? null : sentVia,
-            prefillFromChecklistId: enablePrefill && prefillChecklistId ? prefillChecklistId : undefined
+            prefillFromChecklistId: enablePrefill && prefillChecklistId ? prefillChecklistId : undefined,
+            targetLevelId: isLevelBased && targetLevelId ? targetLevelId : undefined,
         });
     };
 
@@ -200,6 +219,52 @@ const SendChecklistModal: React.FC<SendChecklistModalProps> = ({
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Level Selector (shown for level-based templates) */}
+                        {isLevelBased && templateLevels.length > 0 && activeTemplateId && (
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 px-1 flex items-center gap-2">
+                                    <svg className="text-violet-500 w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                        <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                    {t('modals.sendChecklist.targetLevel')}
+                                </label>
+                                <div className="grid grid-cols-1 gap-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                    {templateLevels.map((level) => (
+                                        <button
+                                            key={level.id}
+                                            onClick={() => setTargetLevelId(level.id)}
+                                            className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
+                                                targetLevelId === level.id
+                                                    ? 'border-violet-400 bg-violet-50'
+                                                    : 'border-slate-50 hover:border-slate-200'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black ${
+                                                    targetLevelId === level.id ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-400'
+                                                }`}>
+                                                    {level.order + 1}
+                                                </span>
+                                                <span className={`font-bold text-sm ${targetLevelId === level.id ? 'text-violet-700' : 'text-slate-700'}`}>
+                                                    {level.name}
+                                                </span>
+                                            </div>
+                                            {targetLevelId === level.id && (
+                                                <svg className="text-violet-500 w-[16px] h-[16px]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                                {templateDetails?.levelAccumulative && (
+                                    <p className="text-[9px] text-violet-400 font-medium mt-3 px-1">
+                                        {t('modals.sendChecklist.accumulativeInfo')}
+                                    </p>
+                                )}
                             </div>
                         )}
 

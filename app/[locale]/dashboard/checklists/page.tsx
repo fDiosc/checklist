@@ -714,11 +714,16 @@ export default function ChecklistsPage() {
                                                     </td>
                                                 )}
                                                 <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                         <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusVariant(checklist.status)}`}>
                                                             {getStatusIcon(checklist.status)}
                                                             {getStatusLabelI18n(checklist.status)}
                                                         </div>
+                                                        {checklist.targetLevel && (
+                                                            <span className="text-[9px] font-black uppercase tracking-wider bg-violet-50 text-violet-500 px-2 py-0.5 rounded-full border border-violet-100">
+                                                                {checklist.targetLevel.name}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6 text-center">

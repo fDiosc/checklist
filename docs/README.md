@@ -1,7 +1,7 @@
 # Documentação - MerX Platform
 
-> **Versão:** 4.0  
-> **Última atualização:** 05 Fevereiro 2026
+> **Versão:** 6.0  
+> **Última atualização:** 07 Fevereiro 2026
 
 ## Índice de Documentos
 
@@ -19,7 +19,8 @@
 |-----------|-------------|-----------|
 | CHANGELOG | [../CHANGELOG.md](../CHANGELOG.md) | Histórico de versões |
 | README Principal | [../README.md](../README.md) | Setup e visão geral |
-| Documentação Técnica | [../TECHNICAL_DOCUMENTATION.md](../TECHNICAL_DOCUMENTATION.md) | Hierarquia de checklists |
+| Documentação Técnica | [../TECHNICAL_DOCUMENTATION.md](../TECHNICAL_DOCUMENTATION.md) | Hierarquia de checklists, níveis |
+| Regras Checklist Nível | [../checklist_nivel/REGRAS_CHECKLIST.md](../checklist_nivel/REGRAS_CHECKLIST.md) | Regras do template PAGR com níveis |
 
 ## Arquivos Legados
 

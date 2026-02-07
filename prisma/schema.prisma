@@ -204,11 +204,18 @@ model Template {
   createdAt                       DateTime       @default(now())
   updatedAt                       DateTime       @updatedAt
 
-  workspace  Workspace  @relation(fields: [workspaceId], references: [id])
-  createdBy  User       @relation(fields: [createdById], references: [id])
-  sections   Section[]
-  checklists Checklist[]
-  assignments TemplateAssignment[]
+  // Level-based checklist settings
+  isLevelBased      Boolean @default(false) @map("is_level_based")
+  levelAccumulative Boolean @default(false) @map("level_accumulative")
+
+  workspace       Workspace               @relation(fields: [workspaceId], references: [id])
+  createdBy       User                    @relation(fields: [createdById], references: [id])
+  sections        Section[]
+  checklists      Checklist[]
+  assignments     TemplateAssignment[]
+  levels          TemplateLevel[]
+  classifications TemplateClassification[]
+  scopeFields     ScopeField[]
   
   @@index([workspaceId])
   @@index([status])
@@ -234,17 +241,122 @@ model TemplateAssignment {
   @@map("template_assignments")
 }
 
+// ============================================
+// LEVEL-BASED CHECKLIST SYSTEM
+// ============================================
+
+model TemplateLevel {
+  id         String @id @default(cuid())
+  templateId String @map("template_id")
+  name       String // "Nível II", "Bronze", etc.
+  order      Int    // Ordering (1, 2, 3...)
+
+  template             Template    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  sections             Section[]
+  blockedByItems       Item[]      @relation("BlocksAdvancement")
+  targetingChecklists  Checklist[] @relation("TargetLevel")
+  achievedByChecklists Checklist[] @relation("AchievedLevel")
+
+  @@index([templateId])
+  @@map("template_levels")
+}
+
+model TemplateClassification {
+  id                 String @id @default(cuid())
+  templateId         String @map("template_id")
+  name               String // "Essencial", "Importante", "Aspiracional"
+  code               String // "E", "I", "A" (short code for badges)
+  order              Int
+  requiredPercentage Float  @default(100) // 0-100: % of approved items required
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items    Item[]
+
+  @@index([templateId])
+  @@map("template_classifications")
+}
+
+enum ScopeFieldType {
+  NUMBER
+  YES_NO
+  TEXT
+  SELECT
+}
+
+model ScopeField {
+  id         String         @id @default(cuid())
+  templateId String         @map("template_id")
+  name       String         // "Nº de colaboradores"
+  type       ScopeFieldType // NUMBER, YES_NO, TEXT, SELECT
+  options    String[]       // For SELECT type
+  order      Int
+
+  template   Template        @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  conditions ItemCondition[]
+  answers    ScopeAnswer[]
+
+  @@index([templateId])
+  @@map("scope_fields")
+}
+
+enum ConditionOperator {
+  EQ
+  NEQ
+  GT
+  LT
+  GTE
+  LTE
+}
+
+enum ConditionAction {
+  REMOVE
+  OPTIONAL
+}
+
+model ItemCondition {
+  id           String            @id @default(cuid())
+  itemId       String            @map("item_id")
+  scopeFieldId String            @map("scope_field_id")
+  operator     ConditionOperator
+  value        String            // Comparison value
+  action       ConditionAction   // REMOVE or OPTIONAL
+
+  item       Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  scopeField ScopeField @relation(fields: [scopeFieldId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([scopeFieldId])
+  @@map("item_conditions")
+}
+
+model ScopeAnswer {
+  id           String @id @default(cuid())
+  checklistId  String @map("checklist_id")
+  scopeFieldId String @map("scope_field_id")
+  value        String
+
+  checklist  Checklist  @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  scopeField ScopeField @relation(fields: [scopeFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([checklistId, scopeFieldId])
+  @@index([checklistId])
+  @@map("scope_answers")
+}
+
 model Section {
   id                String  @id @default(cuid())
   templateId        String
   name              String
   order             Int
   iterateOverFields Boolean @default(false)
+  levelId           String? @map("level_id") // null = global section (applies to all levels)
 
-  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template Template       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  level    TemplateLevel? @relation(fields: [levelId], references: [id])
   items    Item[]
   
   @@index([templateId])
+  @@index([levelId])
   @@map("sections")
 }
 
@@ -274,11 +386,22 @@ model Item {
   askForQuantity     Boolean  @default(false)
   options            String[]
   databaseSource     String?
+
+  // Level-based fields
+  classificationId           String? @map("classification_id")
+  blocksAdvancementToLevelId String? @map("blocks_advancement_to_level_id")
+  allowNA                    Boolean @default(false) @map("allow_na")
+  responsible                String? // "Proprietário", "Gerente", etc.
+  reference                  String? // "FSA 45", informational reference
   
-  section   Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  responses Response[]
+  section                  Section                 @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  classification           TemplateClassification? @relation(fields: [classificationId], references: [id])
+  blocksAdvancementToLevel TemplateLevel?          @relation("BlocksAdvancement", fields: [blocksAdvancementToLevelId], references: [id])
+  conditions               ItemCondition[]
+  responses                Response[]
   
   @@index([sectionId])
+  @@index([classificationId])
   @@map("items")
 }
 
@@ -326,15 +449,22 @@ model Checklist {
   parent      Checklist?  @relation("ChecklistHistory", fields: [parentId], references: [id])
   children    Checklist[] @relation("ChecklistHistory")
 
-  workspace  Workspace   @relation(fields: [workspaceId], references: [id])
-  template   Template    @relation(fields: [templateId], references: [id])
-  producer   Producer?   @relation(fields: [producerId], references: [id])
-  subUser    SubUser?    @relation(fields: [subUserId], references: [id])
-  createdBy  User        @relation(fields: [createdById], references: [id])
-  responses  Response[]
-  auditLogs  AuditLog[]
-  reports    Report[]
-  actionPlans ActionPlan[]
+  // Level-based fields
+  targetLevelId   String? @map("target_level_id")
+  achievedLevelId String? @map("achieved_level_id")
+
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id])
+  template      Template       @relation(fields: [templateId], references: [id])
+  producer      Producer?      @relation(fields: [producerId], references: [id])
+  subUser       SubUser?       @relation(fields: [subUserId], references: [id])
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  targetLevel   TemplateLevel? @relation("TargetLevel", fields: [targetLevelId], references: [id])
+  achievedLevel TemplateLevel? @relation("AchievedLevel", fields: [achievedLevelId], references: [id])
+  responses     Response[]
+  scopeAnswers  ScopeAnswer[]
+  auditLogs     AuditLog[]
+  reports       Report[]
+  actionPlans   ActionPlan[]
   
   @@index([workspaceId])
   @@index([publicToken])
@@ -352,6 +482,7 @@ enum ResponseStatus {
   PENDING_VERIFICATION
   APPROVED
   REJECTED
+  NOT_APPLICABLE
 }
 
 model Response {

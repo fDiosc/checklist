@@ -1,7 +1,7 @@
 # Documentação da API - MerX Platform
 
-> **Versão:** 5.2  
-> **Última atualização:** 06 Fevereiro 2026  
+> **Versão:** 6.0  
+> **Última atualização:** 07 Fevereiro 2026  
 > **Base URL:** `/api`
 
 ## Índice
@@ -306,17 +306,22 @@ Finaliza completamente o checklist. Se for um checklist filho, sincroniza respos
 POST /api/checklists/[id]/partial-finalize
 ```
 
-Finaliza parcialmente, criando checklists filhos para itens rejeitados/faltantes.
+Finaliza parcialmente, criando checklists filhos para itens rejeitados/faltantes. Para templates level-based, suporta escalação de nível.
 
 **Request Body:**
 
 ```json
 {
-  "createCorrection": true,     // Criar checklist de correção
-  "createCompletion": true,     // Criar checklist de complemento
-  "generateActionPlan": true    // Gerar plano de ação
+  "createCorrection": true,         // Criar checklist de correção
+  "createCompletion": true,         // Criar checklist de complemento
+  "generateActionPlan": true,       // Gerar plano de ação
+  "completionTargetLevelId": "clx..." // Opcional: escalar nível do COMPLETION
 }
 ```
+
+**Comportamento Level-Based:**
+- `completionTargetLevelId`: Se fornecido e diferente do nível atual, o COMPLETION será criado com o novo nível alvo. Itens dos novos níveis são adicionados como `MISSING`. O `targetLevelId` do checklist pai é atualizado imediatamente.
+- CORRECTION sempre herda o `targetLevelId` do pai.
 
 **Response:**
 
@@ -328,6 +333,126 @@ Finaliza parcialmente, criando checklists filhos para itens rejeitados/faltantes
   "generateActionPlan": true
 }
 ```
+
+### 4.5 Respostas de Escopo (Level-Based)
+
+#### Obter Respostas de Escopo
+
+```http
+GET /api/checklists/[id]/scope-answers
+```
+
+Retorna as respostas de escopo de um checklist. Para checklists filhos (`parentId` presente), retorna automaticamente as respostas do pai.
+
+**Response:**
+
+```json
+[
+  {
+    "id": "cla123...",
+    "checklistId": "clx123...",
+    "scopeFieldId": "csf456...",
+    "value": "3",
+    "scopeField": {
+      "id": "csf456...",
+      "label": "Nº de colaboradores",
+      "type": "NUMBER",
+      "options": null,
+      "order": 0
+    }
+  }
+]
+```
+
+#### Salvar/Atualizar Respostas de Escopo
+
+```http
+PUT /api/checklists/[id]/scope-answers
+Authorization: Autenticado
+```
+
+Salva ou atualiza respostas de escopo. **Bloqueado (403) para checklists filhos** — escopo só pode ser editado no checklist pai.
+
+**Request Body:**
+
+```json
+{
+  "answers": [
+    { "scopeFieldId": "csf456...", "value": "3" },
+    { "scopeFieldId": "csf789...", "value": "0" }
+  ]
+}
+```
+
+**Response (sucesso):** Array de respostas upserted.
+
+**Response (erro - checklist filho):**
+
+```json
+{
+  "error": "Cannot modify scope answers on child checklists. Edit the parent checklist instead."
+}
+```
+
+### 4.6 Nível Atingido (Level-Based)
+
+```http
+GET /api/checklists/[id]/level-achievement
+```
+
+Calcula e retorna o nível atingido para um checklist level-based, com breakdown por classificação. Para checklists filhos, usa `scopeAnswers` do pai.
+
+**Response:**
+
+```json
+{
+  "checklistId": "clx123...",
+  "targetLevel": {
+    "id": "ctl456...",
+    "name": "Nível III",
+    "order": 1
+  },
+  "achievedLevel": {
+    "id": "ctl123...",
+    "name": "Nível II",
+    "order": 0
+  },
+  "levelProgress": [
+    {
+      "levelId": "ctl123...",
+      "levelName": "Nível II",
+      "levelOrder": 0,
+      "achieved": true,
+      "blocked": false,
+      "blockedByItems": [],
+      "totalItems": 25,
+      "approvedItems": 25,
+      "classificationProgress": [
+        {
+          "classificationId": "clc1...",
+          "classificationName": "Essencial",
+          "classificationCode": "E",
+          "requiredPercentage": 100,
+          "totalItems": 15,
+          "approvedItems": 15,
+          "achieved": true
+        },
+        {
+          "classificationId": "clc2...",
+          "classificationName": "Importante",
+          "classificationCode": "I",
+          "requiredPercentage": 80,
+          "totalItems": 8,
+          "approvedItems": 7,
+          "achieved": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Nota:** Se o checklist não é level-based, retorna 400.
 
 ### 4.5 Enviar WhatsApp
 

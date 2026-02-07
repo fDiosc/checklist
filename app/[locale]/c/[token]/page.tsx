@@ -18,18 +18,24 @@ export default async function PublicChecklistPage({
                     sections: {
                         include: {
                             items: {
-                                orderBy: { order: 'asc' }
-                            }
+                                include: { conditions: true },
+                                orderBy: { order: 'asc' },
+                            },
+                            level: true,
                         },
                         orderBy: { order: "asc" },
                     },
+                    levels: { orderBy: { order: 'asc' } },
+                    classifications: { orderBy: { order: 'asc' } },
+                    scopeFields: { orderBy: { order: 'asc' } },
                 },
             },
             responses: true,
             actionPlans: true,
             parent: {
                 include: {
-                    actionPlans: true
+                    actionPlans: true,
+                    scopeAnswers: true,
                 }
             },
             children: {

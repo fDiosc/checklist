@@ -10,6 +10,11 @@ const updateTemplateSchema = z.object({
     requiresProducerIdentification: z.boolean().optional(),
     isContinuous: z.boolean().optional(),
     actionPlanPromptId: z.string().nullable().optional(),
+    isLevelBased: z.boolean().optional(),
+    levelAccumulative: z.boolean().optional(),
+    levels: z.array(z.any()).optional(),
+    classifications: z.array(z.any()).optional(),
+    scopeFields: z.array(z.any()).optional(),
     sections: z.array(z.any()).optional(),
 });
 
@@ -32,11 +37,16 @@ export async function GET(
                 sections: {
                     include: {
                         items: {
-                            orderBy: { order: 'asc' }
+                            include: { conditions: true },
+                            orderBy: { order: 'asc' },
                         },
+                        level: true,
                     },
                     orderBy: { order: "asc" },
                 },
+                levels: { orderBy: { order: 'asc' } },
+                classifications: { orderBy: { order: 'asc' } },
+                scopeFields: { orderBy: { order: 'asc' } },
                 _count: {
                     select: { checklists: true },
                 },
@@ -97,7 +107,7 @@ export async function PATCH(
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updatedTemplate = await db.$transaction(async (tx: any) => {
-            const t = await tx.template.update({
+            await tx.template.update({
                 where: { id },
                 data: {
                     name: validatedData.name,
@@ -105,44 +115,159 @@ export async function PATCH(
                     requiresProducerIdentification: validatedData.requiresProducerIdentification,
                     isContinuous: validatedData.isContinuous,
                     actionPlanPromptId: validatedData.actionPlanPromptId,
+                    isLevelBased: validatedData.isLevelBased,
+                    levelAccumulative: validatedData.levelAccumulative,
                 },
             });
 
-            if (!isUsed && body.sections) {
+            if (!isUsed) {
+                // Rebuild structure: levels, classifications, scope fields, sections, items, conditions
+                // Delete in correct order (conditions -> items -> sections, then level-related)
+                await tx.itemCondition.deleteMany({ where: { item: { section: { templateId: id } } } });
                 await tx.item.deleteMany({ where: { section: { templateId: id } } });
                 await tx.section.deleteMany({ where: { templateId: id } });
+                await tx.scopeField.deleteMany({ where: { templateId: id } });
+                await tx.templateClassification.deleteMany({ where: { templateId: id } });
+                await tx.templateLevel.deleteMany({ where: { templateId: id } });
 
-                for (const section of body.sections) {
-                    const createdSection = await tx.section.create({
-                        data: {
-                            templateId: id,
-                            name: section.name,
-                            iterateOverFields: section.iterateOverFields,
-                            order: section.order || 0,
-                        },
-                    });
-
-                    if (section.items && section.items.length > 0) {
-                        await tx.item.createMany({
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            data: section.items.map((item: any, iIdx: number) => ({
-                                sectionId: createdSection.id,
-                                name: item.name,
-                                type: item.type,
-                                required: item.required ?? true,
-                                validityControl: item.validityControl ?? false,
-                                observationEnabled: item.observationEnabled ?? false,
-                                requestArtifact: item.requestArtifact ?? false,
-                                askForQuantity: item.askForQuantity ?? false,
-                                options: item.options || [],
-                                databaseSource: item.databaseSource || null,
-                                order: iIdx,
-                            })),
+                // Recreate levels
+                const levelIdMap: Record<number, string> = {};
+                if (body.levels?.length) {
+                    for (const level of body.levels) {
+                        const created = await tx.templateLevel.create({
+                            data: { templateId: id, name: level.name, order: level.order },
                         });
+                        levelIdMap[level.order] = created.id;
+                    }
+                }
+
+                // Recreate classifications
+                const classificationIdMap: Record<number, string> = {};
+                if (body.classifications?.length) {
+                    for (let i = 0; i < body.classifications.length; i++) {
+                        const cls = body.classifications[i];
+                        const created = await tx.templateClassification.create({
+                            data: {
+                                templateId: id,
+                                name: cls.name,
+                                code: cls.code,
+                                order: cls.order,
+                                requiredPercentage: cls.requiredPercentage ?? 100,
+                            },
+                        });
+                        classificationIdMap[i] = created.id;
+                    }
+                }
+
+                // Recreate scope fields
+                const scopeFieldIdMap: Record<number, string> = {};
+                if (body.scopeFields?.length) {
+                    for (let i = 0; i < body.scopeFields.length; i++) {
+                        const sf = body.scopeFields[i];
+                        const created = await tx.scopeField.create({
+                            data: {
+                                templateId: id,
+                                name: sf.name,
+                                type: sf.type,
+                                options: sf.options || [],
+                                order: sf.order,
+                            },
+                        });
+                        scopeFieldIdMap[i] = created.id;
+                    }
+                }
+
+                // Recreate sections with items and conditions
+                if (body.sections?.length) {
+                    for (let sIdx = 0; sIdx < body.sections.length; sIdx++) {
+                        const section = body.sections[sIdx];
+                        const levelId = section.levelIndex != null ? levelIdMap[section.levelIndex] : null;
+
+                        const createdSection = await tx.section.create({
+                            data: {
+                                templateId: id,
+                                name: section.name,
+                                iterateOverFields: section.iterateOverFields ?? false,
+                                order: section.order ?? sIdx,
+                                levelId,
+                            },
+                        });
+
+                        if (section.items?.length) {
+                            for (let iIdx = 0; iIdx < section.items.length; iIdx++) {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const item = section.items[iIdx] as any;
+                                const classificationId = item.classificationIndex != null
+                                    ? classificationIdMap[item.classificationIndex] : null;
+                                const blocksAdvancementToLevelId = item.blocksAdvancementToLevelIndex != null
+                                    ? levelIdMap[item.blocksAdvancementToLevelIndex] : null;
+
+                                const createdItem = await tx.item.create({
+                                    data: {
+                                        sectionId: createdSection.id,
+                                        name: item.name,
+                                        type: item.type,
+                                        order: iIdx,
+                                        required: item.required ?? true,
+                                        validityControl: item.validityControl ?? false,
+                                        observationEnabled: item.observationEnabled ?? false,
+                                        requestArtifact: item.requestArtifact ?? false,
+                                        askForQuantity: item.askForQuantity ?? false,
+                                        options: item.options || [],
+                                        databaseSource: item.databaseSource || null,
+                                        classificationId,
+                                        blocksAdvancementToLevelId,
+                                        allowNA: item.allowNA ?? false,
+                                        responsible: item.responsible || null,
+                                        reference: item.reference || null,
+                                    },
+                                });
+
+                                // Create conditions
+                                if (item.conditions?.length) {
+                                    for (const cond of item.conditions) {
+                                        const scopeFieldId = cond.scopeFieldIndex != null
+                                            ? scopeFieldIdMap[cond.scopeFieldIndex]
+                                            : cond.scopeFieldId;
+                                        if (scopeFieldId) {
+                                            await tx.itemCondition.create({
+                                                data: {
+                                                    itemId: createdItem.id,
+                                                    scopeFieldId,
+                                                    operator: cond.operator,
+                                                    value: cond.value,
+                                                    action: cond.action,
+                                                },
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-            return t;
+
+            // Return full template with all relations
+            return tx.template.findUnique({
+                where: { id },
+                include: {
+                    sections: {
+                        include: {
+                            items: {
+                                include: { conditions: true },
+                                orderBy: { order: 'asc' },
+                            },
+                            level: true,
+                        },
+                        orderBy: { order: "asc" },
+                    },
+                    levels: { orderBy: { order: 'asc' } },
+                    classifications: { orderBy: { order: 'asc' } },
+                    scopeFields: { orderBy: { order: 'asc' } },
+                    _count: { select: { checklists: true } },
+                },
+            });
         });
 
         return NextResponse.json(updatedTemplate);

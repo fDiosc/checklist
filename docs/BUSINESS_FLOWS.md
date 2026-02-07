@@ -1,7 +1,7 @@
 # Fluxos de Negócio - MerX Platform
 
-> **Versão:** 5.2  
-> **Última atualização:** 06 Fevereiro 2026
+> **Versão:** 6.0  
+> **Última atualização:** 07 Fevereiro 2026
 
 ## Índice
 
@@ -530,6 +530,194 @@ Templates que já foram utilizados em checklists podem ser visualizados em modo 
 - Ícone de olho (Eye) substitui o botão de edição desabilitado na listagem
 - Navegação para página de template com `readOnly=true`
 - Edição estrutural bloqueada, apenas visualização
+
+---
+
+## 10. Checklists Baseados em Nível
+
+### 10.1 Visão Geral
+
+Templates level-based permitem avaliar produtores em **níveis progressivos de maturidade** (ex: Nível II → V). O sistema combina:
+- **Classificações de itens** (E/I/A) com percentuais mínimos de aprovação
+- **Perguntas de escopo** que personalizam o checklist ao contexto do produtor
+- **Bloqueio de avanço** para itens críticos
+- **Modo acumulativo** onde cada nível inclui todos os anteriores
+
+### 10.2 Fluxo Completo
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Supervisor  │────▶│  Seleciona   │────▶│  Seleciona   │
+│              │     │   Template   │     │  Nível Alvo  │
+│              │     │  Level-Based │     │  (ex: III)   │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                     ┌────────────────────────────┘
+                     │
+                     ▼
+              ┌──────────────┐     ┌──────────────┐
+              │  Produtor    │────▶│  Responde    │
+              │  acessa link │     │  Escopo      │
+              └──────────────┘     │  (5 perguntas)│
+                                   └──────┬───────┘
+                                          │
+                     ┌────────────────────┘
+                     │
+                     ▼
+              ┌──────────────────────────────────────┐
+              │  Sistema aplica condições:            │
+              │  - Colaboradores = 0 → remove itens  │
+              │  - Moradores = 0 → remove itens      │
+              │  - Filtra por nível alvo (I+II+III)  │
+              └──────────────┬───────────────────────┘
+                              │
+                              ▼
+              ┌──────────────┐     ┌──────────────┐
+              │  Produtor    │────▶│  Supervisor  │
+              │  responde    │     │  revisa e    │
+              │  itens       │     │  vê badge    │
+              │  filtrados   │     │  "Nível II   │
+              └──────────────┘     │   Atingido"  │
+                                   └──────────────┘
+```
+
+### 10.3 Cálculo de Nível Atingido
+
+O sistema calcula o nível atingido verificando, para cada nível (do menor ao maior):
+
+| Verificação | Condição |
+|-------------|----------|
+| Itens Essenciais (E) | 100% aprovados |
+| Itens Importantes (I) | ≥ 80% aprovados |
+| Itens Aspiracionais (A) | ≥ 50% aprovados |
+| Itens de bloqueio | Nenhum item bloqueante em não conformidade |
+| Itens sem classificação | 100% aprovados |
+
+O **maior nível** que atende todas as condições é o nível atingido.
+
+**Endpoint:** `GET /api/checklists/[id]/level-achievement`
+
+### 10.4 Perguntas de Escopo
+
+Respondidas pelo produtor antes do preenchimento do checklist:
+
+```
+┌────────────────────────────────────────┐
+│         TELA DE ESCOPO                  │
+│                                         │
+│  Nº de colaboradores: [  3  ]          │
+│  Quantos moram na fazenda?: [  1  ]    │
+│  Área Total (ha): [ 150 ]              │
+│  Utiliza irrigação?: [Sim] [Não]       │
+│  Tem prestação de serviço?: [Sim] [Não]│
+│                                         │
+│         [Continuar para Checklist]      │
+└────────────────────────────────────────┘
+```
+
+**Regras:**
+- Se "Colaboradores = 0": ~15 itens trabalhistas são removidos
+- Se "Moradores = 0": item de instalações removido
+- Escopo é editável pelo supervisor via botão "Escopo" no painel de auditoria
+- Escopo é salvo por checklist (`ScopeAnswer`)
+
+---
+
+## 11. Checklists Contínuos com Níveis
+
+### 11.1 Herança de Escopo
+
+Em checklists contínuos (CORRECTION/COMPLETION), o escopo **vive no checklist pai**:
+
+```
+┌─────────────────────────────────────────┐
+│  Checklist PAI (ORIGINAL)               │
+│  scopeAnswers: [colab=3, morad=1, ...]  │
+│  targetLevel: Nível II                  │
+│                                         │
+│  ✅ Supervisor pode editar escopo       │
+│  ✅ Produtor respondeu escopo           │
+└─────────────────┬───────────────────────┘
+                  │
+     ┌────────────┴────────────┐
+     │                         │
+     ▼                         ▼
+┌──────────────────┐   ┌──────────────────┐
+│ CORRECTION       │   │ COMPLETION       │
+│ scopeAnswers:    │   │ scopeAnswers:    │
+│ HERDA DO PAI     │   │ HERDA DO PAI     │
+│                  │   │                  │
+│ ❌ Sem botão     │   │ ❌ Sem botão     │
+│    de escopo     │   │    de escopo     │
+│ ❌ Sem tela de   │   │ ❌ Sem tela de   │
+│    escopo        │   │    escopo        │
+│ ✅ Condições     │   │ ✅ Condições     │
+│    aplicadas     │   │    aplicadas     │
+│    silenciosam.  │   │    silenciosam.  │
+└──────────────────┘   └──────────────────┘
+```
+
+### 11.2 Escalação de Nível no COMPLETION
+
+Ao criar um COMPLETION, o supervisor pode **escalar o nível alvo**:
+
+```
+┌──────────────────────────────────────────────────────┐
+│              PartialFinalizeModal                      │
+│                                                       │
+│  [✓] Gerar Checklist de Correção                     │
+│  [✓] Gerar Checklist de Complemento                  │
+│                                                       │
+│  ┌────────────────────────────────────────────────┐   │
+│  │  Nível do Complemento                          │   │
+│  │                                                │   │
+│  │  (●) Manter nível atual (Nível II)            │   │
+│  │  ( ) Escalar para Nível III                    │   │
+│  │  ( ) Escalar para Nível IV                     │   │
+│  │  ( ) Escalar para Nível V                      │   │
+│  └────────────────────────────────────────────────┘   │
+│                                                       │
+│  [✓] Gerar Plano de Ação (IA)                        │
+│                                                       │
+│         [Cancelar]  [Finalizar Parcial]              │
+└──────────────────────────────────────────────────────┘
+```
+
+### 11.3 Fluxo de Escalação
+
+```
+Supervisor revisa checklist Nível II
+         │
+         ▼
+Clica "Finalização Parcial"
+         │
+         ▼
+Seleciona COMPLETION + "Escalar para Nível III"
+         │
+         ▼
+POST /api/checklists/[id]/partial-finalize
+  body: { createCompletion: true, completionTargetLevelId: "nvIII" }
+         │
+         ├──▶ Pai.targetLevelId = Nível III  (atualizado imediatamente)
+         │
+         └──▶ Cria COMPLETION:
+                - targetLevelId = Nível III
+                - Itens faltantes do Nível II (MISSING)
+                - Todos os itens do Nível III (MISSING)
+                - Sem scopeAnswers próprias (herda do pai)
+         │
+         ▼
+Produtor recebe COMPLETION
+  - Não vê tela de escopo
+  - Vê itens Nível II (faltantes) + Nível III (todos)
+  - Condições de escopo aplicadas silenciosamente
+         │
+         ▼
+Supervisor finaliza COMPLETION
+  - Respostas sincronizadas para o pai
+  - Pai agora tem respostas Nível II + III
+  - Badge de nível atingido atualizado
+```
 
 ---
 

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         }
 
         const workspaceId = getCreateWorkspaceId(session);
-        const { templateId, producerId, subUserId, sentVia, sentTo, prefillFromChecklistId } = await req.json();
+        const { templateId, producerId, subUserId, sentVia, sentTo, prefillFromChecklistId, targetLevelId } = await req.json();
 
         // If NOT Admin/SuperAdmin, check if assigned to this producer
         if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN" && producerId) {
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
                 sentVia: sentVia || null,
                 sentTo: sentTo || null,
                 createdById: session.user.id,
+                targetLevelId: targetLevelId || null,
             },
             include: {
                 template: {
@@ -97,6 +98,20 @@ export async function POST(req: Request) {
                         validity: resp.validity,
                         status: 'PENDING_VERIFICATION', // Requires re-verification
                     }))
+                });
+            }
+
+            // Also copy scope answers from source checklist
+            const sourceScopeAnswers = await db.scopeAnswer.findMany({
+                where: { checklistId: prefillFromChecklistId },
+            });
+            if (sourceScopeAnswers.length > 0) {
+                await db.scopeAnswer.createMany({
+                    data: sourceScopeAnswers.map(sa => ({
+                        checklistId: checklist.id,
+                        scopeFieldId: sa.scopeFieldId,
+                        value: sa.value,
+                    })),
                 });
             }
         }
@@ -214,7 +229,14 @@ export async function GET(req: Request) {
                     select: {
                         name: true,
                         folder: true,
+                        isLevelBased: true,
                     },
+                },
+                targetLevel: {
+                    select: { id: true, name: true, order: true },
+                },
+                achievedLevel: {
+                    select: { id: true, name: true, order: true },
                 },
                 producer: {
                     select: {

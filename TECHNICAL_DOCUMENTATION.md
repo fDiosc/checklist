@@ -1,7 +1,7 @@
 # Documentação Técnica: MerX Platform
 
-> **Versão:** 5.2  
-> **Última atualização:** 06 Fevereiro 2026  
+> **Versão:** 6.0  
+> **Última atualização:** 07 Fevereiro 2026  
 > **Documentação completa:** [docs/](./docs/)
 
 Este documento descreve a implementação técnica do MerX Platform, incluindo multi-tenancy, autenticação, hierarquia de checklists e internacionalização.
@@ -758,4 +758,148 @@ S3_REGION=us-east-1
 S3_ACCESS_KEY=<access-key>
 S3_SECRET_KEY=<secret-key>
 # S3_ENDPOINT=  # Opcional, para S3-compatible storage
+```
+
+---
+
+## 11. Sistema de Níveis (Level-Based Checklists)
+
+### 11.1 Conceito
+
+Templates podem ser configurados como **level-based** (`isLevelBased: true`), adicionando uma camada de avaliação por níveis hierárquicos. Cada nível tem requisitos específicos baseados em classificações de itens, e o sistema calcula automaticamente o nível atingido pelo produtor.
+
+### 11.2 Modelo de Dados
+
+```prisma
+// Novos modelos para templates level-based
+model TemplateLevel {
+  id         String @id @default(cuid())
+  templateId String @map("template_id")
+  name       String   // Ex: "Nível II", "Nível III"
+  order      Int      // 0, 1, 2, 3...
+
+  template   Template @relation(...)
+  sections   Section[]
+  targetChecklists  Checklist[] @relation("TargetLevel")
+  achievedChecklists Checklist[] @relation("AchievedLevel")
+  blockedItems Item[] @relation("BlocksAdvancementToLevel")
+}
+
+model TemplateClassification {
+  id                 String @id @default(cuid())
+  templateId         String
+  name               String   // "Essencial", "Importante", "Aspiracional"
+  code               String   // "E", "I", "A"
+  requiredPercentage Float    // 100, 80, 50
+  order              Int
+}
+
+model ScopeField {
+  id         String @id @default(cuid())
+  templateId String
+  label      String   // "Nº de colaboradores"
+  type       String   // "NUMBER", "TEXT", "SELECT"
+  options    Json?    // Para SELECT: [{ label, value }]
+  order      Int
+}
+
+model ItemCondition {
+  id           String @id @default(cuid())
+  itemId       String
+  scopeFieldId String
+  operator     String   // "EQ", "NEQ", "GT", "LT", "GTE", "LTE"
+  value        String   // "0"
+  action       String   // "REMOVE" | "OPTIONAL"
+}
+
+model ScopeAnswer {
+  id           String @id @default(cuid())
+  checklistId  String
+  scopeFieldId String
+  value        String
+
+  @@unique([checklistId, scopeFieldId])
+}
+```
+
+**Campos adicionados a modelos existentes:**
+- `Template`: `isLevelBased`, `levelAccumulative`
+- `Section`: `levelId` (null = global)
+- `Item`: `classificationId`, `blocksAdvancementToLevelId`
+- `Checklist`: `targetLevelId`, `achievedLevelId`
+
+### 11.3 Fluxo de Configuração (Editor de Template)
+
+O editor de templates (`TemplateForm.tsx`) foi estendido com abas para:
+
+1. **Aba Níveis**: Definir nome e ordem dos níveis
+2. **Aba Classificações**: Definir classificações (E/I/A) com percentuais
+3. **Aba Escopo**: Criar perguntas de escopo (NUMBER, TEXT, SELECT)
+4. **Aba Seções**: Associar seção a um nível (ou deixar global)
+5. **Aba Itens**: Selecionar classificação e bloqueio de avanço por item
+6. **Aba Condições**: Configurar condições de remoção/opção por item baseadas em escopo
+
+**Transformação de dados**: O editor usa índices de array internamente. Ao carregar dados da API (que retorna IDs), um `useEffect` converte IDs para índices. Ao salvar, converte de volta.
+
+### 11.4 Fluxo do Produtor (Checklist Form)
+
+1. **Tela de escopo** (`showScopeForm`): Exibida antes do checklist se há perguntas de escopo não respondidas
+2. **Salvamento**: `PUT /api/checklists/[id]/scope-answers`
+3. **Filtragem**: `computedSections` aplica `isItemActiveByConditions()` e `isSectionForTargetLevel()`
+4. **Para checklists filhos**: Escopo carregado via API (retorna do pai), tela de escopo não é exibida
+
+### 11.5 Fluxo do Supervisor (Checklist Management)
+
+1. **Badge de nível**: Exibido no header, atualiza via `fetchLevelAchievement()`
+2. **Botão Escopo**: Abre modal para visualizar/editar respostas de escopo (oculto para filhos)
+3. **Filtragem**: `computedSections` aplica as mesmas funções do produtor
+4. **Modal de Finalização Parcial**: Exibe seletor de nível quando `isLevelBased && createCompletion`
+
+### 11.6 Cálculo de Nível Atingido
+
+**Endpoint:** `GET /api/checklists/[id]/level-achievement`
+
+**Algoritmo:**
+```
+Para cada nível (do menor ao maior):
+  1. Filtrar seções do nível (acumulativo: inclui anteriores)
+  2. Filtrar itens ativos (não removidos por condições de escopo)
+  3. Verificar itens de bloqueio de avanço
+  4. Para cada classificação (E/I/A):
+     - Contar itens required dessa classificação
+     - Contar aprovados
+     - Verificar se % >= requiredPercentage
+  5. Nível atingido se:
+     - Todas as classificações atingiram percentual
+     - Itens sem classificação 100% aprovados
+     - Nenhum item de bloqueio pendente
+```
+
+### 11.7 Checklists Contínuos com Níveis
+
+#### Herança de Escopo
+- Checklists filhos **nunca** possuem `scopeAnswers` próprias
+- `GET /api/checklists/[id]/scope-answers`: Se filho, retorna do pai
+- `PUT /api/checklists/[id]/scope-answers`: Se filho, retorna 403
+- UI do supervisor: Botão "Escopo" oculto para filhos (`!checklist.parentId`)
+- UI do produtor: Tela de escopo não exibida para filhos, condições aplicadas silenciosamente
+- Queries Prisma: `page.tsx` inclui `parent.scopeAnswers` e substitui para filhos
+
+#### Escalação de Nível no COMPLETION
+- `PartialFinalizeModal` recebe `isLevelBased`, `templateLevels`, `currentTargetLevelId`
+- Mostra seletor de nível com opções > nível atual quando COMPLETION está selecionado
+- Envia `completionTargetLevelId` no `onConfirm`
+- API `partial-finalize`:
+  - COMPLETION: `targetLevelId` = `completionTargetLevelId || checklist.targetLevelId`
+  - CORRECTION: herda `targetLevelId` do pai
+  - Se escalação: cria responses MISSING para itens dos novos níveis
+  - Se escalação: atualiza `targetLevelId` do pai imediatamente
+- `level-achievement`: Usa `parent.scopeAnswers` quando o checklist é filho
+
+#### APIs:
+```
+GET  /api/checklists/[id]/scope-answers     → Herda do pai
+PUT  /api/checklists/[id]/scope-answers     → 403 para filhos
+GET  /api/checklists/[id]/level-achievement → Usa scope do pai para filhos
+POST /api/checklists/[id]/partial-finalize  → completionTargetLevelId
 ```

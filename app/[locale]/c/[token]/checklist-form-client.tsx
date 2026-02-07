@@ -45,10 +45,67 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     const [showFieldSelection, setShowFieldSelection] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [isFileUploading, setIsFileUploading] = useState(false);
+    const [scopeAnswers, setScopeAnswers] = useState<Record<string, string>>({});
+    const [showScopeForm, setShowScopeForm] = useState(false);
+    const [scopeSaving, setScopeSaving] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    // Check if this is a level-based checklist
+    const isLevelBased = checklist.template?.isLevelBased ?? false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scopeFields = (checklist.template?.scopeFields || []) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const templateLevels = (checklist.template?.levels || []) as any[];
+    const targetLevelId = checklist.targetLevelId;
+    const levelAccumulative = checklist.template?.levelAccumulative ?? false;
+
+    const isChildChecklist_scope = !!checklist.parentId;
+
+    // Load scope answers on mount (for children, API returns parent's answers)
+    useEffect(() => {
+        if (isLevelBased && scopeFields.length > 0) {
+            fetch(`/api/checklists/${checklist.id}/scope-answers`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        const answers: Record<string, string> = {};
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        data.forEach((a: any) => { answers[a.scopeFieldId] = a.value; });
+                        setScopeAnswers(answers);
+                        // Show scope form only for parent checklists if answers are missing
+                        if (!isChildChecklist_scope) {
+                            const allAnswered = scopeFields.every(sf => answers[sf.id]);
+                            if (!allAnswered) setShowScopeForm(true);
+                        }
+                    }
+                })
+                .catch(console.error);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLevelBased, checklist.id, isChildChecklist_scope]);
+
+    const saveScopeAnswers = async () => {
+        setScopeSaving(true);
+        try {
+            const answers = Object.entries(scopeAnswers).map(([scopeFieldId, value]) => ({
+                scopeFieldId,
+                value,
+            }));
+            await fetch(`/api/checklists/${checklist.id}/scope-answers`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers }),
+            });
+            setShowScopeForm(false);
+        } catch (e) {
+            console.error("Failed to save scope answers", e);
+        } finally {
+            setScopeSaving(false);
+        }
+    };
 
     const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
 
@@ -142,9 +199,63 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
         return plans.filter((p: { isPublished: boolean }) => p.isPublished);
     }, [checklist.actionPlans, checklist.parent?.actionPlans]);
 
-    const computedSections = useMemo(() => {
-        const sections = checklist.template.sections;
+    // ─── Level & Condition Filtering Helpers ───
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isItemActiveByConditions = (item: any): boolean => {
+        if (!item.conditions || item.conditions.length === 0) return true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const cond of item.conditions) {
+            const scopeValue = scopeAnswers[cond.scopeFieldId];
+            if (!scopeValue) continue;
+            const numVal = parseFloat(scopeValue);
+            const condVal = parseFloat(cond.value);
+            let match = false;
+            switch (cond.operator) {
+                case 'EQ': match = scopeValue === cond.value; break;
+                case 'NEQ': match = scopeValue !== cond.value; break;
+                case 'GT': match = numVal > condVal; break;
+                case 'LT': match = numVal < condVal; break;
+                case 'GTE': match = numVal >= condVal; break;
+                case 'LTE': match = numVal <= condVal; break;
+            }
+            if (match && cond.action === 'REMOVE') return false;
+        }
+        return true;
+    };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isSectionForTargetLevel = (section: any): boolean => {
+        if (!isLevelBased || !targetLevelId) return true; // Non-level or no target -> show all
+        if (!section.levelId) return true; // Global section -> always show
+        if (levelAccumulative) {
+            // Show sections for levels up to and including target
+            const targetLevel = templateLevels.find((l: { id: string }) => l.id === targetLevelId);
+            const sectionLevel = templateLevels.find((l: { id: string }) => l.id === section.levelId);
+            if (!targetLevel || !sectionLevel) return true;
+            return sectionLevel.order <= targetLevel.order;
+        }
+        return section.levelId === targetLevelId;
+    };
+
+    const computedSections = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let sections = checklist.template.sections as any[];
+
+        // 1. Filter by level
+        if (isLevelBased) {
+            sections = sections.filter(isSectionForTargetLevel);
+        }
+
+        // 2. Filter items by conditions
+        if (isLevelBased) {
+            sections = sections.map((section: { items: unknown[] }) => ({
+                ...section,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                items: section.items.filter((item: any) => isItemActiveByConditions(item)),
+            })).filter((section: { items: unknown[] }) => section.items.length > 0);
+        }
+
+        // 3. Expand iterable sections by field
         if (selectedFieldIds.length > 0) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newSections: any[] = [];
@@ -158,7 +269,6 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                         const field = allFields.find((f: any) => f.id === fieldId);
                         const fieldName = field?.name || `Talhão ${fieldId}`;
 
-                        // Filter items for child checklists
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const filteredItems = section.items
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -180,7 +290,6 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                         }
                     });
                 } else {
-                    // For non-iterating sections, also filter items for child checklists
                     if (isChildChecklist) {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const filteredItems = section.items.filter((item: any) => responseItemIds.has(item.id));
@@ -209,7 +318,8 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
         }
 
         return sections;
-    }, [checklist.template.sections, selectedFieldIds, checklist.producer?.maps, isChildChecklist, responseItemIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [checklist.template.sections, selectedFieldIds, checklist.producer?.maps, isChildChecklist, responseItemIds, isLevelBased, targetLevelId, scopeAnswers]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allItems: any[] = useMemo(() =>
@@ -371,6 +481,100 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
 
         setShowFieldSelection(false);
     };
+
+    // ─── Scope Form Screen ───
+    if (showScopeForm && isLevelBased && scopeFields.length > 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex items-center justify-center p-4 md:p-8">
+                <div className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl shadow-slate-200/60 overflow-hidden animate-scale-up">
+                    <div className="p-10 md:p-14">
+                        <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-8">
+                            <ClipboardList size={32} />
+                        </div>
+
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-4">
+                            {t('levelChecklist.scopeTitle')}
+                        </h2>
+                        <p className="text-slate-500 font-medium text-sm leading-relaxed mb-10">
+                            {t('levelChecklist.scopeDescription')}
+                        </p>
+
+                        <div className="space-y-6">
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            {scopeFields.map((sf: any) => (
+                                <div key={sf.id} className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {sf.name}
+                                    </label>
+                                    {sf.type === 'NUMBER' && (
+                                        <input
+                                            type="number"
+                                            value={scopeAnswers[sf.id] || ''}
+                                            onChange={e => setScopeAnswers(prev => ({ ...prev, [sf.id]: e.target.value }))}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all text-lg"
+                                            placeholder="0"
+                                        />
+                                    )}
+                                    {sf.type === 'YES_NO' && (
+                                        <div className="flex gap-3">
+                                            {[
+                                                { value: 'Sim', label: t('levelChecklist.scopeYes') },
+                                                { value: 'Não', label: t('levelChecklist.scopeNo') },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    onClick={() => setScopeAnswers(prev => ({ ...prev, [sf.id]: opt.value }))}
+                                                    className={`flex-1 p-4 rounded-2xl border-2 font-bold text-sm transition-all ${
+                                                        scopeAnswers[sf.id] === opt.value
+                                                            ? 'border-primary bg-primary/5 text-primary'
+                                                            : 'border-slate-100 text-slate-500 hover:border-slate-200'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {sf.type === 'TEXT' && (
+                                        <input
+                                            type="text"
+                                            value={scopeAnswers[sf.id] || ''}
+                                            onChange={e => setScopeAnswers(prev => ({ ...prev, [sf.id]: e.target.value }))}
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all text-sm"
+                                        />
+                                    )}
+                                    {sf.type === 'SELECT' && (
+                                        <div className="relative">
+                                            <select
+                                                value={scopeAnswers[sf.id] || ''}
+                                                onChange={e => setScopeAnswers(prev => ({ ...prev, [sf.id]: e.target.value }))}
+                                                className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all text-sm appearance-none pr-10"
+                                            >
+                                                <option value="">{t('common.none')}</option>
+                                                {(sf.options || []).map((opt: string) => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-10 flex gap-4">
+                            <button
+                                onClick={saveScopeAnswers}
+                                disabled={scopeSaving}
+                                className="flex-1 px-8 py-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+                            >
+                                {scopeSaving ? t('common.saving') : t('common.confirm')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (showFieldSelection) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

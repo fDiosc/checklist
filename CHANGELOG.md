@@ -2,6 +2,84 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.6.0] - 2026-02-07
+
+### 🎯 Checklists de Nível e Checklists Contínuos Level-Aware
+
+Esta versão introduz o sistema completo de **checklists baseados em nível** e a integração desses níveis com **checklists contínuos** (CORRECTION/COMPLETION), permitindo escalação de nível e herança de escopo.
+
+#### ✨ Novas Funcionalidades
+
+##### 1. Sistema de Níveis em Templates
+- **Níveis configuráveis:** Templates podem ter múltiplos níveis hierárquicos (ex: Nível II, III, IV, V) com modo acumulativo ou independente.
+- **Classificações de itens (E/I/A):** Cada item recebe uma classificação com percentual de aprovação exigido (Essencial 100%, Importante 80%, Aspiracional 50%).
+- **Perguntas de escopo:** Campos dinâmicos (numérico, texto, seleção) que determinam quais itens se aplicam ao produtor antes do preenchimento.
+- **Condições por item:** Itens podem ser removidos ou tornados opcionais com base nas respostas de escopo (ex: "Colaboradores = 0" remove itens trabalhistas).
+- **Bloqueio de avanço:** Itens críticos podem bloquear o avanço para um nível superior se não estiverem em conformidade.
+- **Nível alvo:** Supervisor seleciona o nível alvo ao enviar o checklist, filtrando apenas itens relevantes.
+- **Editor de template:** Abas para configuração de níveis, classificações, perguntas de escopo e mapa de condições no editor de templates existente.
+
+##### 2. Cálculo de Nível Atingido
+- **API de level-achievement:** Endpoint que calcula dinamicamente o nível atingido com base nas respostas, classificações e bloqueios.
+- **Badge dinâmico:** Badge "Nível Atingido" na visão do supervisor que atualiza em tempo real conforme respostas são aprovadas/rejeitadas.
+- **Progresso por classificação:** Breakdown de conformidade por classificação (E/I/A) em cada nível.
+
+##### 3. Escopo na Visão do Supervisor
+- **Botão Escopo:** Supervisores podem visualizar e editar respostas de escopo via modal dedicado (botão amber na barra de ações).
+- **Filtragem dinâmica:** Itens e seções filtrados por nível alvo e condições de escopo, tanto na visão do produtor quanto do supervisor.
+
+##### 4. Checklists Contínuos com Suporte a Níveis
+- **Herança de escopo:** Checklists filhos (CORRECTION/COMPLETION) herdam automaticamente as respostas de escopo do pai. Não possuem escopo próprio.
+- **Escopo silencioso:** Na visão do produtor, checklists filhos não exibem a tela de escopo mas aplicam as condições do pai para filtragem de itens.
+- **Bloqueio de edição de escopo em filhos:** API retorna 403 ao tentar editar escopo de checklists filhos. O botão de escopo é escondido na UI do supervisor para filhos.
+- **Escalação de nível no COMPLETION:** Ao criar um checklist de complemento, o supervisor pode escalar o nível alvo (ex: de Nível II para Nível III).
+- **Seletor de nível no modal:** O PartialFinalizeModal agora exibe um seletor de nível quando o template é level-based e COMPLETION está selecionado, mostrando apenas níveis superiores ao atual.
+- **Itens de novos níveis:** O checklist COMPLETION inclui automaticamente itens dos novos níveis + itens faltantes dos níveis anteriores.
+- **Atualização imediata do pai:** Ao criar um COMPLETION com escalação, o `targetLevelId` do checklist pai é atualizado imediatamente.
+- **CORRECTION herda nível:** Checklists de correção herdam o `targetLevelId` do pai.
+
+##### 5. Template "Auditoria Interna - Programa Agrária de Gestão Rural"
+- **Template injetado:** Template completo com 85 itens, 9 seções, 4 níveis (II-V), 3 classificações (E/I/A), 5 perguntas de escopo, 16 condições e 5 regras de bloqueio.
+- **Documentação:** `checklist_nivel/REGRAS_CHECKLIST.md` com todas as regras e estrutura do template.
+
+#### 🔧 Melhorias Técnicas
+
+##### Novos Modelos Prisma
+- **`TemplateLevel`**: Níveis do template (name, order).
+- **`TemplateClassification`**: Classificações (name, code, requiredPercentage).
+- **`ScopeField`**: Perguntas de escopo (label, type, options, order).
+- **`ItemCondition`**: Condições de item baseadas em escopo (operator, value, action).
+- **`ScopeAnswer`**: Respostas de escopo por checklist (checklistId + scopeFieldId unique).
+- **Campos em Template:** `isLevelBased`, `levelAccumulative`.
+- **Campos em Item:** `classificationId`, `blocksAdvancementToLevelId`.
+- **Campos em Section:** `levelId`.
+- **Campos em Checklist:** `targetLevelId`, `achievedLevelId`.
+
+##### Novos Endpoints
+- `GET /api/checklists/[id]/scope-answers` — Retorna respostas de escopo (herda do pai para filhos).
+- `PUT /api/checklists/[id]/scope-answers` — Salva respostas de escopo (bloqueado para filhos, retorna 403).
+- `GET /api/checklists/[id]/level-achievement` — Calcula nível atingido com progresso por classificação.
+- `POST /api/checklists/[id]/partial-finalize` — Atualizado para aceitar `completionTargetLevelId` e criar itens dos novos níveis.
+
+##### Alterações em Endpoints Existentes
+- **`POST /api/checklists/[id]/partial-finalize`**: Aceita `completionTargetLevelId`, cria itens dos novos níveis, atualiza `targetLevelId` do pai. CORRECTION herda `targetLevelId`.
+
+##### Queries Prisma Atualizadas
+- Página do supervisor (`page.tsx`): Inclui `parent.scopeAnswers` para checklists filhos.
+- Página do produtor (`page.tsx`): Inclui `parent.scopeAnswers` na query do parent.
+
+##### Componentes Atualizados
+- **`PartialFinalizeModal`**: Novas props (`isLevelBased`, `templateLevels`, `currentTargetLevelId`), seletor de nível para COMPLETION.
+- **`TemplateForm`**: Transformação de IDs em índices para exibir condições corretamente no editor.
+- **`checklist-management-client`**: Badge de nível dinâmico, botão de escopo, filtragem por nível e condições.
+- **`checklist-form-client`**: Tela de escopo para produtor, filtragem de itens por condições, escopo silencioso para filhos.
+
+#### 🌐 Internacionalização
+- Novas chaves `levelChecklist.*` (scopeAnswers, scopeAnswersDescription, noScopeFields, notAnswered, scopeSaved, scopeSaveError, calculatingLevel, levelAchievedBadge, noResponses) nos 3 locales.
+- Novas chaves `modals.partialFinalize.*` (completionLevel, completionLevelDesc, keepCurrentLevel, escalateToLevel) nos 3 locales.
+
+---
+
 ## [V 0.5.2] - 2026-02-06
 
 ### 🔧 Página Settings, Toggle Admin IA e Gemini 3 Flash

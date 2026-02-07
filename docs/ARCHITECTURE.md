@@ -1,7 +1,7 @@
 # Arquitetura Técnica - MerX Platform
 
-> **Versão:** 5.2  
-> **Última atualização:** 06 Fevereiro 2026  
+> **Versão:** 6.0  
+> **Última atualização:** 07 Fevereiro 2026  
 > **Status:** Produção
 
 ## Índice
@@ -403,6 +403,109 @@ export async function GET(req: Request) {
 - API Routes: try/catch com NextResponse.json({ error }, { status })
 - Frontend: React Query error boundaries
 - Logging: console.error para erros críticos
+
+---
+
+## 7. Sistema de Níveis (Level-Based Checklists)
+
+### 7.1 Visão Geral
+
+O sistema de níveis permite criar templates com hierarquia de maturidade progressiva, onde cada nível tem requisitos específicos por classificação de item. A arquitetura suporta:
+
+- **Níveis configuráveis** com modo acumulativo ou independente
+- **Classificações de itens** (E/I/A) com percentuais de aprovação
+- **Perguntas de escopo** que filtram itens por contexto do produtor
+- **Condições dinâmicas** (REMOVE/OPTIONAL) baseadas em respostas de escopo
+- **Bloqueio de avanço** para itens críticos
+- **Herança de escopo** em checklists contínuos
+
+### 7.2 Diagrama de Arquitetura
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     TEMPLATE LEVEL-BASED                        │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────┐  │
+│  │ TemplateLevel│  │TemplateClassif.  │  │   ScopeField      │  │
+│  │ II, III, IV  │  │ E=100%, I=80%    │  │ Nº colaboradores  │  │
+│  │              │  │ A=50%            │  │ Área total (ha)   │  │
+│  └──────┬───────┘  └────────┬─────────┘  └──────┬────────────┘  │
+│         │                   │                    │               │
+│         ▼                   ▼                    ▼               │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
+│  │  Section     │  │    Item      │  │   ItemCondition       │  │
+│  │  levelId     │  │  classifId   │  │   scopeFieldId        │  │
+│  │              │  │  blocksAdv.  │  │   operator + value    │  │
+│  │              │  │              │  │   action (REMOVE/OPT) │  │
+│  └──────────────┘  └──────────────┘  └───────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        CHECKLIST                                 │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
+│  │ targetLevel  │  │ achievedLevel│  │   ScopeAnswer[]       │  │
+│  │ (seleção do  │  │ (calculado   │  │   (respondidas pelo   │  │
+│  │  supervisor) │  │  pelo sistema)│ │    produtor/supervisor)│  │
+│  └──────────────┘  └──────────────┘  └───────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.3 Fluxo de Dados
+
+```
+1. Supervisor envia checklist com targetLevel = Nível III
+2. Produtor abre checklist e responde perguntas de escopo
+3. Sistema aplica condições: remove/torna opcionais itens por escopo
+4. UI filtra seções/itens por nível alvo (acumulativo: I+II+III)
+5. Produtor responde itens filtrados
+6. API level-achievement calcula nível atingido:
+   - Para cada nível: verifica % por classificação
+   - Verifica itens de bloqueio de avanço
+   - Retorna maior nível atingido
+```
+
+### 7.4 Herança de Escopo em Checklists Contínuos
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Checklist PAI (ORIGINAL)                                        │
+│  targetLevel: Nível II                                           │
+│  scopeAnswers: [colab=3, moradores=1, area=150]                  │
+│                                                                  │
+│  ┌─────────────────────────────────┐                              │
+│  │ Finalização Parcial             │                              │
+│  │ -> COMPLETION com escalação     │                              │
+│  │    completionTargetLevel: III   │                              │
+│  └──────────┬──────────────────────┘                              │
+│             │                                                     │
+│  targetLevel atualizado para III ◀─────────── Imediato           │
+└──────────────────────────────────────────────────────────────────┘
+              │
+              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  Checklist FILHO (COMPLETION)                                    │
+│  targetLevel: Nível III                                          │
+│  scopeAnswers: HERDA DO PAI (sem registro próprio)               │
+│  Itens: faltantes Nível II + todos Nível III                     │
+│                                                                  │
+│  - UI NÃO mostra tela de escopo                                  │
+│  - API scope-answers retorna respostas do pai                    │
+│  - API scope-answers bloqueia PUT (403)                          │
+│  - Condições aplicadas silenciosamente via escopo do pai         │
+│  - API level-achievement usa scopeAnswers do pai                 │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### 7.5 APIs do Sistema de Níveis
+
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/api/checklists/[id]/scope-answers` | GET | Retorna scope answers (herda do pai para filhos) |
+| `/api/checklists/[id]/scope-answers` | PUT | Salva scope answers (bloqueado para filhos) |
+| `/api/checklists/[id]/level-achievement` | GET | Calcula nível atingido com breakdown |
+| `/api/checklists/[id]/partial-finalize` | POST | Finalização parcial com `completionTargetLevelId` |
 
 ---
 

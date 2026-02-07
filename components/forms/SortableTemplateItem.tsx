@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Trash2, X, ChevronDown, Sparkles, GripVertical } from 'lucide-react';
+import { Trash2, X, ChevronDown, ChevronUp, Sparkles, GripVertical, Plus, Settings2 } from 'lucide-react';
 import Checkbox from '@/components/ui/Checkbox';
 import { useTranslations } from 'next-intl';
 
@@ -18,6 +19,19 @@ const ITEM_TYPES_KEYS = [
     { value: 'FIELD_SELECTOR', labelKey: 'template.itemTypes.fieldSelector' },
 ];
 
+const OPERATORS = [
+    { value: 'EQ', labelKey: 'template.form.operatorEQ' },
+    { value: 'NEQ', labelKey: 'template.form.operatorNEQ' },
+    { value: 'GT', labelKey: 'template.form.operatorGT' },
+    { value: 'LT', labelKey: 'template.form.operatorLT' },
+    { value: 'GTE', labelKey: 'template.form.operatorGTE' },
+    { value: 'LTE', labelKey: 'template.form.operatorLTE' },
+];
+
+interface LevelRef { name: string; order: number }
+interface ClassificationRef { name: string; code: string }
+interface ScopeFieldRef { name: string; type: string }
+
 interface SortableTemplateItemProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     item: any;
@@ -26,10 +40,19 @@ interface SortableTemplateItemProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onUpdate: (sectionId: string, itemId: string, updates: any) => void;
     onRemove: (sectionId: string, itemId: string) => void;
+    isLevelBased?: boolean;
+    levels?: LevelRef[];
+    classifications?: ClassificationRef[];
+    scopeFields?: ScopeFieldRef[];
 }
 
-export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRemove }: SortableTemplateItemProps) {
+export function SortableTemplateItem({
+    item, sectionId, readOnly, onUpdate, onRemove,
+    isLevelBased = false, levels = [], classifications = [], scopeFields = []
+}: SortableTemplateItemProps) {
     const t = useTranslations();
+    const [advancedOpen, setAdvancedOpen] = useState(false);
+    const hasAdvancedConfig = isLevelBased || item.responsible || item.reference || item.allowNA;
     const {
         attributes,
         listeners,
@@ -237,7 +260,7 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                             <div className="w-full pt-4 animate-fade-in">
                                 <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 flex items-start gap-4">
                                     <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-                                        < Sparkles size={18} />
+                                        <Sparkles size={18} />
                                     </div>
                                     <div>
                                         <p className="text-amber-900 font-bold text-sm">{t('template.form.importantInfo')}</p>
@@ -246,6 +269,216 @@ export function SortableTemplateItem({ item, sectionId, readOnly, onUpdate, onRe
                                         </p>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Advanced Settings Expander */}
+                        {hasAdvancedConfig && (
+                            <div className="w-full pt-4 border-t border-slate-100 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setAdvancedOpen(!advancedOpen)}
+                                    className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                >
+                                    <Settings2 size={12} />
+                                    {t('template.form.advancedSettings')}
+                                    {advancedOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                </button>
+
+                                {advancedOpen && (
+                                    <div className="mt-4 space-y-4 animate-fade-in">
+                                        {/* Row 1: Classification + Blocks Advancement */}
+                                        {isLevelBased && (
+                                            <div className="flex flex-wrap gap-4">
+                                                {classifications.length > 0 && (
+                                                    <div className="flex-1 min-w-[180px]">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('template.form.classification')}</label>
+                                                        <div className="relative">
+                                                            <select
+                                                                disabled={readOnly}
+                                                                value={item.classificationIndex ?? ''}
+                                                                onChange={e => {
+                                                                    const val = e.target.value === '' ? null : Number(e.target.value);
+                                                                    onUpdate(sectionId, item.id, { classificationIndex: val });
+                                                                }}
+                                                                className="w-full p-2.5 bg-white border border-slate-100 rounded-xl font-bold text-xs text-slate-700 outline-none focus:ring-4 focus:ring-primary/5 transition-all appearance-none pr-7 disabled:opacity-50"
+                                                            >
+                                                                <option value="">{t('template.form.selectClassification')}</option>
+                                                                {classifications.map((cls, cIdx) => (
+                                                                    <option key={cIdx} value={cIdx}>[{cls.code}] {cls.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {levels.length > 0 && (
+                                                    <div className="flex-1 min-w-[180px]">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('template.form.blocksAdvancementTo')}</label>
+                                                        <div className="relative">
+                                                            <select
+                                                                disabled={readOnly}
+                                                                value={item.blocksAdvancementToLevelIndex ?? ''}
+                                                                onChange={e => {
+                                                                    const val = e.target.value === '' ? null : Number(e.target.value);
+                                                                    onUpdate(sectionId, item.id, { blocksAdvancementToLevelIndex: val });
+                                                                }}
+                                                                className="w-full p-2.5 bg-white border border-slate-100 rounded-xl font-bold text-xs text-slate-700 outline-none focus:ring-4 focus:ring-primary/5 transition-all appearance-none pr-7 disabled:opacity-50"
+                                                            >
+                                                                <option value="">{t('template.form.none')}</option>
+                                                                {levels.map((lv, lIdx) => (
+                                                                    <option key={lIdx} value={lIdx}>{lv.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Row 2: Responsible + Reference + Allow N/A */}
+                                        <div className="flex flex-wrap gap-4 items-end">
+                                            <div className="flex-1 min-w-[140px]">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('template.form.responsibleLabel')}</label>
+                                                <input
+                                                    type="text"
+                                                    disabled={readOnly}
+                                                    value={item.responsible || ''}
+                                                    onChange={e => onUpdate(sectionId, item.id, { responsible: e.target.value || null })}
+                                                    className="w-full p-2.5 bg-white border border-slate-100 rounded-xl font-bold text-xs text-slate-700 outline-none focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
+                                                    placeholder={t('template.form.responsiblePlaceholder')}
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-[140px]">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('template.form.referenceLabel')}</label>
+                                                <input
+                                                    type="text"
+                                                    disabled={readOnly}
+                                                    value={item.reference || ''}
+                                                    onChange={e => onUpdate(sectionId, item.id, { reference: e.target.value || null })}
+                                                    className="w-full p-2.5 bg-white border border-slate-100 rounded-xl font-bold text-xs text-slate-700 outline-none focus:ring-4 focus:ring-primary/5 transition-all disabled:opacity-50"
+                                                    placeholder={t('template.form.referencePlaceholder')}
+                                                />
+                                            </div>
+                                            <div className="pb-1">
+                                                <Checkbox
+                                                    checked={item.allowNA ?? false}
+                                                    onChange={val => !readOnly && onUpdate(sectionId, item.id, { allowNA: val })}
+                                                    label={t('template.form.allowNA')}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Conditions */}
+                                        {isLevelBased && scopeFields.length > 0 && (
+                                            <div className="space-y-3">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('template.form.conditions')}</label>
+                                                {(item.conditions || []).map((cond: { scopeFieldIndex: number; operator: string; value: string; action: string }, cIdx: number) => (
+                                                    <div key={cIdx} className="flex items-center gap-2 flex-wrap animate-fade-in">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase">{t('template.form.conditionIf')}</span>
+                                                        <div className="relative">
+                                                            <select
+                                                                disabled={readOnly}
+                                                                value={cond.scopeFieldIndex}
+                                                                onChange={e => {
+                                                                    const newConds = [...(item.conditions || [])];
+                                                                    newConds[cIdx] = { ...newConds[cIdx], scopeFieldIndex: Number(e.target.value) };
+                                                                    onUpdate(sectionId, item.id, { conditions: newConds });
+                                                                }}
+                                                                className="p-2 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-700 outline-none appearance-none pr-6 disabled:opacity-50"
+                                                            >
+                                                                {scopeFields.map((sf, sfIdx) => (
+                                                                    <option key={sfIdx} value={sfIdx}>{sf.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={10} />
+                                                        </div>
+                                                        <div className="relative">
+                                                            <select
+                                                                disabled={readOnly}
+                                                                value={cond.operator}
+                                                                onChange={e => {
+                                                                    const newConds = [...(item.conditions || [])];
+                                                                    newConds[cIdx] = { ...newConds[cIdx], operator: e.target.value };
+                                                                    onUpdate(sectionId, item.id, { conditions: newConds });
+                                                                }}
+                                                                className="p-2 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-700 outline-none appearance-none pr-6 disabled:opacity-50"
+                                                            >
+                                                                {OPERATORS.map(op => (
+                                                                    <option key={op.value} value={op.value}>{t(op.labelKey)}</option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={10} />
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            disabled={readOnly}
+                                                            value={cond.value}
+                                                            onChange={e => {
+                                                                const newConds = [...(item.conditions || [])];
+                                                                newConds[cIdx] = { ...newConds[cIdx], value: e.target.value };
+                                                                onUpdate(sectionId, item.id, { conditions: newConds });
+                                                            }}
+                                                            className="w-16 p-2 bg-white border border-slate-100 rounded-lg text-xs font-bold text-slate-700 outline-none text-center disabled:opacity-50"
+                                                        />
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase">→</span>
+                                                        <div className="relative">
+                                                            <select
+                                                                disabled={readOnly}
+                                                                value={cond.action}
+                                                                onChange={e => {
+                                                                    const newConds = [...(item.conditions || [])];
+                                                                    newConds[cIdx] = { ...newConds[cIdx], action: e.target.value };
+                                                                    onUpdate(sectionId, item.id, { conditions: newConds });
+                                                                }}
+                                                                className={`p-2 border rounded-lg text-xs font-black outline-none appearance-none pr-6 disabled:opacity-50 ${
+                                                                    cond.action === 'REMOVE' ? 'bg-red-50 border-red-100 text-red-500' : 'bg-amber-50 border-amber-100 text-amber-500'
+                                                                }`}
+                                                            >
+                                                                <option value="REMOVE">{t('template.form.conditionRemove')}</option>
+                                                                <option value="OPTIONAL">{t('template.form.conditionOptional')}</option>
+                                                            </select>
+                                                            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={10} />
+                                                        </div>
+                                                        {!readOnly && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newConds = (item.conditions || []).filter((_: unknown, i: number) => i !== cIdx);
+                                                                    onUpdate(sectionId, item.id, { conditions: newConds });
+                                                                }}
+                                                                className="text-slate-300 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {(!item.conditions || item.conditions.length === 0) && (
+                                                    <p className="text-[9px] text-slate-400 italic">{t('template.form.noConditions')}</p>
+                                                )}
+                                                {!readOnly && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newConds = [...(item.conditions || []), {
+                                                                scopeFieldIndex: 0,
+                                                                operator: 'EQ',
+                                                                value: '0',
+                                                                action: 'REMOVE',
+                                                            }];
+                                                            onUpdate(sectionId, item.id, { conditions: newConds });
+                                                        }}
+                                                        className="text-[10px] font-black text-primary uppercase tracking-widest hover:text-primary/80 transition-colors flex items-center gap-1"
+                                                    >
+                                                        <Plus size={12} />
+                                                        {t('template.form.addCondition')}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
