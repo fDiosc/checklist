@@ -2,6 +2,27 @@
 
 Todas as alterações notáveis neste projeto serão documentadas neste arquivo.
 
+## [V 0.6.1] - 2026-02-07
+
+### 🔧 Correções
+
+#### Duplicação Completa de Templates Level-Based
+- **Fix:** A duplicação de templates (`POST /api/templates/[id]/duplicate`) agora copia **todos** os dados do template, não apenas seções e perguntas.
+- **Dados agora duplicados:**
+  - Campos do template: `isContinuous`, `actionPlanPromptId`, `correctionActionPlanPromptId`, `completionActionPlanPromptId`, `isLevelBased`, `levelAccumulative`
+  - **Níveis** (`TemplateLevel`) — com remapeamento de IDs
+  - **Classificações** (`TemplateClassification`) — com remapeamento de IDs
+  - **Perguntas de Escopo** (`ScopeField`) — com remapeamento de IDs
+  - **Condições de Item** (`ItemCondition`) — com remapeamento de `scopeFieldId` para novos IDs
+  - Campos de item: `requestArtifact`, `artifactRequired`, `askForQuantity`, `databaseSource`, `classificationId`, `blocksAdvancementToLevelId`, `allowNA`, `responsible`, `reference`
+  - Campo de seção: `levelId` — remapeado para o novo ID do nível duplicado
+- **Mapeamento de IDs:** Utiliza mapas (`levelIdMap`, `classificationIdMap`, `scopeFieldIdMap`) para garantir integridade referencial entre entidades duplicadas.
+
+#### Lint Fix
+- Substituição de tipos `any` por interfaces tipadas (`RawTemplateData`, `RawSection`, `RawItem`, `RawCondition`) em `TemplateForm.tsx`.
+
+---
+
 ## [V 0.6.0] - 2026-02-07
 
 ### 🎯 Checklists de Nível e Checklists Contínuos Level-Aware

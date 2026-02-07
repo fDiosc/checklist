@@ -1,6 +1,6 @@
 # Documentação da API - MerX Platform
 
-> **Versão:** 6.0  
+> **Versão:** 6.1  
 > **Última atualização:** 07 Fevereiro 2026  
 > **Base URL:** `/api`
 
@@ -611,7 +611,18 @@ PUT /api/templates/[id]
 POST /api/templates/[id]/duplicate
 ```
 
-Cria uma cópia do template com novo nome.
+Cria uma cópia completa do template com novo nome `(Cópia)`.
+
+**Dados duplicados:**
+- Todos os campos do template (incluindo `isLevelBased`, `levelAccumulative`, `isContinuous`, prompts de IA)
+- **Níveis** (`TemplateLevel`) — com novos IDs e remapeamento de referências
+- **Classificações** (`TemplateClassification`) — com novos IDs e remapeamento
+- **Perguntas de Escopo** (`ScopeField`) — com novos IDs e remapeamento
+- **Seções** com `levelId` remapeado para o novo nível correspondente
+- **Itens** com todos os campos (`classificationId`, `blocksAdvancementToLevelId`, `requestArtifact`, `allowNA`, `responsible`, `reference`, etc.) remapeados
+- **Condições de Item** (`ItemCondition`) — com `scopeFieldId` remapeado para o novo scope field
+
+**Integridade referencial:** Todas as relações internas (level → section, classification → item, scopeField → condition, level → blocksAdvancement) são remapeadas para os novos IDs, garantindo que o template duplicado é completamente independente do original.
 
 ### 5.5 Atribuição de Templates a Subworkspaces
 
