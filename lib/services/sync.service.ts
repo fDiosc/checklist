@@ -11,6 +11,8 @@ interface ResponseToSync {
     validity: Date | null;
     rejectionReason: string | null;
     reviewedAt: Date | null;
+    isInternal?: boolean;
+    filledById?: string | null;
 }
 
 /**
@@ -45,7 +47,9 @@ export async function syncResponsesToParent(
                 quantity: resp.quantity,
                 validity: resp.validity,
                 rejectionReason: resp.rejectionReason,
-                reviewedAt: resp.reviewedAt || new Date()
+                reviewedAt: resp.reviewedAt || new Date(),
+                isInternal: resp.isInternal ?? false,
+                filledById: resp.filledById ?? null,
             },
             create: {
                 checklistId: parentId,
@@ -58,7 +62,9 @@ export async function syncResponsesToParent(
                 quantity: resp.quantity,
                 validity: resp.validity,
                 rejectionReason: resp.rejectionReason,
-                reviewedAt: resp.reviewedAt || new Date()
+                reviewedAt: resp.reviewedAt || new Date(),
+                isInternal: resp.isInternal ?? false,
+                filledById: resp.filledById ?? null,
             }
         });
     }
