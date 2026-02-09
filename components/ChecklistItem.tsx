@@ -93,7 +93,13 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
             }
 
             const data = await res.json();
-            onUpdate({ fileUrl: data.key, status: item.status });
+            // For FILE type items, the file IS the answer; set both answer and fileUrl
+            const isFileItem = item.type?.toUpperCase() === 'FILE';
+            onUpdate({
+                ...(isFileItem ? { answer: data.key } : {}),
+                fileUrl: data.key,
+                status: item.status
+            });
 
             // Trigger AI validation if callback provided
             if (onAiValidationResult) {
@@ -154,7 +160,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                             <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         <span className="text-xs font-bold truncate max-w-[150px]">{t('publicChecklist.fileUploaded')}</span>
-                        <button onClick={() => onUpdate({ fileUrl: '' })} className="ml-2 hover:text-red-500 transition-colors">
+                        <button onClick={() => onUpdate({ fileUrl: '', ...(item.type?.toUpperCase() === 'FILE' ? { answer: '' } : {}) })} className="ml-2 hover:text-red-500 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

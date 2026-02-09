@@ -41,12 +41,13 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
         return null;
     }, []);
 
-    // Resolve file URL for FILE type items (answer contains S3 key)
+    // Resolve file URL for FILE type items (answer contains S3 key, fallback to fileUrl for backward compat)
     useEffect(() => {
-        if (response?.answer && item?.type === 'FILE') {
-            resolveFileUrl(response.answer).then(url => setResolvedFileUrl(url));
+        const fileKey = item?.type === 'FILE' ? (response?.answer || response?.fileUrl) : null;
+        if (fileKey) {
+            resolveFileUrl(fileKey).then(url => setResolvedFileUrl(url));
         }
-    }, [response?.answer, item?.type, resolveFileUrl]);
+    }, [response?.answer, response?.fileUrl, item?.type, resolveFileUrl]);
 
     // Resolve attachment URL for non-FILE items with requestArtifact (fileUrl field on response)
     useEffect(() => {
@@ -70,7 +71,10 @@ export default function ChecklistItemDetail({ item, response }: ChecklistItemDet
     }, [item, response?.answer]);
 
     if (!item) return null;
-    const answer = response?.answer;
+    // For FILE items, fallback to fileUrl if answer is empty (backward compat)
+    const answer = (item?.type === 'FILE' && !response?.answer && response?.fileUrl) 
+        ? response.fileUrl 
+        : response?.answer;
     const observation = response?.observation;
     const quantity = response?.quantity;
 

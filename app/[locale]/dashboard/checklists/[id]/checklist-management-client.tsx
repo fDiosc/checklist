@@ -1029,7 +1029,9 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                                             r.fieldId === (section.fieldId || "__global__")
                                         );
                                         const isSelected = selectedItem?.item.id === item.id;
-                                        const hasAnswer = response?.answer && response.answer !== "null" && response.answer !== "";
+                                        // For FILE items, also check fileUrl as fallback (backward compat)
+                                        const hasAnswer = (response?.answer && response.answer !== "null" && response.answer !== "")
+                                            || (item.type === 'FILE' && response?.fileUrl);
 
                                         return (
                                             <button
