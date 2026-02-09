@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, CheckCircle, AlertCircle, Clock, XCircle, Search, Sparkles, ChevronDown, ChevronUp, Calendar, ClipboardList, Trophy } from 'lucide-react';
-import { useTranslations, useFormatter } from 'next-intl';
+import { useTranslations, useFormatter, useLocale } from 'next-intl';
 
 // Action Plan Card Component with expandable text
 function ActionPlanCard({
@@ -117,6 +117,7 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
     const router = useRouter();
     const t = useTranslations();
     const format = useFormatter();
+    const locale = useLocale();
     // Local state for responses to allow optimistic updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [responses, setResponses] = useState<any[]>(checklist.responses?.map((r: any) => ({
@@ -423,8 +424,13 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                     itemId: item.id,
                     itemName: item.name,
                     itemDescription: item.description,
+                    itemType: item.type,
                     userAnswer: response.answer,
-                    userObservation: response.observation
+                    userObservation: response.observation,
+                    fileUrl: response.fileUrl || null,
+                    quantity: response.quantity || null,
+                    fieldId: response.fieldId || '__global__',
+                    locale
                 })
             });
             const analysis = await res.json();
