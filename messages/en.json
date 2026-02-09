@@ -602,7 +602,9 @@
       "warning": "Warning about the uploaded document",
       "notLegible": "The document may not be legible.",
       "wrongType": "The document may not be the expected type for this item.",
-      "mustReupload": "Please upload a valid document to continue."
+      "mustReupload": "Please upload a valid document to continue.",
+      "verified": "AI Verified",
+      "documentOk": "The document has been analyzed and matches the expected type."
     },
     "selectOption": "Select an option...",
     "typeAnswer": "Type your answer...",

@@ -38,9 +38,10 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
     const [isChangelogOpen, setIsChangelogOpen] = useState(false);
     const [isActionPlanModalOpen, setIsActionPlanModalOpen] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [aiValidationResult, setAiValidationResult] = useState<{
+    // AI validation results stored per item ID to prevent leaking between items
+    const [aiValidationResults, setAiValidationResults] = useState<Record<string, {
         valid: boolean; legible: boolean; correctType: boolean; message: string; mode?: string;
-    } | null>(null);
+    }>>({}); 
     const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
     const [showFieldSelection, setShowFieldSelection] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -395,7 +396,6 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
         if (isSaving || isFileUploading) return;
         if (currentStep < allItems.length - 1) {
             setCurrentStep(currentStep + 1);
-            setAiValidationResult(null);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
@@ -404,7 +404,6 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
         if (isSaving) return;
         if (currentStep > 0) {
             setCurrentStep(currentStep - 1);
-            setAiValidationResult(null);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
@@ -974,47 +973,66 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         subworkspaceId: checklist.subworkspaceId,
                                         checklistId: checklist.id,
                                     }}
-                                    onAiValidationResult={(result) => setAiValidationResult(result)}
+                                    onAiValidationResult={(result) => setAiValidationResults(prev => ({ ...prev, [currentItem.id]: result }))}
                                     onUploadingChange={setIsFileUploading}
                                 />
 
-                                {/* AI Document Validation Feedback */}
-                                {aiValidationResult && !aiValidationResult.valid && (
+                                {/* AI Document Validation Feedback - per item */}
+                                {aiValidationResults[currentItem.id] && !aiValidationResults[currentItem.id].valid && (
                                     <div className={`rounded-2xl p-5 flex flex-col gap-2 animate-slide-up ${
-                                        aiValidationResult.mode === 'block'
+                                        aiValidationResults[currentItem.id].mode === 'block'
                                             ? 'bg-red-50 border border-red-200'
                                             : 'bg-amber-50 border border-amber-200'
                                     }`}>
                                         <div className={`flex items-center gap-2 font-bold uppercase tracking-wider text-xs ${
-                                            aiValidationResult.mode === 'block' ? 'text-red-600' : 'text-amber-600'
+                                            aiValidationResults[currentItem.id].mode === 'block' ? 'text-red-600' : 'text-amber-600'
                                         }`}>
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                                 <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
-                                            {aiValidationResult.mode === 'block'
+                                            {aiValidationResults[currentItem.id].mode === 'block'
                                                 ? (t('publicChecklist.aiValidation.blocked') || 'Documento não aprovado pela validação')
                                                 : (t('publicChecklist.aiValidation.warning') || 'Aviso sobre o documento')}
                                         </div>
                                         <p className={`text-sm font-medium ${
-                                            aiValidationResult.mode === 'block' ? 'text-red-800' : 'text-amber-800'
+                                            aiValidationResults[currentItem.id].mode === 'block' ? 'text-red-800' : 'text-amber-800'
                                         }`}>
-                                            {aiValidationResult.message}
+                                            {aiValidationResults[currentItem.id].message}
                                         </p>
-                                        {!aiValidationResult.legible && (
+                                        {!aiValidationResults[currentItem.id].legible && (
                                             <p className="text-xs text-slate-500">{t('publicChecklist.aiValidation.notLegible') || 'O documento pode não estar legível.'}</p>
                                         )}
-                                        {!aiValidationResult.correctType && (
+                                        {!aiValidationResults[currentItem.id].correctType && (
                                             <p className="text-xs text-slate-500">{t('publicChecklist.aiValidation.wrongType') || 'O documento pode não ser do tipo esperado.'}</p>
                                         )}
-                                        {aiValidationResult.mode === 'block' && (
+                                        {aiValidationResults[currentItem.id].mode === 'block' && (
                                             <p className="text-xs text-red-600 font-bold mt-1">{t('publicChecklist.aiValidation.mustReupload') || 'Faça o upload novamente com um documento válido para continuar.'}</p>
                                         )}
                                         <button
-                                            onClick={() => setAiValidationResult(null)}
+                                            onClick={() => setAiValidationResults(prev => { const next = { ...prev }; delete next[currentItem.id]; return next; })}
                                             className="self-end text-xs text-slate-400 hover:text-slate-600 mt-1"
                                         >
                                             {t('common.dismiss') || 'Dispensar'}
                                         </button>
+                                    </div>
+                                )}
+
+                                {/* AI Verified Badge - shown when validation passed */}
+                                {aiValidationResults[currentItem.id] && aiValidationResults[currentItem.id].valid && (
+                                    <div className="rounded-2xl p-4 flex items-center gap-3 animate-slide-up bg-emerald-50 border border-emerald-200">
+                                        <div className="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
+                                                {t('publicChecklist.aiValidation.verified') || 'Verificado com IA'}
+                                            </p>
+                                            <p className="text-[11px] text-emerald-600 font-medium">
+                                                {aiValidationResults[currentItem.id].message || (t('publicChecklist.aiValidation.documentOk') || 'O documento foi analisado e está de acordo.')}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
@@ -1073,7 +1091,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                     {responses[currentItem.id]?.status !== 'APPROVED' ? (
                                         <button
                                             onClick={handleManualSave}
-                                            disabled={isSaving || isFileUploading || (aiValidationResult?.mode === 'block' && !aiValidationResult?.valid)}
+                                            disabled={isSaving || isFileUploading || (aiValidationResults[currentItem.id]?.mode === 'block' && !aiValidationResults[currentItem.id]?.valid)}
                                             className={`
                                             w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-all flex items-center justify-center gap-3
                                             ${saveStatus === 'success'

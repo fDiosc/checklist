@@ -602,7 +602,9 @@
       "warning": "Aviso sobre el documento subido",
       "notLegible": "El documento puede no ser legible.",
       "wrongType": "El documento puede no ser del tipo esperado para este ítem.",
-      "mustReupload": "Sube nuevamente un documento válido para continuar."
+      "mustReupload": "Sube nuevamente un documento válido para continuar.",
+      "verified": "Verificado con IA",
+      "documentOk": "El documento fue analizado y corresponde al tipo esperado."
     },
     "selectOption": "Selecciona una opción...",
     "typeAnswer": "Escribe tu respuesta...",
