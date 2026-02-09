@@ -1027,7 +1027,7 @@ export function ChecklistFormClient({ checklist }: { checklist: any }) {
                                         </div>
                                         <div>
                                             <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">
-                                                {t('publicChecklist.aiValidation.verified') || 'Verificado com IA'}
+                                                {t('publicChecklist.aiValidation.verified') || 'Verificado'}
                                             </p>
                                             <p className="text-[11px] text-emerald-600 font-medium">
                                                 {aiValidationResults[currentItem.id].message || (t('publicChecklist.aiValidation.documentOk') || 'O documento foi analisado e está de acordo.')}

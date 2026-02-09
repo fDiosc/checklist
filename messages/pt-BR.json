@@ -603,7 +603,7 @@
       "notLegible": "O documento pode não estar legível.",
       "wrongType": "O documento pode não ser do tipo esperado para este item.",
       "mustReupload": "Faça o upload novamente com um documento válido para continuar.",
-      "verified": "Verificado com IA",
+      "verified": "Verificado",
       "documentOk": "O documento foi analisado e está de acordo com o esperado."
     },
     "selectOption": "Selecione uma opção...",
