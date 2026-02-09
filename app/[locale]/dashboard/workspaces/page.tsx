@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 import {
     Plus, Search, Edit2, Trash2, Loader2, AlertCircle,
     Building2, Users, FileText, ClipboardList, X, Check, Network, ChevronRight, Shield, Key, Eye, EyeOff, BrainCircuit
@@ -44,7 +44,6 @@ interface Subworkspace {
 
 export default function WorkspacesPage() {
     const t = useTranslations();
-    const locale = useLocale();
     const router = useRouter();
     const { data: session, status } = useSession();
     const queryClient = useQueryClient();
@@ -94,7 +93,7 @@ export default function WorkspacesPage() {
     // Redirect if not SuperAdmin (only on client side)
     if (status === 'authenticated' && !isSuperAdmin) {
         if (typeof window !== 'undefined') {
-            router.push(`/${locale}/dashboard`);
+            router.push('/dashboard');
         }
         return null;
     }
@@ -555,7 +554,7 @@ interface SubworkspaceModalProps {
 }
 
 function SubworkspaceModal({ workspace, onClose, onSuccess }: SubworkspaceModalProps) {
-    const locale = useLocale();
+    const router = useRouter();
     const [isCreating, setIsCreating] = useState(false);
     const [newSubworkspace, setNewSubworkspace] = useState({
         name: '',
@@ -763,7 +762,7 @@ function SubworkspaceModal({ workspace, onClose, onSuccess }: SubworkspaceModalP
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => window.location.href = `/${locale}/dashboard/users`}
+                                                    onClick={() => router.push('/dashboard/users')}
                                                     className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
                                                     title="Gerenciar usuários"
                                                 >

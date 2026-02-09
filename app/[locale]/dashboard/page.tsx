@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, FolderOpen, ClipboardList, ShieldCheck, Zap } from "lucide-react";
 import { useTranslations } from 'next-intl';
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 
 export default function DashboardPage() {
     const router = useRouter();

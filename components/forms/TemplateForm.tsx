@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 import { Plus, Trash2, Save, X, ChevronDown, GripVertical, Layers, BarChart3, Settings2 } from 'lucide-react';
 import Switch from '@/components/ui/Switch';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

@@ -6,7 +6,7 @@ import { Edit, ChevronDown, Building2, Eye } from 'lucide-react';
 import { useTranslations, useFormatter } from 'next-intl';
 import ProducerHistory from '@/components/dashboard/ProducerHistory';
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 import SendChecklistModal from '@/components/modals/SendChecklistModal';
 
 type TabType = 'own' | 'subworkspaces';
@@ -60,19 +60,24 @@ export default function ProdutoresPage() {
 
     const isEsgEnabled = esgStatus?.esgEnabled === true;
 
+    // Determine if user data is loaded and we know the workspace configuration
+    const isUserDataReady = !!userData?.workspace;
+
     const { data: producers, isLoading } = useQuery({
-        queryKey: ['producers', searchTerm, activeTab, subworkspaceFilter],
+        queryKey: ['producers', searchTerm, activeTab, subworkspaceFilter, !!hasSubworkspaces],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (searchTerm) params.set('search', searchTerm);
-            if (hasSubworkspaces) {
-                params.set('scope', activeTab);
-            }
+            // ALWAYS send scope parameter to prevent data leakage
+            // If hasSubworkspaces is true, use activeTab; otherwise default to 'own'
+            params.set('scope', hasSubworkspaces ? activeTab : 'own');
             const queryString = params.toString() ? `?${params.toString()}` : '';
             const res = await fetch(`/api/producers${queryString}`);
             if (!res.ok) throw new Error('Failed to fetch');
             return res.json();
         },
+        // Only enable query when user data is ready to prevent fetching with wrong scope
+        enabled: isUserDataReady,
     });
 
     // Filter producers by subworkspace on client side if filter is set

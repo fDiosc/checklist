@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, User, CreditCard, ChevronRight, Loader2 } from 'lucide-react';
 

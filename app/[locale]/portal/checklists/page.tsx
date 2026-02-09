@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter, Link } from '@/i18n/routing';
 import Image from 'next/image';
 import { useTranslations, useFormatter } from 'next-intl';
 import { PORTAL_STATUS_INFO } from '@/lib/utils/status';

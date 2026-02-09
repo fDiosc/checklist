@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, CheckCircle, AlertCircle, Clock, XCircle, Search, Sparkles, ChevronDown, ChevronUp, Calendar, ClipboardList, Trophy } from 'lucide-react';
-import { useTranslations, useFormatter, useLocale } from 'next-intl';
+import { useTranslations, useFormatter } from 'next-intl';
 
 // Action Plan Card Component with expandable text
 function ActionPlanCard({
@@ -94,7 +94,7 @@ function ActionPlanCard({
         </div>
     );
 }
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { STATUS_TRANSLATION_KEYS, type ChecklistStatus } from '@/lib/utils/status';
 import ChecklistItemDetail from './checklist-item-detail';
@@ -110,14 +110,13 @@ interface ChecklistManagementClientProps {
     readOnly?: boolean;
 }
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ChecklistManagementClient({ checklist, producerMaps, readOnly = false }: ChecklistManagementClientProps) {
     const router = useRouter();
     const t = useTranslations();
     const format = useFormatter();
-    const locale = useLocale();
     // Local state for responses to allow optimistic updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [responses, setResponses] = useState<any[]>(checklist.responses?.map((r: any) => ({
@@ -622,7 +621,7 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                                 <>
                                     <span className="text-slate-300">•</span>
                                     <Link
-                                        href={`/${locale}/dashboard/checklists/${checklist.parentId}`}
+                                        href={`/dashboard/checklists/${checklist.parentId}`}
                                         className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors flex items-center gap-1"
                                     >
                                         <AlertCircle size={10} />

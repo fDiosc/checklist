@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { ChevronDown, ChevronUp, XCircle, ClipboardList, CheckCircle, Clock, AlertTriangle, Calendar, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusLabel } from '@/lib/utils/status';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 interface ChildChecklist {
     id: string;
@@ -58,7 +58,6 @@ function formatDate(date: string | Date | undefined | null): string {
 }
 
 function ChildChecklistRow({ child, level = 0 }: { child: ChildChecklist; level?: number }) {
-    const locale = useLocale();
     const t = useTranslations();
     const typeLabel = getTypeLabel(child.type, t);
     const isCorrection = child.type === 'CORRECTION';
@@ -69,7 +68,7 @@ function ChildChecklistRow({ child, level = 0 }: { child: ChildChecklist; level?
     return (
         <>
             <Link
-                href={`/${locale}/dashboard/checklists/${child.id}`}
+                href={`/dashboard/checklists/${child.id}`}
                 className={cn(
                     "flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group",
                     level > 0 && "ml-6 border-l-2 border-slate-200"

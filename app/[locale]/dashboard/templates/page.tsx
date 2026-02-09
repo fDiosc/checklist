@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Edit, Copy, Send, Folder, Trash2, Filter, Building2, Lock, Eye } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
 import { useTranslations, useFormatter } from 'next-intl';
 import SendChecklistModal from '@/components/modals/SendChecklistModal';
 
