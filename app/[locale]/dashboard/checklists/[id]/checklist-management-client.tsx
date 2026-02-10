@@ -409,7 +409,9 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
         const item = selectedItem.item;
         const response = selectedItem.response;
 
-        if (!response || !response.answer) {
+        // For FILE items, also accept fileUrl as valid answer (backward compat)
+        const effectiveAnswer = response?.answer || (item.type === 'FILE' ? response?.fileUrl : null);
+        if (!response || !effectiveAnswer) {
             alert(t('checklistManagement.noResponseToAnalyze'));
             setIsAnalyzing(false);
             return;
@@ -425,7 +427,7 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                     itemName: item.name,
                     itemDescription: item.description,
                     itemType: item.type,
-                    userAnswer: response.answer,
+                    userAnswer: effectiveAnswer,
                     userObservation: response.observation,
                     fileUrl: response.fileUrl || null,
                     quantity: response.quantity || null,
@@ -777,8 +779,8 @@ export default function ChecklistManagementClient({ checklist, producerMaps, rea
                         <>
                             <button
                                 onClick={handleAnalyzeCurrentItem}
-                                // Disable if analyzing OR no item selected OR item has no answer
-                                disabled={isAnalyzing || !selectedItem || !selectedItem.response?.answer}
+                                // Disable if analyzing OR no item selected OR item has no answer (FILE items: also check fileUrl)
+                                disabled={isAnalyzing || !selectedItem || !(selectedItem.response?.answer || (selectedItem.item?.type === 'FILE' && selectedItem.response?.fileUrl))}
                                 className={cn(
                                     "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-indigo-200 text-sm transition-all flex items-center gap-2",
                                     (!selectedItem || !selectedItem.response?.answer) && "disabled:bg-indigo-600 disabled:shadow-none disabled:opacity-50"
