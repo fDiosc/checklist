@@ -158,7 +158,12 @@ export async function GET(req: Request) {
         // Handle scope-based filtering
         if (scope === 'own') {
             // Only checklists from user's own workspace
-            where.workspaceId = session.user.workspaceId;
+            // SuperAdmin without workspace sees all
+            if (session.user.workspaceId) {
+                where.workspaceId = session.user.workspaceId;
+            } else if (session.user.role !== 'SUPERADMIN') {
+                return NextResponse.json({ error: "No workspace assigned" }, { status: 400 });
+            }
         } else if (scope === 'subworkspaces') {
             // Only checklists from subworkspaces (not the parent)
             if (!session.user.workspaceId) {
