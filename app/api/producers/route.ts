@@ -69,6 +69,10 @@ export async function POST(req: Request) {
                 phone: validatedData.phone,
                 city: validatedData.city,
                 state: validatedData.state,
+                // Auto-assign supervisor when they create a producer
+                assignedSupervisors: session.user.role === 'SUPERVISOR'
+                    ? { connect: { id: session.user.id } }
+                    : undefined,
                 subUsers: validatedData.subUsers
                     ? {
                         create: validatedData.subUsers,
